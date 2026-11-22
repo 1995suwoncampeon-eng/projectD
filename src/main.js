@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {
+  MODEL_ROTATION_Y,
   PLAYER_MODEL_PATH,
   RIVAL_MODEL_PATH,
   PLAYER_THEME,
@@ -66,6 +67,8 @@ class ProjectDGame {
     // 3D car visual controllers (loaded asynchronously)
     this.playerCar = null;
     this.rivalCar = null;
+    this.rivalCarCache = new Map();
+    this._rivalSwapSeq = 0;
     this.modelsReady = false;
 
     // Input state
@@ -176,7 +179,22 @@ class ProjectDGame {
     this.scene.add(fillLight);
   }
 
+  _getOrLoadRivalCar(rival) {
+    if (!this.rivalCarCache.has(rival.id)) {
+      const promise = loadCarModel({
+        path: rival.modelPath ?? RIVAL_MODEL_PATH,
+        rotationY: rival.modelRotationY ?? MODEL_ROTATION_Y,
+        isPlayer: false,
+        bodyColor: rival.colorNum,
+        accentColor: rival.colorNum,
+      });
+      this.rivalCarCache.set(rival.id, promise);
+    }
+    return this.rivalCarCache.get(rival.id);
+  }
+
   async _loadVehicleModels() {
+    const initialRival = this.selectedRival;
     const [playerCar, rivalCar] = await Promise.all([
       loadCarModel({
         path: PLAYER_MODEL_PATH,
@@ -184,22 +202,28 @@ class ProjectDGame {
         bodyColor: PLAYER_THEME.bodyColor,
         accentColor: PLAYER_THEME.accentColor,
       }),
-      loadCarModel({
-        path: RIVAL_MODEL_PATH,
-        isPlayer: false,
-        bodyColor: this.selectedRival.colorNum,
-        accentColor: this.selectedRival.colorNum,
-      }),
+      this._getOrLoadRivalCar(initialRival),
     ]);
 
     this.playerCar = playerCar;
-    this.rivalCar = rivalCar;
     this.scene.add(this.playerCar.root);
-    this.scene.add(this.rivalCar.root);
-    this.modelsReady = true;
 
+    // Attach initial rival car only if user has not already switched to another rival
+    if (this.selectedRival.id === initialRival.id && !this.rivalCar) {
+      this.rivalCar = rivalCar;
+      this.scene.add(this.rivalCar.root);
+    }
+
+    this.modelsReady = true;
     this.applyRivalSelection(this.selectedRival);
     this._syncCarMeshes(0);
+
+    // Preload remaining rival models in the background for instant switching
+    for (const r of RIVALS) {
+      if (r.id !== initialRival.id) {
+        this._getOrLoadRivalCar(r);
+      }
+    }
   }
 
   _bindEvents() {
@@ -307,9 +331,20 @@ class ProjectDGame {
   applyRivalSelection(rival) {
     this.selectedRival = rival;
     this.hud.setRivalAppearance(rival);
-    if (this.rivalCar) {
+
+    const swapSeq = ++this._rivalSwapSeq;
+    this._getOrLoadRivalCar(rival).then((nextRivalCar) => {
+      if (swapSeq !== this._rivalSwapSeq) return;
+      if (this.rivalCar && this.rivalCar !== nextRivalCar) {
+        this.scene.remove(this.rivalCar.root);
+      }
+      this.rivalCar = nextRivalCar;
+      if (this.rivalCar.root.parent !== this.scene) {
+        this.scene.add(this.rivalCar.root);
+      }
       this.rivalCar.setColors(rival.colorNum, rival.colorNum);
-    }
+      this._syncCarMeshes(0);
+    });
   }
 
   enterTitle() {

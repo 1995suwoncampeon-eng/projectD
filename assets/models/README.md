@@ -3,7 +3,11 @@
 Place your custom 3D car models in this directory using the exact filenames below:
 
 - `assets/models/player_car.glb` — Player vehicle
-- `assets/models/rival_car.glb` — Rival vehicle
+- `assets/models/rival_car.glb` — Default rival vehicle (fallback for rivals without a dedicated model)
+- `assets/models/Bongo.glb` — TAKESHI (`EASY`) rival vehicle
+- `assets/models/Mohavi.glb` — BUNTA (`GOD`) rival vehicle
+
+Per-rival paths and orientations (`modelPath`, `modelRotationY`) are configured in `RIVALS` inside `src/config.js`.
 
 ## Automatic Normalization
 When loaded via `GLTFLoader` in `src/carModel.js`:

@@ -50,7 +50,7 @@ export const PLAYER_PHYSICS = {
 };
 
 // ============================================================================
-// RIVAL ROSTER (3 Tiers: EASY / NORMAL / HARD)
+// RIVAL ROSTER (4 Tiers: EASY / NORMAL / HARD / GOD)
 // ============================================================================
 export const RIVALS = [
   {
@@ -60,10 +60,12 @@ export const RIVALS = [
     difficulty: 'EASY',
     difficultyKr: '초급',
     badgeClass: 'easy',
-    carLabel: 'MIDNIGHT R32',
+    carLabel: 'BONGO FRONTIER',
     colorHex: '#2563eb',
     colorNum: 0x2563eb,
     accentHex: '#60a5fa',
+    modelPath: 'assets/models/Bongo.glb',
+    modelRotationY: Math.PI / 2,
     tagline: '안정적인 그립 주행을 선호하는 초급 라이벌. 코너 진입 전 일찍 감속합니다.',
     stats: {
       topSpeedKmh: 176,
@@ -92,6 +94,8 @@ export const RIVALS = [
     colorHex: '#facc15',
     colorNum: 0xfacc15,
     accentHex: '#fde047',
+    modelPath: RIVAL_MODEL_PATH,
+    modelRotationY: MODEL_ROTATION_Y,
     tagline: '강력한 탈출 가속과 과감한 드리프트로 압박하는 중급 라이벌입니다.',
     stats: {
       topSpeedKmh: 196,
@@ -120,6 +124,8 @@ export const RIVALS = [
     colorHex: '#e2e8f0',
     colorNum: 0xe2e8f0,
     accentHex: '#38bdf8',
+    modelPath: RIVAL_MODEL_PATH,
+    modelRotationY: MODEL_ROTATION_Y,
     tagline: '정밀한 에이펙스 공략과 완벽한 코너링 안정성을 갖춘 최강 라이벌입니다.',
     stats: {
       topSpeedKmh: 212,
@@ -135,6 +141,36 @@ export const RIVALS = [
       rubberBandCatchup: 0.12,
       rubberBandEase: 0.04,
       laneBias: 0.9,
+    },
+  },
+  {
+    id: 'bunta',
+    name: 'BUNTA',
+    team: 'FUJIWARA TOFU',
+    difficulty: 'GOD',
+    difficultyKr: '신',
+    badgeClass: 'god',
+    carLabel: 'MOHAVI 4WD',
+    colorHex: '#a855f7',
+    colorNum: 0xa855f7,
+    accentHex: '#e879f9',
+    modelPath: 'assets/models/Mohavi.glb',
+    modelRotationY: Math.PI / 2,
+    tagline: '아키나 최속의 전설. 차원이 다른 코너링과 속도로 압도하는 최강 GOD 라이벌입니다.',
+    stats: {
+      topSpeedKmh: 222,
+      corneringStability: 1.0,
+      accelFactor: 1.0,
+      aggression: 1.0,
+    },
+    ai: {
+      maxSpeedKmh: 222,
+      accel: 26.8,
+      cornerSpeedFactor: 1.04,
+      lookAheadBase: 21,
+      rubberBandCatchup: 0.14,
+      rubberBandEase: 0.02,
+      laneBias: 0.6,
     },
   },
 ];

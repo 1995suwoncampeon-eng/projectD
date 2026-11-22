@@ -307,6 +307,8 @@ function attachArcadeLights(root, { isPlayer, accentColor, carSize }) {
  */
 export async function loadCarModel({
   path,
+  rotationY = MODEL_ROTATION_Y,
+  targetWidth = TARGET_CAR_WIDTH,
   isPlayer = true,
   bodyColor = 0xf8fafc,
   accentColor = 0x38bdf8,
@@ -320,13 +322,16 @@ export async function loadCarModel({
 
   let isFallback = false;
   let fallbackRefs = null;
-  let carSize = new THREE.Vector3(TARGET_CAR_WIDTH, 1.35, 4.4);
+  let carSize = new THREE.Vector3(targetWidth, 1.35, 4.4);
 
   try {
+    if (!path) {
+      throw new Error('No model path specified');
+    }
     const gltf = await new Promise((resolve, reject) => {
       sharedLoader.load(path, resolve, undefined, reject);
     });
-    const normalized = normalizeLoadedModel(gltf.scene, MODEL_ROTATION_Y, TARGET_CAR_WIDTH);
+    const normalized = normalizeLoadedModel(gltf.scene, rotationY, targetWidth);
     visualBody.add(normalized.pivot);
     carSize = normalized.size;
   } catch (_err) {

@@ -69,7 +69,7 @@ export class UIController {
     RIVALS.forEach((rival, idx) => {
       const card = document.createElement('button');
       card.type = 'button';
-      card.className = 'rival-card';
+      card.className = `rival-card${rival.badgeClass === 'god' ? ' god-tier' : ''}`;
       card.dataset.rivalId = rival.id;
       card.setAttribute('role', 'option');
       card.setAttribute('aria-selected', 'false');
