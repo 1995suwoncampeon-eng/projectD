@@ -170,6 +170,8 @@ export const RIVALS = [
       fullThrottleCorners: true,
       apexRatio: 0.97,
       maxLateralRatio: 0.98,
+      driftCurvatureThreshold: 0.0022,
+      driftSlipRad: 0.46,
       lookAheadBase: 9.5,
       rubberBandCatchup: 0.14,
       rubberBandEase: 0.0,

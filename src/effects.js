@@ -135,7 +135,7 @@ export class EffectsManager {
     const rrx = car.x + sinA * rearOffset + rx * trackHalf;
     const rrz = car.z + cosA * rearOffset + rz * trackHalf;
 
-    if (car.isDrifting && car.speedKmh > 52) {
+    if (car.isDrifting && car.speedKmh > 30) {
       if (timer <= 0) {
         this._stampSkid(rlx, rlz, car.heading);
         this._stampSkid(rrx, rrz, car.heading);

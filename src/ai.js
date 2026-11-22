@@ -129,17 +129,22 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   // Enforce 2D track boundaries
   const proj = enforceTrackBounds(rival, track, dt, 1.2);
 
-  // Expressive AI drift visual on tight hairpins
+  // Expressive AI drift visual on corners (configurable per rival)
   const speedKmh = rival.speed * MS_TO_KMH;
-  const absCurv = Math.abs(proj.curvature);
-  const aiDrifting = absCurv > 0.0085 && speedKmh > 52;
+  const driftThreshold = ai.driftCurvatureThreshold ?? 0.0085;
+  const driftSlip = ai.driftSlipRad ?? 0.34;
+  const entryCurv = ai.fullThrottleCorners
+    ? track.getUpcomingCurvature(rival.s, 0, 24).signedPeak
+    : proj.curvature;
+  const effectiveCurv = Math.abs(proj.curvature) >= Math.abs(entryCurv) ? proj.curvature : entryCurv;
+  const aiDrifting = Math.abs(effectiveCurv) > driftThreshold && speedKmh > 52;
   rival.isDrifting = aiDrifting;
-  rival.driftDir = aiDrifting ? Math.sign(proj.curvature) : 0;
+  rival.driftDir = aiDrifting ? Math.sign(effectiveCurv) : 0;
 
-  const targetSlip = aiDrifting ? rival.driftDir * 0.34 : Math.max(-0.08, Math.min(0.08, headingDiff * 0.25));
-  rival.visualSlip += (targetSlip - rival.visualSlip) * Math.min(1, dt * 8);
+  const targetSlip = aiDrifting ? rival.driftDir * driftSlip : Math.max(-0.08, Math.min(0.08, headingDiff * 0.25));
+  rival.visualSlip += (targetSlip - rival.visualSlip) * Math.min(1, dt * 8.5);
   rival.steerVisual += (Math.max(-1, Math.min(1, headingDiff * 2.2)) - rival.steerVisual) * Math.min(1, dt * 10);
-  rival.bodyRoll += (rival.driftDir * 0.06 - rival.bodyRoll) * Math.min(1, dt * 9);
+  rival.bodyRoll += (rival.driftDir * (aiDrifting ? 0.085 : 0.06) - rival.bodyRoll) * Math.min(1, dt * 9);
 
   updateDrivetrain(rival);
 }
