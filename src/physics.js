@@ -19,6 +19,8 @@ export function createVehicleState(track, startS, lateralOffset = 0) {
     driftDir: 0, // -1 right, +1 left
     driftCharge: 0,
     driftBoostTimer: 0,
+    cornerExitCharge: 0,
+    turboBoostTimer: 0,
     isBraking: false,
     scrapedWall: false,
     scrapeX: spawn.x,
@@ -48,6 +50,8 @@ export function resetVehicleToSpawn(car, track, startS, lateralOffset = 0) {
   car.driftDir = 0;
   car.driftCharge = 0;
   car.driftBoostTimer = 0;
+  car.cornerExitCharge = 0;
+  car.turboBoostTimer = 0;
   car.isBraking = false;
   car.scrapedWall = false;
   car.trackIndex = spawn.index;

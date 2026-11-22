@@ -14,17 +14,32 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   // 1. Inspect upcoming curvature to calculate smooth cornering speed target
   const { peakAbs, signedPeak } = track.getUpcomingCurvature(rival.s, 10, 92);
 
+  // Rotary twin-turbo corner-exit boost timer decay
+  if (rival.turboBoostTimer > 0) {
+    rival.turboBoostTimer = Math.max(0, rival.turboBoostTimer - dt);
+  }
+  const turboCfg = ai.twinTurboBoost || null;
+  const turboActive = Boolean(turboCfg && rival.turboBoostTimer > 0);
+
   let targetSpeedKmh;
   if (ai.fullThrottleCorners) {
     // Full throttle through every corner — never lifts off the accelerator
     targetSpeedKmh = ai.maxSpeedKmh;
   } else {
     // Higher cornerSpeedFactor (e.g. Ryosuke 0.97) carries far more speed through hairpins
-    const cornerSensitivity = 48 - ai.cornerSpeedFactor * 27;
+    const baseSensitivity = 48 - ai.cornerSpeedFactor * 27;
+    const cornerSensitivity = baseSensitivity * (ai.cornerDecelScale ?? 1.0);
     targetSpeedKmh = ai.maxSpeedKmh / (1 + peakAbs * cornerSensitivity);
 
     // Clamp minimum hairpin crawl so rival always feels lively
-    targetSpeedKmh = Math.max(44 + ai.cornerSpeedFactor * 18, targetSpeedKmh);
+    const minCrawl = ai.minCornerSpeedRatio
+      ? ai.maxSpeedKmh * ai.minCornerSpeedRatio
+      : 44 + ai.cornerSpeedFactor * 18;
+    targetSpeedKmh = Math.max(minCrawl, targetSpeedKmh);
+  }
+
+  if (turboActive) {
+    targetSpeedKmh += turboCfg.boostKmh;
   }
 
   // 2. Smooth Rubber-Banding (tapers off in final 130m sprint for fair finishes)
@@ -45,16 +60,24 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
 
   const desiredSpeedMs = targetSpeedKmh * rubberMultiplier * KMH_TO_MS;
 
-  // 3. Longitudinal acceleration / braking toward desired speed
+  // 3. Longitudinal acceleration / braking / lift-off coasting toward desired speed
   rival.isBraking = false;
   if (rival.speed < desiredSpeedMs) {
     const ratio = Math.max(0, rival.speed / Math.max(1, desiredSpeedMs));
-    const pull = ai.accel * (1.12 - 0.45 * ratio * ratio);
+    const accelMult = turboActive ? turboCfg.boostAccelMult : 1.0;
+    const pull = ai.accel * accelMult * (1.12 - 0.45 * ratio * ratio);
     rival.speed = Math.min(desiredSpeedMs, rival.speed + pull * dt);
   } else if (!ai.fullThrottleCorners) {
     const excess = rival.speed - desiredSpeedMs;
-    if (excess > 3.0) rival.isBraking = true;
-    rival.speed = Math.max(desiredSpeedMs, rival.speed - 16.0 * dt);
+    if (ai.coastOnlyCorners) {
+      // Lift off the throttle (engine braking only); barely ever touches the brake
+      const decelRate = ai.coastDecel ?? 3.4;
+      if (excess > 9.5) rival.isBraking = true;
+      rival.speed = Math.max(desiredSpeedMs, rival.speed - decelRate * dt);
+    } else {
+      if (excess > 3.0) rival.isBraking = true;
+      rival.speed = Math.max(desiredSpeedMs, rival.speed - 16.0 * dt);
+    }
   }
 
   // 4. Target Waypoint & Racing Line Lateral Offset
@@ -154,6 +177,19 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   rival.visualSlip += (targetSlip - rival.visualSlip) * Math.min(1, dt * 8.5);
   rival.steerVisual += (Math.max(-1, Math.min(1, headingDiff * 2.2)) - rival.steerVisual) * Math.min(1, dt * 10);
   rival.bodyRoll += (rival.driftDir * (aiDrifting ? 0.085 : 0.06) - rival.bodyRoll) * Math.min(1, dt * 9);
+
+  // Rotary twin-turbo spool: charge through corner apex, fire boost on exit!
+  if (turboCfg) {
+    const absProjCurv = Math.abs(proj.curvature);
+    if (absProjCurv > 0.0065) {
+      rival.cornerExitCharge = Math.min(1.0, (rival.cornerExitCharge || 0) + dt * 1.45);
+    } else if ((rival.cornerExitCharge || 0) >= 0.32 && absProjCurv < 0.0055) {
+      rival.turboBoostTimer = turboCfg.boostDuration;
+      rival.cornerExitCharge = 0;
+    } else {
+      rival.cornerExitCharge = Math.max(0, (rival.cornerExitCharge || 0) - dt * 0.6);
+    }
+  }
 
   updateDrivetrain(rival);
 }
