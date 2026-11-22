@@ -27,7 +27,7 @@ export const TRACK_CONFIG = {
   carHalfWidth: 1.15,    // Collision half-width against guardrail
   startLineS: 28,        // Arc-length start position (meters)
   finishMarginS: 36,     // Run-off distance past the finish line
-  sampleCount: 780,      // Spline discretization density
+  sampleCount: 1500,     // High-density spline discretization for 5-consecutive hairpins
 };
 
 // ============================================================================

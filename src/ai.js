@@ -85,6 +85,7 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   );
 
   let headingDiff = 0;
+  let proj;
   if (ai.fullThrottleCorners) {
     // High-precision spline-locked inside-apex tracking so full-throttle cornering
     // hugs right up to the guardrail limit without scraping or decelerating.
@@ -109,6 +110,11 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     }
     rival.x = nextPt.x;
     rival.z = nextPt.z;
+    rival.s = nextS;
+    rival.lateral = nextLat;
+    rival.trackIndex = nextPt.index;
+    rival.scrapedWall = false;
+    proj = track.getPointAtS(nextS);
   } else {
     const lookAheadDist = ai.lookAheadBase + rival.speed * 0.34;
     const targetPt = track.getWorldPosition(rival.s + lookAheadDist, targetLateral);
@@ -124,10 +130,10 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     // Advance on 2D X-Z plane
     rival.x += Math.sin(rival.heading) * rival.speed * dt;
     rival.z += Math.cos(rival.heading) * rival.speed * dt;
-  }
 
-  // Enforce 2D track boundaries
-  const proj = enforceTrackBounds(rival, track, dt, 1.2);
+    // Enforce 2D track boundaries
+    proj = enforceTrackBounds(rival, track, dt, 1.2);
+  }
 
   // Expressive AI drift visual on corners (configurable per rival)
   const speedKmh = rival.speed * MS_TO_KMH;

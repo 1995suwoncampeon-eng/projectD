@@ -174,7 +174,7 @@ export function buildTougeEnvironment(scene, track) {
   const { samples, halfWidth, guardrailOffset } = track;
 
   // 1. Dark ground plane (mountain floor slightly below asphalt to avoid Z-fighting)
-  const groundGeo = new THREE.PlaneGeometry(3600, 3600);
+  const groundGeo = new THREE.PlaneGeometry(6000, 6000);
   const groundMat = new THREE.MeshStandardMaterial({
     color: 0x070b14,
     roughness: 0.98,
@@ -182,7 +182,9 @@ export function buildTougeEnvironment(scene, track) {
   });
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
-  ground.position.set(0, -0.08, -720);
+  const centerX = (track.bounds.minX + track.bounds.maxX) * 0.5;
+  const centerZ = (track.bounds.minZ + track.bounds.maxZ) * 0.5;
+  ground.position.set(centerX, -0.08, centerZ);
   envGroup.add(ground);
 
   // 2. Asphalt Road Surface (flat at Y = 0)
@@ -380,26 +382,32 @@ export function buildTougeEnvironment(scene, track) {
   poolInst.instanceMatrix.needsUpdate = true;
   envGroup.add(poleInst, armInst, headInst, poolInst);
 
-  // 9. Stylized Low-Poly Roadside Pine Silhouettes (strictly outside guardrails)
-  const treeCount = 240;
+  // 9. Stylized Low-Poly Roadside Pine Silhouettes (strictly outside all guardrails, even in switchbacks)
+  const treeCandidates = 360;
   const trunkGeo = new THREE.CylinderGeometry(0.25, 0.35, 3.0, 5);
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x1e1b18, roughness: 1.0 });
   const crownGeo = new THREE.ConeGeometry(2.6, 8.5, 6);
   const crownMat = new THREE.MeshStandardMaterial({ color: 0x0d1f1c, roughness: 0.95 });
-  const trunkInst = new THREE.InstancedMesh(trunkGeo, trunkMat, treeCount);
-  const crownInst = new THREE.InstancedMesh(crownGeo, crownMat, treeCount);
+  const trunkInst = new THREE.InstancedMesh(trunkGeo, trunkMat, treeCandidates);
+  const crownInst = new THREE.InstancedMesh(crownGeo, crownMat, treeCandidates);
 
   let tIdx = 0;
-  for (let i = 0; i < treeCount; i++) {
-    const s = 10 + (i / treeCount) * (track.totalLength - 20);
+  for (let i = 0; i < treeCandidates; i++) {
+    const s = 10 + (i / treeCandidates) * (track.totalLength - 20);
     const pt = track.getPointAtS(s);
     const side = i % 2 === 0 ? -1 : 1;
     // Pseudo-random deterministic offset well outside guardrail
     const rand = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
-    const dist = guardrailOffset + 6.5 + rand * 18;
+    const dist = guardrailOffset + 6.5 + rand * 16;
     const scale = 0.8 + rand * 0.9;
     const tx = pt.x + pt.rx * side * dist;
     const tz = pt.z + pt.rz * side * dist;
+
+    // Guard against landing on an adjacent hairpin leg
+    const nearest = track.projectPoint(tx, tz, -1);
+    if (Math.abs(nearest.lateral) < guardrailOffset + 4.5) {
+      continue;
+    }
 
     dummy.position.set(tx, 1.5 * scale, tz);
     dummy.rotation.set(0, rand * Math.PI * 2, 0);
@@ -412,6 +420,8 @@ export function buildTougeEnvironment(scene, track) {
     crownInst.setMatrixAt(tIdx, dummy.matrix);
     tIdx++;
   }
+  trunkInst.count = tIdx;
+  crownInst.count = tIdx;
   dummy.scale.set(1, 1, 1);
   trunkInst.instanceMatrix.needsUpdate = true;
   crownInst.instanceMatrix.needsUpdate = true;
