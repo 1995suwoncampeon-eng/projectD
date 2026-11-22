@@ -73,7 +73,7 @@
 
 ## 5. Implementation Checklist
 - [x] **Step 0**: Author `SPEC.md` and commit specification.
-- [ ] **Step 1**: Base static entry (`index.html`, `styles.css`, `src/config.js`, `assets/models/README.md`).
+- [x] **Step 1**: Base static entry (`index.html`, `styles.css`, `src/config.js`, `assets/models/README.md`).
 - [ ] **Step 2**: Track system (`src/track.js`, `src/trackRenderer.js`) — 2D downhill spline & night touge visuals.
 - [ ] **Step 3**: 3D Car loader & fallback (`src/carModel.js`) — `GLTFLoader`, `THREE.Box3` normalization, `MODEL_ROTATION_Y`, low-poly fallback sports car.
 - [ ] **Step 4**: 2D Arcade Physics, Rival AI & Drift Effects (`src/physics.js`, `src/ai.js`, `src/effects.js`, `src/audio.js`).
