@@ -29,12 +29,24 @@ export class UIController {
     this.screens = {
       TITLE: document.getElementById('screen-title'),
       SELECT: document.getElementById('screen-select'),
+      CUTSCENE: document.getElementById('screen-cutscene'),
       RESULT: document.getElementById('screen-result'),
     };
 
     this.countdownOverlay = document.getElementById('countdown-overlay');
     this.countdownText = document.getElementById('countdown-text');
     this.countdownSub = document.getElementById('countdown-sub');
+
+    this.cutscenePhaseBadge = document.getElementById('cutscene-phase-badge');
+    this.cutsceneTitle = document.getElementById('cutscene-title');
+    this.cutsceneRivalPill = document.getElementById('cutscene-rival-pill');
+    this.cutsceneVideo = document.getElementById('cutscene-video');
+    this.cutsceneImage = document.getElementById('cutscene-image');
+    this.cutscenePlaceholder = document.getElementById('cutscene-placeholder');
+    this.cutsceneSlotTag = document.getElementById('cutscene-slot-tag');
+    this.cutsceneSlotHint = document.getElementById('cutscene-slot-hint');
+    this.cutsceneCaption = document.getElementById('cutscene-caption');
+    this.cutsceneContinueLabel = document.getElementById('cutscene-continue-label');
 
     this.rivalGrid = document.getElementById('rival-grid');
     this.selectedNameEl = document.getElementById('selected-rival-name');
@@ -161,9 +173,86 @@ export class UIController {
     document.getElementById('btn-quick-reset')?.addEventListener('click', () => {
       this.callbacks.onQuickReset?.();
     });
+    document.getElementById('btn-cutscene-skip')?.addEventListener('click', () => {
+      this.callbacks.onCutsceneComplete?.();
+    });
+    document.getElementById('btn-cutscene-continue')?.addEventListener('click', () => {
+      this.callbacks.onCutsceneComplete?.();
+    });
+    this.cutsceneVideo?.addEventListener('ended', () => {
+      this.callbacks.onCutsceneComplete?.();
+    });
+  }
+
+  stopCutsceneMedia() {
+    if (this.cutsceneVideo) {
+      this.cutsceneVideo.pause();
+      this.cutsceneVideo.removeAttribute('src');
+      this.cutsceneVideo.load();
+      this.cutsceneVideo.classList.add('hidden');
+    }
+    if (this.cutsceneImage) {
+      this.cutsceneImage.removeAttribute('src');
+      this.cutsceneImage.classList.add('hidden');
+    }
+    if (this.cutscenePlaceholder) {
+      this.cutscenePlaceholder.classList.remove('hidden');
+    }
+  }
+
+  showCutscene({ rival, phase, won = null }) {
+    this.stopCutsceneMedia();
+
+    const isIntro = phase === 'intro';
+    const slot = rival.cutscenes?.[phase] || {};
+    const slotId = `${rival.id}_${phase}`;
+
+    if (this.cutscenePhaseBadge) {
+      const outcomeTag = !isIntro && won !== null ? (won ? ' // VICTORY' : ' // DEFEAT') : '';
+      this.cutscenePhaseBadge.textContent = isIntro
+        ? 'PRE-RACE CUTSCENE'
+        : `POST-RACE CUTSCENE${outcomeTag}`;
+    }
+    if (this.cutsceneTitle) {
+      this.cutsceneTitle.textContent = slot.title || (isIntro ? `VS ${rival.name}` : `AFTER BATTLE // ${rival.name}`);
+    }
+    if (this.cutsceneRivalPill) {
+      this.cutsceneRivalPill.className = `difficulty-pill ${rival.badgeClass}`;
+      this.cutsceneRivalPill.textContent = `${rival.difficultyKr} // ${rival.difficulty}`;
+    }
+    if (this.cutsceneSlotTag) {
+      this.cutsceneSlotTag.textContent = `CUTSCENE SLOT // ${slotId.toUpperCase()}`;
+    }
+    if (this.cutsceneSlotHint) {
+      this.cutsceneSlotHint.textContent = `assets/cutscenes/${slotId}.*`;
+    }
+    if (this.cutsceneCaption) {
+      this.cutsceneCaption.textContent =
+        slot.caption || `[${rival.name} ${isIntro ? '시작 전' : '종료 후'} 컷신 영역]`;
+    }
+    if (this.cutsceneContinueLabel) {
+      this.cutsceneContinueLabel.textContent = isIntro ? 'RACE START' : 'VIEW RESULT';
+    }
+
+    const mediaPath = slot.mediaPath;
+    if (mediaPath && /\.(mp4|webm|ogg)(\?.*)?$/i.test(mediaPath) && this.cutsceneVideo) {
+      this.cutscenePlaceholder?.classList.add('hidden');
+      this.cutsceneVideo.src = mediaPath;
+      this.cutsceneVideo.classList.remove('hidden');
+      this.cutsceneVideo.play().catch(() => {});
+    } else if (mediaPath && this.cutsceneImage) {
+      this.cutscenePlaceholder?.classList.add('hidden');
+      this.cutsceneImage.src = mediaPath;
+      this.cutsceneImage.classList.remove('hidden');
+    }
+
+    this.showScreen('CUTSCENE');
   }
 
   showScreen(state) {
+    if (state !== 'CUTSCENE') {
+      this.stopCutsceneMedia();
+    }
     Object.entries(this.screens).forEach(([key, el]) => {
       if (!el) return;
       el.classList.toggle('active', key === state);

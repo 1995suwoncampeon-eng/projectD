@@ -1031,6 +1031,147 @@ kbd {
 }
 
 /* ============================================================================
+   CUTSCENE SCREEN (Pre-Race / Post-Race Slot)
+   ============================================================================ */
+#screen-cutscene {
+  background: radial-gradient(circle at center, rgba(10, 16, 34, 0.88) 0%, rgba(3, 6, 14, 0.97) 100%);
+  backdrop-filter: blur(8px);
+}
+
+.cutscene-shell {
+  width: min(980px, 94vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 26px;
+  background: rgba(7, 11, 22, 0.96);
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  border-radius: 14px;
+  box-shadow: 0 28px 75px rgba(0, 0, 0, 0.85);
+}
+
+.cutscene-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.cutscene-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cutscene-phase-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: var(--cyan-bright);
+}
+
+.cutscene-title {
+  font-size: 24px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+
+.cutscene-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 52vh;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #04070f;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cutscene-media {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000000;
+}
+
+.cutscene-placeholder {
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(56, 189, 248, 0.04),
+      rgba(56, 189, 248, 0.04) 14px,
+      rgba(15, 23, 42, 0.22) 14px,
+      rgba(15, 23, 42, 0.22) 28px
+    );
+  border: 2px dashed rgba(56, 189, 248, 0.32);
+}
+
+.cutscene-slot-tag {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: var(--cyan-bright);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.cutscene-slot-heading {
+  font-size: 20px;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.cutscene-slot-hint {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cutscene-caption-box {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.85);
+  border-left: 3px solid var(--cyan);
+}
+
+.cutscene-caption {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+.cutscene-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.cutscene-continue-btn {
+  min-width: 210px;
+  padding: 11px 24px;
+}
+
+/* ============================================================================
    RESULT SCREEN
    ============================================================================ */
 #screen-result {

@@ -92,13 +92,17 @@ class ProjectDGame {
     this.camPos = new THREE.Vector3(0, 6, 12);
     this.camLook = new THREE.Vector3(0, 1, -10);
 
+    // Pending race result carried across post-race outro cutscene
+    this._pendingResult = null;
+
     // Screen UI controller
     this.ui = new UIController({
       onOpenTitle: () => this.enterTitle(),
       onOpenSelect: () => this.enterSelect(),
       onRivalPreview: (rival) => this.applyRivalSelection(rival),
-      onStartRace: (rival) => this.startRace(rival),
+      onStartRace: (rival) => this.enterIntroCutscene(rival),
       onRetryRace: () => this.startRace(this.selectedRival),
+      onCutsceneComplete: () => this.completeCutscene(),
       onToggleMute: () => this.toggleMute(),
       onQuickReset: () => this.triggerTrackRecovery(),
     });
@@ -263,9 +267,16 @@ class ProjectDGame {
         } else if (code === 'ArrowRight' || code === 'KeyD') {
           this.ui.selectRival(this.ui.selectedRivalIndex + 1, true);
         } else if (code === 'Enter') {
-          this.startRace(this.ui.getSelectedRival());
+          this.enterIntroCutscene(this.ui.getSelectedRival());
         } else if (code === 'Escape') {
           this.enterTitle();
+        }
+        return;
+      }
+
+      if (this.state === 'CUTSCENE_INTRO' || this.state === 'CUTSCENE_OUTRO') {
+        if (!e.repeat && (code === 'Enter' || code === 'Space' || code === 'Escape')) {
+          this.completeCutscene();
         }
         return;
       }
@@ -373,6 +384,31 @@ class ProjectDGame {
     this._syncCarMeshes(0);
   }
 
+  enterIntroCutscene(rivalConfig) {
+    this.audio.unlock();
+    const rival = rivalConfig || this.selectedRival;
+    this.applyRivalSelection(rival);
+
+    if (rival.cutscenes?.intro?.enabled === false) {
+      this.startRace(rival);
+      return;
+    }
+
+    this.state = 'CUTSCENE_INTRO';
+    this._clearInputs();
+    this.audio.silenceEngine();
+    this.hud.setVisible(false);
+    this.ui.showCutscene({ rival, phase: 'intro' });
+  }
+
+  completeCutscene() {
+    if (this.state === 'CUTSCENE_INTRO') {
+      this.startRace(this.selectedRival);
+    } else if (this.state === 'CUTSCENE_OUTRO') {
+      this._showResultScreen();
+    }
+  }
+
   startRace(rivalConfig) {
     this.audio.unlock();
     this.applyRivalSelection(rivalConfig || this.selectedRival);
@@ -403,20 +439,34 @@ class ProjectDGame {
   }
 
   _finishRace(won) {
-    this.state = 'RESULT';
     this._clearInputs();
     this.audio.silenceEngine();
     this.audio.playFinish(won);
     this.hud.setVisible(false);
 
     const gapMeters = this.player.s - this.rival.s;
-    this.ui.showResult({
+    this._pendingResult = {
       won,
       rival: this.selectedRival,
       raceTime: this.raceElapsed,
       gapMeters,
       topSpeedKmh: this.player.maxSpeedAchievedKmh,
-    });
+    };
+
+    if (this.selectedRival.cutscenes?.outro?.enabled !== false) {
+      this.state = 'CUTSCENE_OUTRO';
+      this.ui.showCutscene({ rival: this.selectedRival, phase: 'outro', won });
+      return;
+    }
+
+    this._showResultScreen();
+  }
+
+  _showResultScreen() {
+    this.state = 'RESULT';
+    if (this._pendingResult) {
+      this.ui.showResult(this._pendingResult);
+    }
   }
 
   _syncCarMeshes(dt) {
@@ -455,7 +505,7 @@ class ProjectDGame {
       this.camPos.lerp(targetPos, Math.min(1, dt * 3.5));
       this.camLook.lerp(targetLook, Math.min(1, dt * 3.5));
       this.camera.fov += (58 - this.camera.fov) * smooth;
-    } else if (this.state === 'SELECT') {
+    } else if (this.state === 'SELECT' || this.state === 'CUTSCENE_INTRO') {
       const pt = this.track.getPointAtS(this.track.startS);
       const sway = Math.sin(this.clockTime * 0.65) * 2.2;
       const targetPos = new THREE.Vector3(pt.x + 2.6 + sway, 3.6, pt.z - 10.5);
@@ -463,7 +513,7 @@ class ProjectDGame {
       this.camPos.lerp(targetPos, Math.min(1, dt * 4.5));
       this.camLook.lerp(targetLook, Math.min(1, dt * 4.5));
       this.camera.fov += (54 - this.camera.fov) * smooth;
-    } else if (this.state === 'RESULT') {
+    } else if (this.state === 'RESULT' || this.state === 'CUTSCENE_OUTRO') {
       const orbitAngle = this.clockTime * 0.42;
       const targetPos = new THREE.Vector3(
         this.player.x + Math.sin(orbitAngle) * 10.5,

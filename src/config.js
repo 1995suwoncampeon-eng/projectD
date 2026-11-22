@@ -82,6 +82,20 @@ export const RIVALS = [
       rubberBandEase: 0.13,     // Max ease when far ahead
       laneBias: 1.8,            // Right-side bias on straights
     },
+    cutscenes: {
+      intro: {
+        enabled: true,
+        title: 'VS TAKESHI // NIGHT KIDS',
+        mediaPath: null, // e.g. 'assets/cutscenes/takeshi_intro.mp4' or '.png'
+        caption: '[TAKESHI 시작 전 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+      },
+      outro: {
+        enabled: true,
+        title: 'AFTER BATTLE // TAKESHI',
+        mediaPath: null, // e.g. 'assets/cutscenes/takeshi_outro.mp4' or '.png'
+        caption: '[TAKESHI 종료 후 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+      },
+    },
   },
   {
     id: 'keisuke',
@@ -118,6 +132,20 @@ export const RIVALS = [
       rubberBandCatchup: 0.11,
       rubberBandEase: 0.08,
       laneBias: 1.4,
+    },
+    cutscenes: {
+      intro: {
+        enabled: true,
+        title: 'VS KEISUKE // RED SUNS',
+        mediaPath: null, // e.g. 'assets/cutscenes/keisuke_intro.mp4' or '.png'
+        caption: '[KEISUKE 시작 전 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+      },
+      outro: {
+        enabled: true,
+        title: 'AFTER BATTLE // KEISUKE',
+        mediaPath: null, // e.g. 'assets/cutscenes/keisuke_outro.mp4' or '.png'
+        caption: '[KEISUKE 종료 후 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+      },
     },
   },
   {
@@ -160,6 +188,20 @@ export const RIVALS = [
       rubberBandEase: 0.04,
       laneBias: 0.9,
     },
+    cutscenes: {
+      intro: {
+        enabled: true,
+        title: 'VS RYOSUKE // WHITE COMET',
+        mediaPath: null, // e.g. 'assets/cutscenes/ryosuke_intro.mp4' or '.png'
+        caption: '[RYOSUKE 시작 전 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+      },
+      outro: {
+        enabled: true,
+        title: 'AFTER BATTLE // RYOSUKE',
+        mediaPath: null, // e.g. 'assets/cutscenes/ryosuke_outro.mp4' or '.png'
+        caption: '[RYOSUKE 종료 후 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+      },
+    },
   },
   {
     id: 'bunta',
@@ -194,6 +236,20 @@ export const RIVALS = [
       rubberBandCatchup: 0.14,
       rubberBandEase: 0.0,
       laneBias: 0.4,
+    },
+    cutscenes: {
+      intro: {
+        enabled: true,
+        title: 'VS BUNTA // FUJIWARA TOFU',
+        mediaPath: null, // e.g. 'assets/cutscenes/bunta_intro.mp4' or '.png'
+        caption: '[BUNTA 시작 전 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+      },
+      outro: {
+        enabled: true,
+        title: 'AFTER BATTLE // BUNTA',
+        mediaPath: null, // e.g. 'assets/cutscenes/bunta_outro.mp4' or '.png'
+        caption: '[BUNTA 종료 후 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+      },
     },
   },
 ];
