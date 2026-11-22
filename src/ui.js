@@ -40,13 +40,18 @@ export class UIController {
     this.cutscenePhaseBadge = document.getElementById('cutscene-phase-badge');
     this.cutsceneTitle = document.getElementById('cutscene-title');
     this.cutsceneRivalPill = document.getElementById('cutscene-rival-pill');
-    this.cutsceneVideo = document.getElementById('cutscene-video');
-    this.cutsceneImage = document.getElementById('cutscene-image');
-    this.cutscenePlaceholder = document.getElementById('cutscene-placeholder');
+    this.cutsceneCharImg = document.getElementById('cutscene-character-img');
+    this.cutscenePlaceholder = document.getElementById('cutscene-portrait-placeholder');
     this.cutsceneSlotTag = document.getElementById('cutscene-slot-tag');
     this.cutsceneSlotHint = document.getElementById('cutscene-slot-hint');
-    this.cutsceneCaption = document.getElementById('cutscene-caption');
-    this.cutsceneContinueLabel = document.getElementById('cutscene-continue-label');
+    this.cutsceneDialogueBox = document.getElementById('cutscene-dialogue-box');
+    this.cutsceneSpeaker = document.getElementById('cutscene-speaker');
+    this.cutsceneProgress = document.getElementById('cutscene-progress');
+    this.cutsceneText = document.getElementById('cutscene-text');
+    this.cutsceneNextHint = document.getElementById('cutscene-next-hint');
+
+    this._cutsceneState = null;
+    this._typewriterTimer = null;
 
     this.rivalGrid = document.getElementById('rival-grid');
     this.selectedNameEl = document.getElementById('selected-rival-name');
@@ -174,26 +179,23 @@ export class UIController {
       this.callbacks.onQuickReset?.();
     });
     document.getElementById('btn-cutscene-skip')?.addEventListener('click', () => {
+      this.stopCutsceneMedia();
       this.callbacks.onCutsceneComplete?.();
     });
-    document.getElementById('btn-cutscene-continue')?.addEventListener('click', () => {
-      this.callbacks.onCutsceneComplete?.();
-    });
-    this.cutsceneVideo?.addEventListener('ended', () => {
-      this.callbacks.onCutsceneComplete?.();
+    this.cutsceneDialogueBox?.addEventListener('click', () => {
+      this.advanceCutscene();
     });
   }
 
   stopCutsceneMedia() {
-    if (this.cutsceneVideo) {
-      this.cutsceneVideo.pause();
-      this.cutsceneVideo.removeAttribute('src');
-      this.cutsceneVideo.load();
-      this.cutsceneVideo.classList.add('hidden');
+    if (this._typewriterTimer !== null) {
+      clearInterval(this._typewriterTimer);
+      this._typewriterTimer = null;
     }
-    if (this.cutsceneImage) {
-      this.cutsceneImage.removeAttribute('src');
-      this.cutsceneImage.classList.add('hidden');
+    this._cutsceneState = null;
+    if (this.cutsceneCharImg) {
+      this.cutsceneCharImg.removeAttribute('src');
+      this.cutsceneCharImg.classList.add('hidden');
     }
     if (this.cutscenePlaceholder) {
       this.cutscenePlaceholder.classList.remove('hidden');
@@ -205,7 +207,9 @@ export class UIController {
 
     const isIntro = phase === 'intro';
     const slot = rival.cutscenes?.[phase] || {};
-    const slotId = `${rival.id}_${phase}`;
+    const rawLines = Array.isArray(slot.lines) && slot.lines.length > 0
+      ? slot.lines
+      : [{ speaker: rival.name, color: rival.colorHex, image: null, text: `[${rival.name} 컷신 대사 영역]` }];
 
     if (this.cutscenePhaseBadge) {
       const outcomeTag = !isIntro && won !== null ? (won ? ' // VICTORY' : ' // DEFEAT') : '';
@@ -220,33 +224,140 @@ export class UIController {
       this.cutsceneRivalPill.className = `difficulty-pill ${rival.badgeClass}`;
       this.cutsceneRivalPill.textContent = `${rival.difficultyKr} // ${rival.difficulty}`;
     }
-    if (this.cutsceneSlotTag) {
-      this.cutsceneSlotTag.textContent = `CUTSCENE SLOT // ${slotId.toUpperCase()}`;
-    }
-    if (this.cutsceneSlotHint) {
-      this.cutsceneSlotHint.textContent = `assets/cutscenes/${slotId}.*`;
-    }
-    if (this.cutsceneCaption) {
-      this.cutsceneCaption.textContent =
-        slot.caption || `[${rival.name} ${isIntro ? '시작 전' : '종료 후'} 컷신 영역]`;
-    }
-    if (this.cutsceneContinueLabel) {
-      this.cutsceneContinueLabel.textContent = isIntro ? 'RACE START' : 'VIEW RESULT';
-    }
 
-    const mediaPath = slot.mediaPath;
-    if (mediaPath && /\.(mp4|webm|ogg)(\?.*)?$/i.test(mediaPath) && this.cutsceneVideo) {
-      this.cutscenePlaceholder?.classList.add('hidden');
-      this.cutsceneVideo.src = mediaPath;
-      this.cutsceneVideo.classList.remove('hidden');
-      this.cutsceneVideo.play().catch(() => {});
-    } else if (mediaPath && this.cutsceneImage) {
-      this.cutscenePlaceholder?.classList.add('hidden');
-      this.cutsceneImage.src = mediaPath;
-      this.cutsceneImage.classList.remove('hidden');
-    }
+    this._cutsceneState = {
+      rival,
+      phase,
+      isIntro,
+      slot,
+      lines: rawLines,
+      lineIndex: 0,
+      isTyping: false,
+      fullText: '',
+    };
 
     this.showScreen('CUTSCENE');
+    this._renderCutsceneLine(0);
+  }
+
+  _renderCutsceneLine(index) {
+    const st = this._cutsceneState;
+    if (!st) return;
+
+    if (this._typewriterTimer !== null) {
+      clearInterval(this._typewriterTimer);
+      this._typewriterTimer = null;
+    }
+
+    const line = st.lines[index];
+    st.lineIndex = index;
+    st.fullText = line.text || '';
+    st.isTyping = true;
+
+    // 1. Center Character Portrait (per-line override or default rival portrait)
+    const portraitSrc = line.image || st.slot.characterImage || null;
+    if (portraitSrc && this.cutsceneCharImg) {
+      this.cutscenePlaceholder?.classList.add('hidden');
+      if (this.cutsceneCharImg.getAttribute('src') !== portraitSrc) {
+        this.cutsceneCharImg.src = portraitSrc;
+      }
+      this.cutsceneCharImg.classList.remove('hidden');
+    } else {
+      this.cutsceneCharImg?.classList.add('hidden');
+      this.cutscenePlaceholder?.classList.remove('hidden');
+      if (this.cutsceneSlotTag) {
+        this.cutsceneSlotTag.textContent = `PORTRAIT SLOT // ${(line.speaker || st.rival.name).toUpperCase()}`;
+      }
+      if (this.cutsceneSlotHint) {
+        this.cutsceneSlotHint.textContent = `assets/cutscenes/${st.rival.id}.png`;
+      }
+    }
+
+    // 2. Speaker nameplate & paragraph progress
+    const speakerName = line.speaker || st.rival.name;
+    const speakerColor = line.color || st.rival.accentHex || st.rival.colorHex;
+    if (this.cutsceneSpeaker) {
+      this.cutsceneSpeaker.textContent = speakerName;
+      this.cutsceneSpeaker.style.borderLeftColor = speakerColor;
+    }
+    if (this.cutsceneProgress) {
+      this.cutsceneProgress.textContent = `${index + 1} / ${st.lines.length}`;
+    }
+
+    // 3. Typewriter playback
+    if (this.cutsceneText) {
+      this.cutsceneText.textContent = '';
+    }
+    this._updateCutsceneHint();
+
+    let charIdx = 0;
+    this._typewriterTimer = setInterval(() => {
+      if (!this._cutsceneState) {
+        clearInterval(this._typewriterTimer);
+        this._typewriterTimer = null;
+        return;
+      }
+      charIdx++;
+      if (this.cutsceneText) {
+        this.cutsceneText.textContent = st.fullText.slice(0, charIdx);
+      }
+      if (charIdx >= st.fullText.length) {
+        clearInterval(this._typewriterTimer);
+        this._typewriterTimer = null;
+        st.isTyping = false;
+        this._updateCutsceneHint();
+      }
+    }, 30);
+  }
+
+  _updateCutsceneHint() {
+    const st = this._cutsceneState;
+    if (!st || !this.cutsceneNextHint) return;
+
+    if (st.isTyping) {
+      this.cutsceneNextHint.textContent = '클릭하여 대사 즉시 표시';
+      this.cutsceneNextHint.classList.add('typing');
+      return;
+    }
+
+    this.cutsceneNextHint.classList.remove('typing');
+    const isLast = st.lineIndex >= st.lines.length - 1;
+    if (isLast) {
+      this.cutsceneNextHint.textContent = st.isIntro
+        ? '클릭하여 레이스 시작 ▶'
+        : '클릭하여 결과 보기 ▶';
+    } else {
+      this.cutsceneNextHint.textContent = '클릭하여 다음 대사 ▼';
+    }
+  }
+
+  advanceCutscene() {
+    const st = this._cutsceneState;
+    if (!st) return;
+
+    // 1. If currently typing, reveal full current paragraph immediately
+    if (st.isTyping) {
+      if (this._typewriterTimer !== null) {
+        clearInterval(this._typewriterTimer);
+        this._typewriterTimer = null;
+      }
+      st.isTyping = false;
+      if (this.cutsceneText) {
+        this.cutsceneText.textContent = st.fullText;
+      }
+      this._updateCutsceneHint();
+      return;
+    }
+
+    // 2. Otherwise move to next dialogue paragraph
+    if (st.lineIndex + 1 < st.lines.length) {
+      this._renderCutsceneLine(st.lineIndex + 1);
+      return;
+    }
+
+    // 3. Finished all paragraphs -> complete cutscene
+    this.stopCutsceneMedia();
+    this.callbacks.onCutsceneComplete?.();
   }
 
   showScreen(state) {

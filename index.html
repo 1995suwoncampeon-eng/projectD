@@ -91,39 +91,39 @@
     </section>
 
     <!-- ==========================================
-         2.5. CUTSCENE SCREEN (Pre-Race / Post-Race Slot)
+         2.5. CUTSCENE SCREEN (Visual Novel / Arcade Stage Style)
          ========================================== -->
     <section id="screen-cutscene" class="screen" aria-label="Cutscene Screen">
-      <div class="cutscene-shell">
-        <header class="cutscene-header">
-          <div class="cutscene-meta">
-            <span id="cutscene-phase-badge" class="cutscene-phase-badge">PRE-RACE CUTSCENE</span>
-            <h2 id="cutscene-title" class="cutscene-title">VS RIVAL</h2>
-          </div>
+      <div class="cutscene-topbar">
+        <div class="cutscene-topbar-left">
+          <span id="cutscene-phase-badge" class="cutscene-phase-badge">PRE-RACE CUTSCENE</span>
+          <span id="cutscene-title" class="cutscene-title">VS RIVAL</span>
           <span id="cutscene-rival-pill" class="difficulty-pill easy">초급 // EASY</span>
-        </header>
-
-        <div id="cutscene-stage" class="cutscene-stage">
-          <video id="cutscene-video" class="cutscene-media hidden" playsinline></video>
-          <img id="cutscene-image" class="cutscene-media hidden" alt="Cutscene" />
-          <div id="cutscene-placeholder" class="cutscene-placeholder">
-            <span id="cutscene-slot-tag" class="cutscene-slot-tag">CUTSCENE SLOT // TAKESHI_INTRO</span>
-            <p class="cutscene-slot-heading">컷신 영역 (준비 중)</p>
-            <p id="cutscene-slot-hint" class="cutscene-slot-hint">assets/cutscenes/takeshi_intro.*</p>
-          </div>
         </div>
+        <button id="btn-cutscene-skip" class="btn-ghost cutscene-skip-btn" type="button">SKIP [ESC]</button>
+      </div>
 
-        <div id="cutscene-caption-box" class="cutscene-caption-box">
-          <p id="cutscene-caption" class="cutscene-caption"></p>
+      <!-- Center Character Portrait Area -->
+      <div id="cutscene-portrait-stage" class="cutscene-portrait-stage">
+        <img id="cutscene-character-img" class="cutscene-character-img hidden" alt="Character Portrait" />
+        <div id="cutscene-portrait-placeholder" class="cutscene-portrait-placeholder">
+          <span id="cutscene-slot-tag" class="cutscene-slot-tag">PORTRAIT SLOT // TAKESHI</span>
+          <div class="cutscene-silhouette" aria-hidden="true"></div>
+          <p class="cutscene-slot-heading">캐릭터 이미지 영역</p>
+          <p id="cutscene-slot-hint" class="cutscene-slot-hint">assets/cutscenes/takeshi.png</p>
         </div>
+      </div>
 
-        <footer class="cutscene-footer">
-          <button id="btn-cutscene-skip" class="btn-ghost" type="button">SKIP [ESC]</button>
-          <button id="btn-cutscene-continue" class="btn-primary cutscene-continue-btn" type="button">
-            <span id="cutscene-continue-label" class="btn-main-label">CONTINUE</span>
-            <span class="btn-sub-label">PRESS ENTER OR SPACE</span>
-          </button>
-        </footer>
+      <!-- Bottom Clickable Dialogue Box -->
+      <div id="cutscene-dialogue-box" class="cutscene-dialogue-box" role="button" tabindex="0" aria-label="다음 대사로 넘어가기">
+        <div class="cutscene-dialogue-header">
+          <span id="cutscene-speaker" class="cutscene-speaker">SPEAKER</span>
+          <span id="cutscene-progress" class="cutscene-progress">1 / 2</span>
+        </div>
+        <p id="cutscene-text" class="cutscene-text"></p>
+        <div class="cutscene-dialogue-footer">
+          <span id="cutscene-next-hint" class="cutscene-next-hint">클릭하여 다음 대사 ▼</span>
+        </div>
       </div>
     </section>
 

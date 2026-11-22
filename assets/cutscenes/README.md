@@ -1,14 +1,14 @@
-# Rival Cutscene Assets
+# Rival Cutscene Character Portraits & Dialogue
 
-Place per-rival pre-race (`intro`) and post-race (`outro`) cutscene media files (`.mp4`, `.webm`, `.png`, `.jpg`, `.webp`) in this directory, then set the corresponding `mediaPath` inside `RIVALS[].cutscenes` in `src/config.js`.
+Place character portrait images (`.png`, `.webp`, `.jpg`) in this directory and configure `characterImage` / `lines` inside `RIVALS[].cutscenes` in `src/config.js`.
 
-## Recommended Filenames
+## Recommended Portrait Filenames
 
-| Rival | Pre-Race Cutscene (`intro`) | Post-Race Cutscene (`outro`) |
+| Rival | Default Portrait | Optional Per-Line Expression Override |
 | :--- | :--- | :--- |
-| **TAKESHI** (`takeshi`) | `assets/cutscenes/takeshi_intro.*` | `assets/cutscenes/takeshi_outro.*` |
-| **KEISUKE** (`keisuke`) | `assets/cutscenes/keisuke_intro.*` | `assets/cutscenes/keisuke_outro.*` |
-| **RYOSUKE** (`ryosuke`) | `assets/cutscenes/ryosuke_intro.*` | `assets/cutscenes/ryosuke_outro.*` |
-| **BUNTA** (`bunta`) | `assets/cutscenes/bunta_intro.*` | `assets/cutscenes/bunta_outro.*` |
+| **TAKESHI** (`takeshi`) | `assets/cutscenes/takeshi.png` | `line.image: 'assets/cutscenes/takeshi_angry.png'` |
+| **KEISUKE** (`keisuke`) | `assets/cutscenes/keisuke.png` | `line.image: 'assets/cutscenes/keisuke_smirk.png'` |
+| **RYOSUKE** (`ryosuke`) | `assets/cutscenes/ryosuke.png` | `line.image: 'assets/cutscenes/ryosuke_calm.png'` |
+| **BUNTA** (`bunta`) | `assets/cutscenes/bunta.png` | `line.image: 'assets/cutscenes/bunta_smoke.png'` |
 
-When `mediaPath` is `null` (default), the game displays a placeholder cutscene stage with `SKIP [ESC]` / `CONTINUE [ENTER]` controls so gameplay flow remains uninterrupted.
+Each cutscene (`intro` / `outro`) contains a `lines` array of `{ speaker, color, image, text }` paragraphs that play with a typewriter effect and advance on clicking the dialogue box (or pressing `Enter` / `Space`).

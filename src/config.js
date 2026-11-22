@@ -86,14 +86,40 @@ export const RIVALS = [
       intro: {
         enabled: true,
         title: 'VS TAKESHI // NIGHT KIDS',
-        mediaPath: null, // e.g. 'assets/cutscenes/takeshi_intro.mp4' or '.png'
-        caption: '[TAKESHI 시작 전 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+        characterImage: null, // e.g. 'assets/cutscenes/takeshi.png'
+        lines: [
+          {
+            speaker: 'TAKESHI',
+            color: '#60a5fa',
+            image: null,
+            text: '[TAKESHI 시작 전 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
+          },
+          {
+            speaker: 'TAKESHI',
+            color: '#60a5fa',
+            image: null,
+            text: '[TAKESHI 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
+          },
+        ],
       },
       outro: {
         enabled: true,
         title: 'AFTER BATTLE // TAKESHI',
-        mediaPath: null, // e.g. 'assets/cutscenes/takeshi_outro.mp4' or '.png'
-        caption: '[TAKESHI 종료 후 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+        characterImage: null,
+        lines: [
+          {
+            speaker: 'TAKESHI',
+            color: '#60a5fa',
+            image: null,
+            text: '[TAKESHI 종료 후 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
+          },
+          {
+            speaker: 'TAKESHI',
+            color: '#60a5fa',
+            image: null,
+            text: '[TAKESHI 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
+          },
+        ],
       },
     },
   },
@@ -137,14 +163,40 @@ export const RIVALS = [
       intro: {
         enabled: true,
         title: 'VS KEISUKE // RED SUNS',
-        mediaPath: null, // e.g. 'assets/cutscenes/keisuke_intro.mp4' or '.png'
-        caption: '[KEISUKE 시작 전 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+        characterImage: null, // e.g. 'assets/cutscenes/keisuke.png'
+        lines: [
+          {
+            speaker: 'KEISUKE',
+            color: '#fde047',
+            image: null,
+            text: '[KEISUKE 시작 전 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
+          },
+          {
+            speaker: 'KEISUKE',
+            color: '#fde047',
+            image: null,
+            text: '[KEISUKE 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
+          },
+        ],
       },
       outro: {
         enabled: true,
         title: 'AFTER BATTLE // KEISUKE',
-        mediaPath: null, // e.g. 'assets/cutscenes/keisuke_outro.mp4' or '.png'
-        caption: '[KEISUKE 종료 후 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+        characterImage: null,
+        lines: [
+          {
+            speaker: 'KEISUKE',
+            color: '#fde047',
+            image: null,
+            text: '[KEISUKE 종료 후 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
+          },
+          {
+            speaker: 'KEISUKE',
+            color: '#fde047',
+            image: null,
+            text: '[KEISUKE 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
+          },
+        ],
       },
     },
   },
@@ -192,14 +244,40 @@ export const RIVALS = [
       intro: {
         enabled: true,
         title: 'VS RYOSUKE // WHITE COMET',
-        mediaPath: null, // e.g. 'assets/cutscenes/ryosuke_intro.mp4' or '.png'
-        caption: '[RYOSUKE 시작 전 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+        characterImage: null, // e.g. 'assets/cutscenes/ryosuke.png'
+        lines: [
+          {
+            speaker: 'RYOSUKE',
+            color: '#38bdf8',
+            image: null,
+            text: '[RYOSUKE 시작 전 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
+          },
+          {
+            speaker: 'RYOSUKE',
+            color: '#38bdf8',
+            image: null,
+            text: '[RYOSUKE 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
+          },
+        ],
       },
       outro: {
         enabled: true,
         title: 'AFTER BATTLE // RYOSUKE',
-        mediaPath: null, // e.g. 'assets/cutscenes/ryosuke_outro.mp4' or '.png'
-        caption: '[RYOSUKE 종료 후 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+        characterImage: null,
+        lines: [
+          {
+            speaker: 'RYOSUKE',
+            color: '#38bdf8',
+            image: null,
+            text: '[RYOSUKE 종료 후 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
+          },
+          {
+            speaker: 'RYOSUKE',
+            color: '#38bdf8',
+            image: null,
+            text: '[RYOSUKE 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
+          },
+        ],
       },
     },
   },
@@ -241,14 +319,40 @@ export const RIVALS = [
       intro: {
         enabled: true,
         title: 'VS BUNTA // FUJIWARA TOFU',
-        mediaPath: null, // e.g. 'assets/cutscenes/bunta_intro.mp4' or '.png'
-        caption: '[BUNTA 시작 전 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+        characterImage: null, // e.g. 'assets/cutscenes/bunta.png'
+        lines: [
+          {
+            speaker: 'BUNTA',
+            color: '#e879f9',
+            image: null,
+            text: '[BUNTA 시작 전 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
+          },
+          {
+            speaker: 'BUNTA',
+            color: '#e879f9',
+            image: null,
+            text: '[BUNTA 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
+          },
+        ],
       },
       outro: {
         enabled: true,
         title: 'AFTER BATTLE // BUNTA',
-        mediaPath: null, // e.g. 'assets/cutscenes/bunta_outro.mp4' or '.png'
-        caption: '[BUNTA 종료 후 컷신 영역 — 추후 컷신 미디어/대사 삽입]',
+        characterImage: null,
+        lines: [
+          {
+            speaker: 'BUNTA',
+            color: '#e879f9',
+            image: null,
+            text: '[BUNTA 종료 후 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
+          },
+          {
+            speaker: 'BUNTA',
+            color: '#e879f9',
+            image: null,
+            text: '[BUNTA 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
+          },
+        ],
       },
     },
   },

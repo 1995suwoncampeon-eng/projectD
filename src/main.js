@@ -275,8 +275,12 @@ class ProjectDGame {
       }
 
       if (this.state === 'CUTSCENE_INTRO' || this.state === 'CUTSCENE_OUTRO') {
-        if (!e.repeat && (code === 'Enter' || code === 'Space' || code === 'Escape')) {
-          this.completeCutscene();
+        if (!e.repeat) {
+          if (code === 'Escape') {
+            this.completeCutscene();
+          } else if (code === 'Enter' || code === 'Space') {
+            this.ui.advanceCutscene();
+          }
         }
         return;
       }

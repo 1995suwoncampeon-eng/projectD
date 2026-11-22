@@ -1031,144 +1031,233 @@ kbd {
 }
 
 /* ============================================================================
-   CUTSCENE SCREEN (Pre-Race / Post-Race Slot)
+   CUTSCENE SCREEN (Visual Novel / Arcade Stage Style)
    ============================================================================ */
 #screen-cutscene {
-  background: radial-gradient(circle at center, rgba(10, 16, 34, 0.88) 0%, rgba(3, 6, 14, 0.97) 100%);
-  backdrop-filter: blur(8px);
-}
-
-.cutscene-shell {
-  width: min(980px, 94vw);
-  max-height: 92vh;
-  display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 22px 26px;
-  background: rgba(7, 11, 22, 0.96);
-  border: 1px solid rgba(56, 189, 248, 0.42);
-  border-radius: 14px;
-  box-shadow: 0 28px 75px rgba(0, 0, 0, 0.85);
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 26px;
+  background: linear-gradient(
+    180deg,
+    rgba(4, 7, 16, 0.9) 0%,
+    rgba(7, 12, 26, 0.72) 45%,
+    rgba(4, 7, 16, 0.96) 100%
+  );
+  backdrop-filter: blur(5px);
 }
 
-.cutscene-header {
+.cutscene-topbar {
+  width: min(980px, 94vw);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
+  z-index: 2;
 }
 
-.cutscene-meta {
+.cutscene-topbar-left {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .cutscene-phase-badge {
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
   color: var(--cyan-bright);
 }
 
 .cutscene-title {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 900;
   font-style: italic;
   letter-spacing: 0.04em;
+  color: #f8fafc;
 }
 
-.cutscene-stage {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  max-height: 52vh;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #04070f;
-  border: 1px solid rgba(148, 163, 184, 0.24);
+.cutscene-skip-btn {
+  padding: 7px 14px;
+  font-size: 12px;
+}
+
+/* Center Character Portrait Stage */
+.cutscene-portrait-stage {
+  flex: 1;
+  width: min(720px, 90vw);
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 12px 0;
 }
 
-.cutscene-media {
-  width: 100%;
-  height: 100%;
+.cutscene-character-img {
+  max-height: 100%;
+  max-width: 100%;
   object-fit: contain;
-  background: #000000;
+  filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.75));
+  animation: portraitFadeIn 0.28s ease-out;
 }
 
-.cutscene-placeholder {
-  width: 100%;
-  height: 100%;
-  padding: 24px;
+@keyframes portraitFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cutscene-portrait-placeholder {
+  width: min(340px, 76vw);
+  height: min(380px, 46vh);
+  padding: 20px;
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 10px;
-  background:
-    repeating-linear-gradient(
-      -45deg,
-      rgba(56, 189, 248, 0.04),
-      rgba(56, 189, 248, 0.04) 14px,
-      rgba(15, 23, 42, 0.22) 14px,
-      rgba(15, 23, 42, 0.22) 28px
-    );
-  border: 2px dashed rgba(56, 189, 248, 0.32);
+  gap: 12px;
+  background: rgba(10, 17, 34, 0.78);
+  border: 2px dashed rgba(56, 189, 248, 0.42);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+}
+
+.cutscene-silhouette {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, rgba(56, 189, 248, 0.35), rgba(30, 41, 59, 0.9));
+  border: 2px solid rgba(56, 189, 248, 0.45);
 }
 
 .cutscene-slot-tag {
-  padding: 4px 12px;
+  padding: 4px 11px;
   border-radius: 999px;
   background: rgba(56, 189, 248, 0.14);
   border: 1px solid rgba(56, 189, 248, 0.45);
   color: var(--cyan-bright);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
 }
 
 .cutscene-slot-heading {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 800;
   color: #f8fafc;
 }
 
 .cutscene-slot-hint {
   font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* Bottom Clickable Dialogue Box */
+.cutscene-dialogue-box {
+  width: min(940px, 94vw);
+  min-height: 162px;
+  padding: 18px 24px 14px;
+  border-radius: 14px;
+  background: rgba(7, 12, 26, 0.94);
+  border: 2px solid rgba(56, 189, 248, 0.5);
+  box-shadow:
+    0 20px 55px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.cutscene-dialogue-box:hover {
+  border-color: var(--cyan-bright);
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.85),
+    0 0 24px rgba(56, 189, 248, 0.22);
+}
+
+.cutscene-dialogue-box:active {
+  transform: scale(0.996);
+}
+
+.cutscene-dialogue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cutscene-speaker {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 13px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.16);
+  border-left: 3px solid var(--cyan-bright);
+  font-size: 15px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  color: #f8fafc;
+}
+
+.cutscene-progress {
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-muted);
 }
 
-.cutscene-caption-box {
-  padding: 12px 16px;
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.85);
-  border-left: 3px solid var(--cyan);
+.cutscene-text {
+  min-height: 58px;
+  font-size: 17px;
+  line-height: 1.65;
+  color: #f1f5f9;
+  letter-spacing: 0.01em;
+  word-break: keep-all;
 }
 
-.cutscene-caption {
-  font-size: 14px;
-  line-height: 1.5;
-  color: #e2e8f0;
-}
-
-.cutscene-footer {
+.cutscene-dialogue-footer {
   display: flex;
+  justify-content: flex-end;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding-top: 4px;
 }
 
-.cutscene-continue-btn {
-  min-width: 210px;
-  padding: 11px 24px;
+.cutscene-next-hint {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--cyan-bright);
+  animation: nextBounce 1.1s infinite ease-in-out;
+}
+
+.cutscene-next-hint.typing {
+  opacity: 0.55;
+  animation: none;
+}
+
+@keyframes nextBounce {
+  0%, 100% {
+    opacity: 0.65;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(3px);
+  }
 }
 
 /* ============================================================================
