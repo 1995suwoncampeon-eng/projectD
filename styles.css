@@ -75,24 +75,20 @@ body {
 .screen {
   position: absolute;
   inset: 0;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   padding: 24px;
   z-index: 20;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.28s ease;
 }
 
 .screen.active {
-  opacity: 1;
-  pointer-events: auto;
+  display: flex;
 }
 
 /* Title Screen */
 #screen-title {
-  background: linear-gradient(125deg, rgba(5, 8, 18, 0.82) 0%, rgba(5, 8, 18, 0.35) 55%, rgba(5, 8, 18, 0.78) 100%);
+  background: linear-gradient(125deg, rgba(5, 8, 18, 0.78) 0%, rgba(5, 8, 18, 0.34) 55%, rgba(5, 8, 18, 0.76) 100%);
 }
 
 .title-backdrop-glow {
@@ -108,13 +104,12 @@ body {
   position: relative;
   width: min(640px, 94vw);
   padding: 40px 42px 34px;
-  background: rgba(8, 13, 27, 0.82);
-  border: 1px solid rgba(56, 189, 248, 0.42);
+  background: rgba(8, 13, 27, 0.9);
+  border: 1px solid rgba(56, 189, 248, 0.45);
   border-radius: 14px;
   box-shadow:
     0 24px 70px rgba(0, 0, 0, 0.65),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(8px);
   text-align: center;
 }
 
@@ -315,11 +310,10 @@ kbd {
   flex-direction: column;
   gap: 18px;
   padding: 26px 28px;
-  background: rgba(8, 13, 27, 0.86);
-  border: 1px solid rgba(56, 189, 248, 0.34);
+  background: rgba(8, 13, 27, 0.92);
+  border: 1px solid rgba(56, 189, 248, 0.38);
   border-radius: 14px;
-  box-shadow: 0 24px 65px rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
+  box-shadow: 0 24px 65px rgba(0, 0, 0, 0.72);
 }
 
 .select-header {
@@ -1017,8 +1011,7 @@ kbd {
    RESULT SCREEN
    ============================================================================ */
 #screen-result {
-  background: rgba(5, 8, 18, 0.78);
-  backdrop-filter: blur(6px);
+  background: rgba(5, 8, 18, 0.82);
 }
 
 .result-card {

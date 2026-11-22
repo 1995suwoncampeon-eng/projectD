@@ -87,7 +87,7 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   rival.z += Math.cos(rival.heading) * rival.speed * dt;
 
   // Enforce 2D track boundaries
-  const proj = enforceTrackBounds(rival, track, 0.9);
+  const proj = enforceTrackBounds(rival, track, dt, 1.2);
 
   // Expressive AI drift visual on tight hairpins
   const speedKmh = rival.speed * MS_TO_KMH;

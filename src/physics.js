@@ -125,7 +125,7 @@ export function updateDrivetrain(car) {
  * Enforces 2D planar guardrail walls by projecting onto the track spline.
  * Prevents tunneling, escaping, or flipping under any circumstances.
  */
-export function enforceTrackBounds(car, track, wallSpeedKeep = PLAYER_PHYSICS.wallSpeedKeep) {
+export function enforceTrackBounds(car, track, dt = 1 / 60, wallFriction = 1.65) {
   const proj = track.projectPoint(car.x, car.z, car.trackIndex);
   car.trackIndex = proj.index;
   car.s = proj.s;
@@ -141,10 +141,12 @@ export function enforceTrackBounds(car, track, wallSpeedKeep = PLAYER_PHYSICS.wa
 
     // Gently redirect heading back along road tangent (arcade wall-slide)
     const headingErr = wrapAngle(proj.heading - car.heading);
-    car.heading = wrapAngle(car.heading + headingErr * 0.48);
+    const alignFactor = 1 - Math.exp(-dt * 14);
+    car.heading = wrapAngle(car.heading + headingErr * Math.max(0.28, alignFactor));
 
-    // Bleed a bit of speed on scrape without coming to an awkward dead stop
-    car.speed *= wallSpeedKeep;
+    // Frame-rate independent arcade scrape drag (scales with impact angle)
+    const impactSeverity = 0.45 + Math.min(1, Math.abs(Math.sin(headingErr)) * 2.2);
+    car.speed *= Math.exp(-dt * wallFriction * impactSeverity);
     car.scrapedWall = true;
     car.scrapeX = proj.centerX + proj.rx * Math.sign(proj.lateral) * (limit + 0.7);
     car.scrapeZ = proj.centerZ + proj.rz * Math.sign(proj.lateral) * (limit + 0.7);
@@ -257,7 +259,7 @@ export function updatePlayerPhysics(car, input, track, dt) {
   car.z += Math.cos(moveHeading) * car.speed * dt;
 
   // Enforce guardrail collision bounds
-  enforceTrackBounds(car, track, cfg.wallSpeedKeep);
+  enforceTrackBounds(car, track, dt, 1.55);
 
   // Smooth visual feedback (body slip angle, front wheel steering, subtle roll)
   const targetSlip = car.isDrifting
@@ -303,8 +305,8 @@ export function resolveCarCollision(carA, carB, track) {
   carA.speed = carA.speed * 0.85 + avgSpeed * 0.15;
   carB.speed = carB.speed * 0.85 + avgSpeed * 0.15;
 
-  enforceTrackBounds(carA, track, 0.94);
-  enforceTrackBounds(carB, track, 0.94);
+  enforceTrackBounds(carA, track, 1 / 60, 0.8);
+  enforceTrackBounds(carB, track, 1 / 60, 0.8);
 
   return {
     x: (carA.x + carB.x) * 0.5,

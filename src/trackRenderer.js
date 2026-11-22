@@ -60,7 +60,7 @@ function createBannerTexture(label, bgHex, stripeHex, accentHex) {
   }
 
   ctx.fillStyle = accentHex;
-  ctx.font = 'italic 900 62px "Segoe UI", Arial, sans-serif';
+  ctx.font = 'italic 900 44px "Segoe UI", Arial, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, 256, 66);
@@ -419,7 +419,7 @@ export function buildTougeEnvironment(scene, track) {
 
   // 10. Start & Finish Overhead Gantries + Painted Road Lines
   envGroup.add(
-    createGantry(track, track.startS, 'PROJECT D // START', '#0b1224', '#38bdf8', '#facc15')
+    createGantry(track, track.startS + 6.5, 'PROJECT D // START', '#0b1224', '#38bdf8', '#facc15')
   );
   envGroup.add(
     createGantry(track, track.finishS, 'FINISH LINE', '#111827', '#ffffff', '#4ade80')

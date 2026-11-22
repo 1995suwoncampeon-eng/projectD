@@ -554,10 +554,18 @@ class ProjectDGame {
   }
 
   _loop(now) {
-    const dt = Math.min(0.05, Math.max(0.001, (now - this._lastFrameTime) / 1000));
+    const rawDt = Math.min(0.25, Math.max(0.001, (now - this._lastFrameTime) / 1000));
     this._lastFrameTime = now;
 
-    this._stepGame(dt);
+    // Fixed-cap substepping keeps 2D physics & countdown accurate even on low-FPS WebViews
+    const maxStep = 1 / 30;
+    let remaining = rawDt;
+    while (remaining > 0) {
+      const step = Math.min(remaining, maxStep);
+      this._stepGame(step);
+      remaining -= step;
+    }
+
     this.renderer.render(this.scene, this.camera);
 
     requestAnimationFrame(this._loop);
