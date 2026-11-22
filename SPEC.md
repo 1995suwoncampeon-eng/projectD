@@ -75,7 +75,7 @@
 - [x] **Step 0**: Author `SPEC.md` and commit specification.
 - [x] **Step 1**: Base static entry (`index.html`, `styles.css`, `src/config.js`, `assets/models/README.md`).
 - [x] **Step 2**: Track system (`src/track.js`, `src/trackRenderer.js`) — 2D downhill spline & night touge visuals.
-- [ ] **Step 3**: 3D Car loader & fallback (`src/carModel.js`) — `GLTFLoader`, `THREE.Box3` normalization, `MODEL_ROTATION_Y`, low-poly fallback sports car.
+- [x] **Step 3**: 3D Car loader & fallback (`src/carModel.js`) — `GLTFLoader`, `THREE.Box3` normalization, `MODEL_ROTATION_Y`, low-poly fallback sports car.
 - [ ] **Step 4**: 2D Arcade Physics, Rival AI & Drift Effects (`src/physics.js`, `src/ai.js`, `src/effects.js`, `src/audio.js`).
 - [ ] **Step 5**: Arcade HUD, Screen Flow & Main Game Loop (`src/hud.js`, `src/ui.js`, `src/main.js`).
 - [ ] **Step 6**: Browser E2E verification via local HTTP server (Title → Rival Select → Countdown → Driving/Drift/Reset → Finish/Result → Retry/Select, both Fallback and GLB loading paths) and bug fixes.
