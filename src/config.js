@@ -9,6 +9,8 @@
  *  -Math.PI / 2 -> model front faces +X
  */
 
+import { RIVAL_CUTSCENES } from './dialogues.js';
+
 // ============================================================================
 // 3D CAR MODEL SETTINGS (Edit here when dropping in custom .glb models)
 // ============================================================================
@@ -82,46 +84,7 @@ export const RIVALS = [
       rubberBandEase: 0.13,     // Max ease when far ahead
       laneBias: 1.8,            // Right-side bias on straights
     },
-    cutscenes: {
-      intro: {
-        enabled: true,
-        title: 'VS TAKESHI // NIGHT KIDS',
-        characterImage: null, // e.g. 'assets/cutscenes/takeshi.png'
-        lines: [
-          {
-            speaker: 'TAKESHI',
-            color: '#60a5fa',
-            image: null,
-            text: '[TAKESHI 시작 전 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
-          },
-          {
-            speaker: 'TAKESHI',
-            color: '#60a5fa',
-            image: null,
-            text: '[TAKESHI 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
-          },
-        ],
-      },
-      outro: {
-        enabled: true,
-        title: 'AFTER BATTLE // TAKESHI',
-        characterImage: null,
-        lines: [
-          {
-            speaker: 'TAKESHI',
-            color: '#60a5fa',
-            image: null,
-            text: '[TAKESHI 종료 후 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
-          },
-          {
-            speaker: 'TAKESHI',
-            color: '#60a5fa',
-            image: null,
-            text: '[TAKESHI 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
-          },
-        ],
-      },
-    },
+    cutscenes: RIVAL_CUTSCENES.takeshi,
   },
   {
     id: 'keisuke',
@@ -159,46 +122,7 @@ export const RIVALS = [
       rubberBandEase: 0.08,
       laneBias: 1.4,
     },
-    cutscenes: {
-      intro: {
-        enabled: true,
-        title: 'VS KEISUKE // RED SUNS',
-        characterImage: null, // e.g. 'assets/cutscenes/keisuke.png'
-        lines: [
-          {
-            speaker: 'KEISUKE',
-            color: '#fde047',
-            image: null,
-            text: '[KEISUKE 시작 전 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
-          },
-          {
-            speaker: 'KEISUKE',
-            color: '#fde047',
-            image: null,
-            text: '[KEISUKE 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
-          },
-        ],
-      },
-      outro: {
-        enabled: true,
-        title: 'AFTER BATTLE // KEISUKE',
-        characterImage: null,
-        lines: [
-          {
-            speaker: 'KEISUKE',
-            color: '#fde047',
-            image: null,
-            text: '[KEISUKE 종료 후 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
-          },
-          {
-            speaker: 'KEISUKE',
-            color: '#fde047',
-            image: null,
-            text: '[KEISUKE 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
-          },
-        ],
-      },
-    },
+    cutscenes: RIVAL_CUTSCENES.keisuke,
   },
   {
     id: 'ryosuke',
@@ -240,46 +164,7 @@ export const RIVALS = [
       rubberBandEase: 0.04,
       laneBias: 0.9,
     },
-    cutscenes: {
-      intro: {
-        enabled: true,
-        title: 'VS RYOSUKE // WHITE COMET',
-        characterImage: null, // e.g. 'assets/cutscenes/ryosuke.png'
-        lines: [
-          {
-            speaker: 'RYOSUKE',
-            color: '#38bdf8',
-            image: null,
-            text: '[RYOSUKE 시작 전 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
-          },
-          {
-            speaker: 'RYOSUKE',
-            color: '#38bdf8',
-            image: null,
-            text: '[RYOSUKE 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
-          },
-        ],
-      },
-      outro: {
-        enabled: true,
-        title: 'AFTER BATTLE // RYOSUKE',
-        characterImage: null,
-        lines: [
-          {
-            speaker: 'RYOSUKE',
-            color: '#38bdf8',
-            image: null,
-            text: '[RYOSUKE 종료 후 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
-          },
-          {
-            speaker: 'RYOSUKE',
-            color: '#38bdf8',
-            image: null,
-            text: '[RYOSUKE 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
-          },
-        ],
-      },
-    },
+    cutscenes: RIVAL_CUTSCENES.ryosuke,
   },
   {
     id: 'bunta',
@@ -315,46 +200,7 @@ export const RIVALS = [
       rubberBandEase: 0.0,
       laneBias: 0.4,
     },
-    cutscenes: {
-      intro: {
-        enabled: true,
-        title: 'VS BUNTA // FUJIWARA TOFU',
-        characterImage: null, // e.g. 'assets/cutscenes/bunta.png'
-        lines: [
-          {
-            speaker: 'BUNTA',
-            color: '#e879f9',
-            image: null,
-            text: '[BUNTA 시작 전 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
-          },
-          {
-            speaker: 'BUNTA',
-            color: '#e879f9',
-            image: null,
-            text: '[BUNTA 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
-          },
-        ],
-      },
-      outro: {
-        enabled: true,
-        title: 'AFTER BATTLE // BUNTA',
-        characterImage: null,
-        lines: [
-          {
-            speaker: 'BUNTA',
-            color: '#e879f9',
-            image: null,
-            text: '[BUNTA 종료 후 대사 1 — 추후 캐릭터 이미지 및 대사 교체]',
-          },
-          {
-            speaker: 'BUNTA',
-            color: '#e879f9',
-            image: null,
-            text: '[BUNTA 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
-          },
-        ],
-      },
-    },
+    cutscenes: RIVAL_CUTSCENES.bunta,
   },
 ];
 

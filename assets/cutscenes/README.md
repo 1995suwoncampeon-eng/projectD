@@ -1,6 +1,6 @@
 # Rival Cutscene Character Portraits & Dialogue
 
-Place character portrait images (`.png`, `.webp`, `.jpg`) in this directory and configure `characterImage` / `lines` inside `RIVALS[].cutscenes` in `src/config.js`.
+Place character portrait images (`.png`, `.webp`, `.jpg`) in this directory and configure `characterImage` / `lines` inside `RIVAL_CUTSCENES` in `src/dialogues.js`.
 
 ## Recommended Portrait Filenames
 
