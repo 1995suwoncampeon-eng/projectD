@@ -14,12 +14,18 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   // 1. Inspect upcoming curvature to calculate smooth cornering speed target
   const { peakAbs, signedPeak } = track.getUpcomingCurvature(rival.s, 10, 92);
 
-  // Higher cornerSpeedFactor (e.g. Ryosuke 0.97) carries far more speed through hairpins
-  const cornerSensitivity = 48 - ai.cornerSpeedFactor * 27;
-  let targetSpeedKmh = ai.maxSpeedKmh / (1 + peakAbs * cornerSensitivity);
+  let targetSpeedKmh;
+  if (ai.fullThrottleCorners) {
+    // Full throttle through every corner — never lifts off the accelerator
+    targetSpeedKmh = ai.maxSpeedKmh;
+  } else {
+    // Higher cornerSpeedFactor (e.g. Ryosuke 0.97) carries far more speed through hairpins
+    const cornerSensitivity = 48 - ai.cornerSpeedFactor * 27;
+    targetSpeedKmh = ai.maxSpeedKmh / (1 + peakAbs * cornerSensitivity);
 
-  // Clamp minimum hairpin crawl so rival always feels lively
-  targetSpeedKmh = Math.max(44 + ai.cornerSpeedFactor * 18, targetSpeedKmh);
+    // Clamp minimum hairpin crawl so rival always feels lively
+    targetSpeedKmh = Math.max(44 + ai.cornerSpeedFactor * 18, targetSpeedKmh);
+  }
 
   // 2. Smooth Rubber-Banding (tapers off in final 130m sprint for fair finishes)
   const distToFinish = Math.max(0, track.finishS - rival.s);
@@ -31,7 +37,7 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     // Rival is behind -> smooth catch-up boost
     const factor = Math.min(1, (-gap - 16) / 95);
     rubberMultiplier = 1 + ai.rubberBandCatchup * factor * finishFairness;
-  } else if (gap > 30) {
+  } else if (gap > 30 && ai.rubberBandEase > 0) {
     // Rival is far ahead -> mild mercy ease so battle stays exciting
     const factor = Math.min(1, (gap - 30) / 100);
     rubberMultiplier = 1 - ai.rubberBandEase * factor * finishFairness;
@@ -45,7 +51,7 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     const ratio = Math.max(0, rival.speed / Math.max(1, desiredSpeedMs));
     const pull = ai.accel * (1.12 - 0.45 * ratio * ratio);
     rival.speed = Math.min(desiredSpeedMs, rival.speed + pull * dt);
-  } else {
+  } else if (!ai.fullThrottleCorners) {
     const excess = rival.speed - desiredSpeedMs;
     if (excess > 3.0) rival.isBraking = true;
     rival.speed = Math.max(desiredSpeedMs, rival.speed - 16.0 * dt);
@@ -53,38 +59,72 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
 
   // 4. Target Waypoint & Racing Line Lateral Offset
   // Hug inside apex on sharp turns (turning left -> negative right offset)
+  const apexRatio = ai.apexRatio ?? 0.56;
+  const maxLatRatio = ai.maxLateralRatio ?? 0.78;
+  const nearCurv = ai.fullThrottleCorners
+    ? track.getUpcomingCurvature(rival.s, 4, 48)
+    : { peakAbs, signedPeak };
+  const curveThreshold = ai.fullThrottleCorners ? 0.003 : 0.0065;
+
   let targetLateral = ai.laneBias;
-  if (Math.abs(signedPeak) > 0.0065) {
-    const insideDir = signedPeak > 0 ? -1 : 1;
-    targetLateral = insideDir * (track.maxCarLateral * 0.56);
+  if (Math.abs(nearCurv.signedPeak) > curveThreshold) {
+    const insideDir = nearCurv.signedPeak > 0 ? -1 : 1;
+    targetLateral = insideDir * (track.maxCarLateral * apexRatio);
   }
 
-  // Polite lateral spacing when side-by-side with player
+  // Polite lateral spacing when side-by-side with player (skipped if fullThrottleCorners apex-locked)
   const longDiff = Math.abs(rival.s - player.s);
-  if (longDiff < 14) {
+  if (longDiff < 14 && !(ai.fullThrottleCorners && Math.abs(nearCurv.signedPeak) > curveThreshold)) {
     const sideOffset = player.lateral > 0 ? -2.4 : 2.4;
     targetLateral = targetLateral * 0.45 + sideOffset * 0.55;
   }
 
   targetLateral = Math.max(
-    -track.maxCarLateral * 0.78,
-    Math.min(track.maxCarLateral * 0.78, targetLateral)
+    -track.maxCarLateral * maxLatRatio,
+    Math.min(track.maxCarLateral * maxLatRatio, targetLateral)
   );
 
-  const lookAheadDist = ai.lookAheadBase + rival.speed * 0.34;
-  const targetPt = track.getWorldPosition(rival.s + lookAheadDist, targetLateral);
+  let headingDiff = 0;
+  if (ai.fullThrottleCorners) {
+    // High-precision spline-locked inside-apex tracking so full-throttle cornering
+    // hugs right up to the guardrail limit without scraping or decelerating.
+    const curPt = track.getPointAtS(rival.s);
+    const latFollow = 1 - Math.exp(-dt * 5.2);
+    const nextLat = Math.max(
+      -track.maxCarLateral * maxLatRatio,
+      Math.min(track.maxCarLateral * maxLatRatio, rival.lateral + (targetLateral - rival.lateral) * latFollow)
+    );
+    // Inside of a turn has a shorter physical arc length: ds_world = ds_center * (1 + k * lat)
+    const arcScale = Math.max(0.75, Math.min(1.25, 1 + curPt.curvature * nextLat));
+    const nextS = Math.min(track.totalLength, rival.s + (rival.speed * dt) / arcScale);
+    const nextPt = track.getWorldPosition(nextS, nextLat);
+    const moveDx = nextPt.x - rival.x;
+    const moveDz = nextPt.z - rival.z;
+    if (moveDx * moveDx + moveDz * moveDz > 1e-6) {
+      const targetHeading = Math.atan2(moveDx, moveDz);
+      headingDiff = wrapAngle(targetHeading - rival.heading);
+      rival.heading = wrapAngle(rival.heading + headingDiff * Math.min(1, dt * 16));
+    } else {
+      rival.heading = nextPt.heading;
+    }
+    rival.x = nextPt.x;
+    rival.z = nextPt.z;
+  } else {
+    const lookAheadDist = ai.lookAheadBase + rival.speed * 0.34;
+    const targetPt = track.getWorldPosition(rival.s + lookAheadDist, targetLateral);
 
-  const desiredHeading = Math.atan2(targetPt.x - rival.x, targetPt.z - rival.z);
-  const headingDiff = wrapAngle(desiredHeading - rival.heading);
+    const desiredHeading = Math.atan2(targetPt.x - rival.x, targetPt.z - rival.z);
+    headingDiff = wrapAngle(desiredHeading - rival.heading);
 
-  // Smooth steering authority proportional to cornering stability
-  const maxTurnRate = (2.6 + ai.cornerSpeedFactor * 1.35) * dt;
-  const turnDelta = Math.max(-maxTurnRate, Math.min(maxTurnRate, headingDiff * 4.8 * dt));
-  rival.heading = wrapAngle(rival.heading + turnDelta);
+    // Smooth steering authority proportional to cornering stability
+    const maxTurnRate = (2.6 + ai.cornerSpeedFactor * 1.35) * dt;
+    const turnDelta = Math.max(-maxTurnRate, Math.min(maxTurnRate, headingDiff * 4.8 * dt));
+    rival.heading = wrapAngle(rival.heading + turnDelta);
 
-  // Advance on 2D X-Z plane
-  rival.x += Math.sin(rival.heading) * rival.speed * dt;
-  rival.z += Math.cos(rival.heading) * rival.speed * dt;
+    // Advance on 2D X-Z plane
+    rival.x += Math.sin(rival.heading) * rival.speed * dt;
+    rival.z += Math.cos(rival.heading) * rival.speed * dt;
+  }
 
   // Enforce 2D track boundaries
   const proj = enforceTrackBounds(rival, track, dt, 1.2);
