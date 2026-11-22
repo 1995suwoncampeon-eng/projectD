@@ -19,7 +19,7 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   let targetSpeedKmh = ai.maxSpeedKmh / (1 + peakAbs * cornerSensitivity);
 
   // Clamp minimum hairpin crawl so rival always feels lively
-  targetSpeedKmh = Math.max(76 + ai.cornerSpeedFactor * 28, targetSpeedKmh);
+  targetSpeedKmh = Math.max(44 + ai.cornerSpeedFactor * 18, targetSpeedKmh);
 
   // 2. Smooth Rubber-Banding (tapers off in final 130m sprint for fair finishes)
   const distToFinish = Math.max(0, track.finishS - rival.s);
@@ -47,8 +47,8 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     rival.speed = Math.min(desiredSpeedMs, rival.speed + pull * dt);
   } else {
     const excess = rival.speed - desiredSpeedMs;
-    if (excess > 4.5) rival.isBraking = true;
-    rival.speed = Math.max(desiredSpeedMs, rival.speed - 28.0 * dt);
+    if (excess > 3.0) rival.isBraking = true;
+    rival.speed = Math.max(desiredSpeedMs, rival.speed - 16.0 * dt);
   }
 
   // 4. Target Waypoint & Racing Line Lateral Offset
@@ -92,7 +92,7 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   // Expressive AI drift visual on tight hairpins
   const speedKmh = rival.speed * MS_TO_KMH;
   const absCurv = Math.abs(proj.curvature);
-  const aiDrifting = absCurv > 0.0085 && speedKmh > 86;
+  const aiDrifting = absCurv > 0.0085 && speedKmh > 52;
   rival.isDrifting = aiDrifting;
   rival.driftDir = aiDrifting ? Math.sign(proj.curvature) : 0;
 

@@ -77,7 +77,7 @@ export function recoverVehicleToTrack(car, track) {
   car.driftCharge = 0;
   car.visualSlip = 0;
   car.bodyRoll = 0;
-  car.speed = Math.min(Math.max(car.speed, 6), 18);
+  car.speed = Math.min(Math.max(car.speed, 4), 10);
   car.speedKmh = Math.abs(car.speed * MS_TO_KMH);
 }
 
@@ -93,17 +93,17 @@ export function updateDrivetrain(car) {
 
   if (kmh < -1.5) {
     car.gear = 'R';
-    car.rpm = Math.min(6200, 1400 + Math.abs(kmh) * 110);
+    car.rpm = Math.min(6200, 1400 + Math.abs(kmh) * 160);
     return;
   }
 
   const speed = Math.max(0, kmh);
   const bands = [
-    { gear: '1', min: 0, max: 56 },
-    { gear: '2', min: 48, max: 98 },
-    { gear: '3', min: 90, max: 142 },
-    { gear: '4', min: 134, max: 184 },
-    { gear: '5', min: 174, max: 238 },
+    { gear: '1', min: 0, max: 24 },
+    { gear: '2', min: 20, max: 44 },
+    { gear: '3', min: 40, max: 64 },
+    { gear: '4', min: 60, max: 84 },
+    { gear: '5', min: 80, max: 112 },
   ];
 
   let chosen = bands[0];
@@ -242,7 +242,7 @@ export function updatePlayerPhysics(car, input, track, dt) {
     turnRate = driftSteer * cfg.steerRate * cfg.driftSteerBoost * speedFactor;
   } else {
     // Slight high-speed stability damping on straights
-    const highSpeedDamp = 1 - Math.min(0.32, (Math.max(0, speedKmh - 90) / 150) * 0.32);
+    const highSpeedDamp = 1 - Math.min(0.28, (Math.max(0, speedKmh - 50) / 60) * 0.28);
     turnRate = steer * cfg.steerRate * highSpeedDamp * speedFactor * reverseSign;
   }
 
@@ -263,7 +263,7 @@ export function updatePlayerPhysics(car, input, track, dt) {
 
   // Smooth visual feedback (body slip angle, front wheel steering, subtle roll)
   const targetSlip = car.isDrifting
-    ? car.driftDir * cfg.maxVisualSlipRad * (0.7 + 0.3 * Math.min(1, speedKmh / 140))
+    ? car.driftDir * cfg.maxVisualSlipRad * (0.7 + 0.3 * Math.min(1, speedKmh / 85))
     : steer * 0.05 * speedFactor;
   car.visualSlip += (targetSlip - car.visualSlip) * Math.min(1, dt * 9.5);
 

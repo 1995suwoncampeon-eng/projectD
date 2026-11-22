@@ -74,7 +74,7 @@ export class UIController {
       card.setAttribute('role', 'option');
       card.setAttribute('aria-selected', 'false');
 
-      const speedPct = Math.round(((rival.stats.topSpeedKmh - 140) / 85) * 100);
+      const speedPct = Math.round(((rival.stats.topSpeedKmh - 95) / 60) * 100);
       const cornerPct = Math.round(rival.stats.corneringStability * 100);
       const aggrPct = Math.round(rival.stats.aggression * 100);
 

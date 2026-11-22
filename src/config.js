@@ -34,17 +34,17 @@ export const TRACK_CONFIG = {
 // PLAYER ARCADE PHYSICS (2D X-Z plane)
 // ============================================================================
 export const PLAYER_PHYSICS = {
-  maxSpeedKmh: 218,
-  reverseMaxKmh: 42,
-  accel: 24.5,             // m/s^2 low-end pull
-  brakeDecel: 38.0,        // m/s^2 braking power
-  coastDecel: 7.2,         // m/s^2 engine braking / aero drag
-  steerRate: 2.35,         // rad/s base grip turn rate
-  driftSteerBoost: 1.48,   // extra yaw authority while drifting
-  driftMinSpeedKmh: 58,    // minimum speed to engage drift
-  driftDrag: 3.1,          // mild speed bleed during deep drift
-  driftBoostMaxKmh: 16,    // brief exit boost after clean drift
-  maxVisualSlipRad: 0.44,  // car body yaw slip angle during drift (~25 deg)
+  maxSpeedKmh: 100,
+  reverseMaxKmh: 24,
+  accel: 7.8,              // m/s^2 grounded low/mid-end pull for 100 km/h cap
+  brakeDecel: 19.5,        // m/s^2 braking power
+  coastDecel: 3.6,         // m/s^2 engine braking / aero drag
+  steerRate: 2.25,         // rad/s base grip turn rate
+  driftSteerBoost: 1.45,   // extra yaw authority while drifting
+  driftMinSpeedKmh: 32,    // minimum speed to engage drift
+  driftDrag: 1.5,          // mild speed bleed during deep drift
+  driftBoostMaxKmh: 8,     // brief exit boost after clean drift
+  maxVisualSlipRad: 0.42,  // car body yaw slip angle during drift (~24 deg)
   wallSpeedKeep: 0.84,     // speed retention on guardrail scrape
   carCollisionRadius: 1.32,
 };
@@ -68,14 +68,14 @@ export const RIVALS = [
     modelRotationY: Math.PI / 2,
     tagline: '안정적인 그립 주행을 선호하는 초급 라이벌. 코너 진입 전 일찍 감속합니다.',
     stats: {
-      topSpeedKmh: 176,
+      topSpeedKmh: 130,
       corneringStability: 0.78, // 0..1 (higher = carries more corner speed)
       accelFactor: 0.84,
       aggression: 0.65,
     },
     ai: {
-      maxSpeedKmh: 176,
-      accel: 21.0,
+      maxSpeedKmh: 130,
+      accel: 9.2,
       cornerSpeedFactor: 0.78,
       lookAheadBase: 16,
       rubberBandCatchup: 0.09,  // Max boost when behind
@@ -98,14 +98,14 @@ export const RIVALS = [
     modelRotationY: MODEL_ROTATION_Y,
     tagline: '강력한 탈출 가속과 과감한 드리프트로 압박하는 중급 라이벌입니다.',
     stats: {
-      topSpeedKmh: 196,
+      topSpeedKmh: 125,
       corneringStability: 0.89,
       accelFactor: 0.94,
       aggression: 0.84,
     },
     ai: {
-      maxSpeedKmh: 196,
-      accel: 23.6,
+      maxSpeedKmh: 125,
+      accel: 9.8,
       cornerSpeedFactor: 0.89,
       lookAheadBase: 18,
       rubberBandCatchup: 0.11,
@@ -128,14 +128,14 @@ export const RIVALS = [
     modelRotationY: MODEL_ROTATION_Y,
     tagline: '정밀한 에이펙스 공략과 완벽한 코너링 안정성을 갖춘 최강 라이벌입니다.',
     stats: {
-      topSpeedKmh: 212,
+      topSpeedKmh: 120,
       corneringStability: 0.97,
       accelFactor: 1.0,
       aggression: 0.95,
     },
     ai: {
-      maxSpeedKmh: 212,
-      accel: 25.0,
+      maxSpeedKmh: 120,
+      accel: 10.4,
       cornerSpeedFactor: 0.97,
       lookAheadBase: 20,
       rubberBandCatchup: 0.12,
@@ -158,14 +158,14 @@ export const RIVALS = [
     modelRotationY: Math.PI / 2,
     tagline: '아키나 최속의 전설. 차원이 다른 코너링과 속도로 압도하는 최강 GOD 라이벌입니다.',
     stats: {
-      topSpeedKmh: 222,
+      topSpeedKmh: 150,
       corneringStability: 1.0,
       accelFactor: 1.0,
       aggression: 1.0,
     },
     ai: {
-      maxSpeedKmh: 222,
-      accel: 26.8,
+      maxSpeedKmh: 150,
+      accel: 12.2,
       cornerSpeedFactor: 1.04,
       lookAheadBase: 21,
       rubberBandCatchup: 0.14,

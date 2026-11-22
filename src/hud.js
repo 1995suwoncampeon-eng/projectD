@@ -176,7 +176,7 @@ export class HudController {
     }
 
     // Drift indicator + screen edge glow
-    const showDrift = player.isDrifting && player.speedKmh > 55;
+    const showDrift = player.isDrifting && player.speedKmh > 30;
     if (this.driftBadgeEl) {
       this.driftBadgeEl.classList.toggle('hidden', !showDrift);
     }

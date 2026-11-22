@@ -481,9 +481,9 @@ class ProjectDGame {
       const rx = -fz;
       const rz = fx;
 
-      const speedNorm = Math.min(1, this.player.speedKmh / 215);
-      const camDist = 7.8 + speedNorm * 1.4;
-      const camHeight = 3.15 + speedNorm * 0.25;
+      const speedNorm = Math.min(1, this.player.speedKmh / 105);
+      const camDist = 7.8 + speedNorm * 1.1;
+      const camHeight = 3.15 + speedNorm * 0.2;
       const driftSideSwing = this.player.visualSlip * 2.1;
 
       const desiredPos = new THREE.Vector3(
@@ -500,7 +500,7 @@ class ProjectDGame {
       this.camPos.lerp(desiredPos, 1 - Math.exp(-dt * 9.5));
       this.camLook.lerp(desiredLook, 1 - Math.exp(-dt * 12.0));
 
-      const targetFov = 62 + speedNorm * 13 + (this.player.driftBoostTimer > 0 ? 4 : 0);
+      const targetFov = 60 + speedNorm * 8 + (this.player.driftBoostTimer > 0 ? 3 : 0);
       this.camera.fov += (targetFov - this.camera.fov) * smooth;
     }
 
