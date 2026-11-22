@@ -116,15 +116,18 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     rival.scrapedWall = false;
     proj = track.getPointAtS(nextS);
   } else {
-    const lookAheadDist = ai.lookAheadBase + rival.speed * 0.34;
+    const baseLookAhead = ai.lookAheadBase + rival.speed * 0.3;
+    const nearPeak = track.getUpcomingCurvature(rival.s, 4, 42).peakAbs;
+    const lookAheadDist = Math.max(7.5, baseLookAhead / (1 + nearPeak * 68));
     const targetPt = track.getWorldPosition(rival.s + lookAheadDist, targetLateral);
 
     const desiredHeading = Math.atan2(targetPt.x - rival.x, targetPt.z - rival.z);
     headingDiff = wrapAngle(desiredHeading - rival.heading);
 
-    // Smooth steering authority proportional to cornering stability
-    const maxTurnRate = (2.6 + ai.cornerSpeedFactor * 1.35) * dt;
-    const turnDelta = Math.max(-maxTurnRate, Math.min(maxTurnRate, headingDiff * 4.8 * dt));
+    // Smooth steering authority proportional to cornering stability (with hairpin turn boost)
+    const hairpinBoost = nearPeak > 0.018 ? 1.45 : 1.0;
+    const maxTurnRate = (2.8 + ai.cornerSpeedFactor * 1.45) * hairpinBoost * dt;
+    const turnDelta = Math.max(-maxTurnRate, Math.min(maxTurnRate, headingDiff * 5.6 * dt));
     rival.heading = wrapAngle(rival.heading + turnDelta);
 
     // Advance on 2D X-Z plane
