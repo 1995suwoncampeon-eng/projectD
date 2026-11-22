@@ -135,13 +135,13 @@ export const RIVALS = [
     modelRotationY: MODEL_ROTATION_Y,
     tagline: '정밀한 에이펙스 공략과 완벽한 코너링 안정성을 갖춘 최강 라이벌입니다.',
     stats: {
-      topSpeedKmh: 120,
+      topSpeedKmh: 110,
       corneringStability: 0.97,
       accelFactor: 1.0,
       aggression: 0.95,
     },
     ai: {
-      maxSpeedKmh: 120,
+      maxSpeedKmh: 110,
       accel: 10.4,
       cornerSpeedFactor: 0.97,
       coastOnlyCorners: true,
@@ -152,7 +152,7 @@ export const RIVALS = [
       maxLateralRatio: 0.88,
       twinTurboBoost: {
         boostKmh: 20,
-        boostAccelMult: 1.75,
+        boostAccelMult: 2.1,
         boostDuration: 1.5,
       },
       lookAheadBase: 16,
