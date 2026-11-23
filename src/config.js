@@ -43,11 +43,11 @@ export const PLAYER_PHYSICS = {
   coastDecel: 2.8,         // m/s^2 engine braking / aero drag
   shiftCutDuration: 0.14,  // brief torque cut during upshift for manual-transmission feel
   gears: [
-    { gear: '1', minKmh: 0,  maxKmh: 28,  upshiftKmh: 27,  downshiftKmh: 0,  torqueMult: 1.38, minRpm: 1200, maxRpm: 8450 },
-    { gear: '2', minKmh: 16, maxKmh: 48,  upshiftKmh: 47,  downshiftKmh: 21, torqueMult: 1.02, minRpm: 4100, maxRpm: 8450 },
-    { gear: '3', minKmh: 34, maxKmh: 68,  upshiftKmh: 67,  downshiftKmh: 40, torqueMult: 0.74, minRpm: 4500, maxRpm: 8450 },
-    { gear: '4', minKmh: 52, maxKmh: 86,  upshiftKmh: 85,  downshiftKmh: 58, torqueMult: 0.52, minRpm: 4900, maxRpm: 8450 },
-    { gear: '5', minKmh: 70, maxKmh: 108, upshiftKmh: 999, downshiftKmh: 76, torqueMult: 0.36, minRpm: 5200, maxRpm: 8550 },
+    { gear: '1', minKmh: 0,  maxKmh: 25,  upshiftKmh: 24,  downshiftKmh: 0,  torqueMult: 1.38, minRpm: 1200, maxRpm: 8450 },
+    { gear: '2', minKmh: 14, maxKmh: 43,  upshiftKmh: 42,  downshiftKmh: 19, torqueMult: 0.96, minRpm: 4000, maxRpm: 8450 },
+    { gear: '3', minKmh: 28, maxKmh: 67,  upshiftKmh: 66,  downshiftKmh: 36, torqueMult: 0.54, minRpm: 4300, maxRpm: 8450 },
+    { gear: '4', minKmh: 48, maxKmh: 91,  upshiftKmh: 90,  downshiftKmh: 59, torqueMult: 0.38, minRpm: 4700, maxRpm: 8450 },
+    { gear: '5', minKmh: 72, maxKmh: 108, upshiftKmh: 999, downshiftKmh: 82, torqueMult: 0.28, minRpm: 5200, maxRpm: 8550 },
   ],
   steerRate: 2.25,         // rad/s base grip turn rate
   driftSteerBoost: 1.45,   // extra yaw authority while drifting

@@ -1,4 +1,4 @@
-import { PLAYER_PHYSICS } from './config.js?v=14';
+import { PLAYER_PHYSICS } from './config.js?v=15';
 import { wrapAngle } from './track.js';
 
 const KMH_TO_MS = 1 / 3.6;
