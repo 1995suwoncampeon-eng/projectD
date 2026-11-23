@@ -6,8 +6,8 @@ import {
   PLAYER_THEME,
   RIVALS,
 } from './config.js';
-import { TougeTrack } from './track.js?v=9';
-import { buildTougeEnvironment } from './trackRenderer.js?v=9';
+import { TougeTrack } from './track.js?v=10';
+import { buildTougeEnvironment } from './trackRenderer.js?v=10';
 import { loadCarModel } from './carModel.js';
 import {
   createVehicleState,
@@ -15,7 +15,7 @@ import {
   recoverVehicleToTrack,
   updatePlayerPhysics,
   resolveCarCollision,
-} from './physics.js?v=9';
+} from './physics.js?v=10';
 import { updateRivalAI } from './ai.js';
 import { EffectsManager } from './effects.js';
 import { ArcadeAudio } from './audio.js';

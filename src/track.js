@@ -186,8 +186,8 @@ export class TougeTrack {
         rawGutter[i] = c > 0 ? -1 : 1;
       }
     }
-    // Extend each gutter slightly (4 samples ~8m) into entry/exit for smooth hooking & clean exit
-    const pad = 4;
+    // Extend each gutter (6 samples ~12m) so exit releases cleanly on the straightaway
+    const pad = 6;
     for (let i = 0; i < n; i++) {
       if (rawGutter[i] !== 0) {
         this.samples[i].gutterSide = rawGutter[i];
@@ -277,8 +277,8 @@ export class TougeTrack {
     let bestDistSq = Infinity;
 
     if (hintIndex >= 0 && hintIndex < n) {
-      const start = Math.max(0, hintIndex - 8);
-      const end = Math.min(n - 1, hintIndex + 12);
+      const start = Math.max(0, hintIndex - 3);
+      const end = Math.min(n - 1, hintIndex + 6);
       for (let i = start; i <= end; i++) {
         const dx = x - samples[i].x;
         const dz = z - samples[i].z;
@@ -308,8 +308,9 @@ export class TougeTrack {
     const dx = x - base.x;
     const dz = z - base.z;
 
-    // Project along tangent for continuous arc-length s
-    const along = dx * base.tx + dz * base.tz;
+    // Project along tangent for continuous arc-length s (clamped to avoid curve overshoot)
+    const maxAlong = this.stepS * 1.5;
+    const along = Math.max(-maxAlong, Math.min(maxAlong, dx * base.tx + dz * base.tz));
     const s = Math.max(0, Math.min(this.totalLength, base.s + along));
     const pt = this.getPointAtS(s);
 
