@@ -59,30 +59,25 @@ export function createFallbackSportsCar({ isPlayer = true, bodyColor = 0xf8fafc,
   const car = new THREE.Group();
   car.name = isPlayer ? 'FallbackPlayerCar' : 'FallbackRivalCar';
 
-  const bodyMat = new THREE.MeshStandardMaterial({
+  const bodyMat = new THREE.MeshLambertMaterial({
     color: bodyColor,
-    roughness: 0.32,
-    metalness: 0.42,
   });
 
-  const trimMat = new THREE.MeshStandardMaterial({
+  const trimMat = new THREE.MeshLambertMaterial({
     color: isPlayer ? PLAYER_THEME.lowerTrimColor : 0x111827,
-    roughness: 0.65,
-    metalness: 0.25,
   });
 
-  const glassMat = new THREE.MeshStandardMaterial({
+  const glassMat = new THREE.MeshLambertMaterial({
     color: 0x0f172a,
-    roughness: 0.12,
-    metalness: 0.85,
+    emissive: 0x0a192f,
+    emissiveIntensity: 0.35,
   });
 
   const headlightMat = new THREE.MeshBasicMaterial({ color: 0xfefce8 });
-  const taillightMat = new THREE.MeshStandardMaterial({
+  const taillightMat = new THREE.MeshLambertMaterial({
     color: 0xdc2626,
     emissive: 0xef4444,
     emissiveIntensity: 1.35,
-    roughness: 0.25,
   });
 
   // 1. Lower aero skirt / chassis base (AE86 panda black lower half for player)
@@ -172,7 +167,7 @@ export function createFallbackSportsCar({ isPlayer = true, bodyColor = 0xf8fafc,
   // Dual exhaust tips
   const exhaustGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.24, 8);
   exhaustGeo.rotateX(Math.PI / 2);
-  const exhaustMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.85, roughness: 0.2 });
+  const exhaustMat = new THREE.MeshLambertMaterial({ color: 0xcbd5e1 });
   for (const ex of [-0.52, -0.34]) {
     const pipe = new THREE.Mesh(exhaustGeo, exhaustMat);
     pipe.position.set(ex, 0.28, -2.22);
@@ -180,16 +175,14 @@ export function createFallbackSportsCar({ isPlayer = true, bodyColor = 0xf8fafc,
   }
 
   // 9. Four Wheels (Front wheels pivot for steering; all wheels spin)
-  const tireGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.28, 14);
+  const tireGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.28, 12);
   tireGeo.rotateZ(Math.PI / 2);
-  const tireMat = new THREE.MeshStandardMaterial({ color: 0x0f1116, roughness: 0.9 });
+  const tireMat = new THREE.MeshLambertMaterial({ color: 0x0f1116 });
 
   const rimGeo = new THREE.CylinderGeometry(0.21, 0.21, 0.3, 10);
   rimGeo.rotateZ(Math.PI / 2);
-  const rimMat = new THREE.MeshStandardMaterial({
+  const rimMat = new THREE.MeshLambertMaterial({
     color: isPlayer ? 0xe2e8f0 : 0xfacc15,
-    metalness: 0.75,
-    roughness: 0.25,
   });
 
   const wheelDefs = [
@@ -227,44 +220,118 @@ export function createFallbackSportsCar({ isPlayer = true, bodyColor = 0xf8fafc,
   };
 }
 
+// Cached procedural textures shared across all car instances (zero per-frame cost)
+let _contactShadowTex = null;
+let _headlightBeamTex = null;
+let _softGlowTex = null;
+
+function getContactShadowTexture() {
+  if (_contactShadowTex) return _contactShadowTex;
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createRadialGradient(64, 128, 18, 64, 128, 118);
+  grad.addColorStop(0.0, 'rgba(0, 0, 0, 0.72)');
+  grad.addColorStop(0.55, 'rgba(0, 0, 0, 0.45)');
+  grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+  ctx.save();
+  ctx.scale(0.56, 1.0);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 256, 256);
+  ctx.restore();
+  _contactShadowTex = new THREE.CanvasTexture(c);
+  return _contactShadowTex;
+}
+
+function getHeadlightBeamTexture() {
+  if (_headlightBeamTex) return _headlightBeamTex;
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+  // Dual overlapping warm headlight pools fanning out forward (+Z)
+  for (const cx of [92, 164]) {
+    const grad = ctx.createRadialGradient(cx, 232, 6, cx, 130, 140);
+    grad.addColorStop(0.0, 'rgba(255, 251, 214, 0.72)');
+    grad.addColorStop(0.32, 'rgba(254, 243, 176, 0.34)');
+    grad.addColorStop(0.7, 'rgba(254, 243, 176, 0.10)');
+    grad.addColorStop(1.0, 'rgba(254, 243, 176, 0.0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 256, 256);
+  }
+  _headlightBeamTex = new THREE.CanvasTexture(c);
+  _headlightBeamTex.colorSpace = THREE.SRGBColorSpace;
+  return _headlightBeamTex;
+}
+
+function getSoftGlowTexture() {
+  if (_softGlowTex) return _softGlowTex;
+  const c = document.createElement('canvas');
+  c.width = 64;
+  c.height = 64;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createRadialGradient(32, 32, 2, 32, 32, 30);
+  grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+  grad.addColorStop(0.4, 'rgba(255, 255, 255, 0.55)');
+  grad.addColorStop(1.0, 'rgba(255, 255, 255, 0.0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 64, 64);
+  _softGlowTex = new THREE.CanvasTexture(c);
+  return _softGlowTex;
+}
+
 /**
- * Adds common night-touge arcade attachments (road headlight beams, rear taillight glow,
- * subtle underglow) around either a loaded GLB car or the fallback sports car.
+ * Adds lightweight baked-texture car lighting (road headlight beam pool,
+ * soft taillight glow, subtle underglow, and grounded contact shadow).
+ * Zero real-time PointLight/SpotLight overhead for smooth low-end performance.
  */
 function attachArcadeLights(root, { isPlayer, accentColor, carSize }) {
   const halfLen = Math.max(1.8, carSize.z * 0.5);
   const halfWid = Math.max(0.85, carSize.x * 0.42);
 
-  // Subtle projected headlight cones on the road ahead (+Z)
-  const beamGeo = new THREE.ConeGeometry(2.6, 15.0, 12, 1, true);
-  beamGeo.rotateX(-Math.PI / 2);
-  const beamMat = new THREE.MeshBasicMaterial({
-    color: 0xfef9c3,
+  // 1. Grounded contact shadow (works in both Day and Night for solid road grip look)
+  const shadowMat = new THREE.MeshBasicMaterial({
+    map: getContactShadowTexture(),
     transparent: true,
-    opacity: isPlayer ? 0.13 : 0.1,
-    side: THREE.DoubleSide,
+    opacity: 0.78,
+    depthWrite: false,
+  });
+  const contactShadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(carSize.x * 1.38, carSize.z * 1.18),
+    shadowMat
+  );
+  contactShadow.rotation.x = -Math.PI / 2;
+  contactShadow.position.y = 0.032;
+  root.add(contactShadow);
+
+  // 2. Baked soft headlight road projection pool (+Z forward, replaces costly real-time SpotLight)
+  const beamMat = new THREE.MeshBasicMaterial({
+    map: getHeadlightBeamTexture(),
+    transparent: true,
+    opacity: isPlayer ? 0.55 : 0.36,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   });
+  const roadBeam = new THREE.Mesh(
+    new THREE.PlaneGeometry(isPlayer ? 8.6 : 6.8, isPlayer ? 24.0 : 18.0),
+    beamMat
+  );
+  roadBeam.rotation.x = -Math.PI / 2;
+  roadBeam.position.set(0, 0.048, halfLen + (isPlayer ? 11.4 : 8.5));
+  root.add(roadBeam);
+  const headlightBeams = [roadBeam];
 
-  const headlightBeams = [];
-  for (const hx of [-halfWid * 0.62, halfWid * 0.62]) {
-    const beam = new THREE.Mesh(beamGeo, beamMat);
-    beam.position.set(hx, 0.55, halfLen + 7.2);
-    beam.scale.set(1.0, 0.22, 1.0);
-    root.add(beam);
-    headlightBeams.push(beam);
-  }
-
-  // Rear taillight halo glow sprites (reacts to braking)
+  // 3. Rear taillight soft halo glow sprites (reacts to braking)
   const tailGlowMat = new THREE.MeshBasicMaterial({
     color: 0xff2a2a,
+    map: getSoftGlowTexture(),
     transparent: true,
-    opacity: 0.45,
+    opacity: 0.55,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   });
-  const tailGlowGeo = new THREE.PlaneGeometry(0.65, 0.32);
+  const tailGlowGeo = new THREE.PlaneGeometry(0.9, 0.46);
   for (const tx of [-halfWid * 0.68, halfWid * 0.68]) {
     const glow = new THREE.Mesh(tailGlowGeo, tailGlowMat);
     glow.position.set(tx, 0.72, -halfLen - 0.08);
@@ -272,35 +339,24 @@ function attachArcadeLights(root, { isPlayer, accentColor, carSize }) {
     root.add(glow);
   }
 
-  // Subtle underglow on asphalt so both cars remain razor-clear in dark hairpins
+  // 4. Soft radial underglow on asphalt for night readability
   const underglowMat = new THREE.MeshBasicMaterial({
     color: accentColor,
+    map: getSoftGlowTexture(),
     transparent: true,
-    opacity: 0.22,
+    opacity: 0.28,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   });
   const underglow = new THREE.Mesh(
-    new THREE.PlaneGeometry(carSize.x * 1.15, carSize.z * 0.98),
+    new THREE.PlaneGeometry(carSize.x * 1.55, carSize.z * 1.2),
     underglowMat
   );
   underglow.rotation.x = -Math.PI / 2;
-  underglow.position.y = 0.04;
+  underglow.position.y = 0.042;
   root.add(underglow);
 
-  // Real spotlight attached to player car for authentic midnight touge illumination
-  let headlightSpot = null;
-  if (isPlayer) {
-    headlightSpot = new THREE.SpotLight(0xfff7d6, 95, 58, Math.PI / 4.2, 0.65, 1.4);
-    headlightSpot.position.set(0, 1.05, halfLen - 0.1);
-    const target = new THREE.Object3D();
-    target.position.set(0, 0.1, halfLen + 26);
-    root.add(target);
-    headlightSpot.target = target;
-    root.add(headlightSpot);
-  }
-
-  return { headlightBeams, tailGlowMat, underglow, underglowMat, headlightSpot };
+  return { headlightBeams, tailGlowMat, underglow, underglowMat, headlightSpot: null };
 }
 
 /**

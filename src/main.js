@@ -7,8 +7,8 @@ import {
   RIVALS,
 } from './config.js';
 import { TougeTrack } from './track.js?v=13';
-import { buildTougeEnvironment } from './trackRenderer.js?v=16';
-import { loadCarModel } from './carModel.js';
+import { buildTougeEnvironment } from './trackRenderer.js?v=17';
+import { loadCarModel } from './carModel.js?v=14';
 import {
   createVehicleState,
   resetVehicleToSpawn,
@@ -34,14 +34,14 @@ class ProjectDGame {
       antialias: true,
       powerPreference: 'high-performance',
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x050814);
-    this.scene.fog = new THREE.FogExp2(0x050814, 0.0044);
+    this.scene.fog = new THREE.FogExp2(0x050814, 0.0036);
 
     this.camera = new THREE.PerspectiveCamera(
       62,
@@ -53,8 +53,9 @@ class ProjectDGame {
     this._setupLighting();
 
     // Core world & track
+    const maxAnisotropy = Math.min(4, this.renderer.capabilities.getMaxAnisotropy());
     this.track = new TougeTrack();
-    this.envController = buildTougeEnvironment(this.scene, this.track);
+    this.envController = buildTougeEnvironment(this.scene, this.track, maxAnisotropy);
 
     // Subsystems
     this.effects = new EffectsManager(this.scene);
@@ -176,16 +177,13 @@ class ProjectDGame {
   }
 
   _setupLighting() {
-    this.hemiLight = new THREE.HemisphereLight(0x475569, 0x0f172a, 1.35);
+    // Minimal 2-light rig (1 Hemisphere + 1 Directional) for fast low-end GPU rendering
+    this.hemiLight = new THREE.HemisphereLight(0x64748b, 0x1e293b, 1.55);
     this.scene.add(this.hemiLight);
 
-    this.mainDirLight = new THREE.DirectionalLight(0xc7d2fe, 1.35);
+    this.mainDirLight = new THREE.DirectionalLight(0xc7d2fe, 1.25);
     this.mainDirLight.position.set(-120, 240, -180);
     this.scene.add(this.mainDirLight);
-
-    this.fillLight = new THREE.DirectionalLight(0xf59e0b, 0.55);
-    this.fillLight.position.set(140, 80, 120);
-    this.scene.add(this.fillLight);
   }
 
   setTimeOfDay(mode) {
@@ -194,36 +192,30 @@ class ProjectDGame {
 
     if (isDay) {
       this.scene.background.setHex(0x7ec8f2);
-      this.scene.fog.color.setHex(0x9bd3f0);
-      this.scene.fog.density = 0.0014;
+      this.scene.fog.color.setHex(0xa7d8f0);
+      this.scene.fog.density = 0.0012;
       this.renderer.toneMappingExposure = 1.05;
 
       this.hemiLight.color.setHex(0xe0f2fe);
-      this.hemiLight.groundColor.setHex(0x3b5249);
-      this.hemiLight.intensity = 1.85;
+      this.hemiLight.groundColor.setHex(0x4b6355);
+      this.hemiLight.intensity = 1.95;
 
       this.mainDirLight.color.setHex(0xfffbeb);
-      this.mainDirLight.intensity = 2.35;
+      this.mainDirLight.intensity = 1.95;
       this.mainDirLight.position.set(220, 340, -260);
-
-      this.fillLight.color.setHex(0xbae6fd);
-      this.fillLight.intensity = 0.65;
     } else {
       this.scene.background.setHex(0x050814);
-      this.scene.fog.color.setHex(0x050814);
-      this.scene.fog.density = 0.0044;
+      this.scene.fog.color.setHex(0x0a1124);
+      this.scene.fog.density = 0.0036;
       this.renderer.toneMappingExposure = 1.15;
 
-      this.hemiLight.color.setHex(0x475569);
-      this.hemiLight.groundColor.setHex(0x0f172a);
-      this.hemiLight.intensity = 1.35;
+      this.hemiLight.color.setHex(0x64748b);
+      this.hemiLight.groundColor.setHex(0x162033);
+      this.hemiLight.intensity = 1.55;
 
       this.mainDirLight.color.setHex(0xc7d2fe);
-      this.mainDirLight.intensity = 1.35;
+      this.mainDirLight.intensity = 1.25;
       this.mainDirLight.position.set(-120, 240, -180);
-
-      this.fillLight.color.setHex(0xf59e0b);
-      this.fillLight.intensity = 0.55;
     }
 
     this.envController?.setTimeOfDay(this.timeOfDay);
@@ -760,7 +752,7 @@ class ProjectDGame {
     if (Math.abs(this.camRoll) > 0.0001) {
       this.camera.rotateZ(this.camRoll);
     }
-    this.envController?.syncSkyToCamera(this.camPos.y);
+    this.envController?.syncSkyToCamera(this.camPos);
   }
 
   _stepGame(dt) {
