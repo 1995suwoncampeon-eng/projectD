@@ -7,7 +7,7 @@ import {
   RIVALS,
 } from './config.js';
 import { TougeTrack } from './track.js?v=12';
-import { buildTougeEnvironment } from './trackRenderer.js?v=12';
+import { buildTougeEnvironment } from './trackRenderer.js?v=13';
 import { loadCarModel } from './carModel.js';
 import {
   createVehicleState,
@@ -92,6 +92,7 @@ class ProjectDGame {
     // Smooth camera state
     this.camPos = new THREE.Vector3(0, 6, 12);
     this.camLook = new THREE.Vector3(0, 1, -10);
+    this.camRoll = 0;
 
     // Pending race result carried across post-race outro cutscene
     this._pendingResult = null;
@@ -596,11 +597,12 @@ class ProjectDGame {
     resetVehicleToSpawn(this.rival, this.track, this.track.startS, 2.6);
     this._syncCarMeshes(0);
 
-    // Snap chase camera cleanly behind player for countdown
+    // Snap chase camera cleanly behind player for countdown (downhill illusion pitch)
     const fx = Math.sin(this.player.heading);
     const fz = Math.cos(this.player.heading);
-    this.camPos.set(this.player.x - fx * 9.5, 4.0, this.player.z - fz * 9.5);
-    this.camLook.set(this.player.x + fx * 10, 1.2, this.player.z + fz * 10);
+    this.camPos.set(this.player.x - fx * 8.5, 4.45, this.player.z - fz * 8.5);
+    this.camLook.set(this.player.x + fx * 12.0, -1.65, this.player.z + fz * 12.0);
+    this.camRoll = 0;
 
     this.raceElapsed = 0;
     this.countdownTimer = 3.0;
@@ -681,6 +683,7 @@ class ProjectDGame {
       this.camPos.lerp(targetPos, Math.min(1, dt * 3.5));
       this.camLook.lerp(targetLook, Math.min(1, dt * 3.5));
       this.camera.fov += (58 - this.camera.fov) * smooth;
+      this.camRoll += (0 - this.camRoll) * smooth;
     } else if (this.state === 'SELECT' || this.state === 'CUTSCENE_INTRO') {
       const pt = this.track.getPointAtS(this.track.startS);
       const sway = Math.sin(this.clockTime * 0.65) * 2.2;
@@ -689,6 +692,7 @@ class ProjectDGame {
       this.camPos.lerp(targetPos, Math.min(1, dt * 4.5));
       this.camLook.lerp(targetLook, Math.min(1, dt * 4.5));
       this.camera.fov += (54 - this.camera.fov) * smooth;
+      this.camRoll += (0 - this.camRoll) * smooth;
     } else if (this.state === 'RESULT' || this.state === 'CUTSCENE_OUTRO') {
       const orbitAngle = this.clockTime * 0.42;
       const targetPos = new THREE.Vector3(
@@ -700,16 +704,21 @@ class ProjectDGame {
       this.camPos.lerp(targetPos, Math.min(1, dt * 3.5));
       this.camLook.lerp(targetLook, Math.min(1, dt * 3.5));
       this.camera.fov += (56 - this.camera.fov) * smooth;
+      this.camRoll += (0 - this.camRoll) * smooth;
     } else {
-      // COUNTDOWN & RACING: Arcade Chase Cam behind player
+      // COUNTDOWN & RACING: Downhill optical illusion chase cam on flat terrain.
+      // Elevated camera pitching steeply downward raises the horizon (~72-76% up)
+      // so the flat road visually plunges downward like a steep mountain pass.
       const fx = Math.sin(this.player.heading);
       const fz = Math.cos(this.player.heading);
       const rx = -fz;
       const rz = fx;
 
       const speedNorm = Math.min(1, this.player.speedKmh / 105);
-      const camDist = 7.8 + speedNorm * 1.1;
-      const camHeight = 3.15 + speedNorm * 0.2;
+      const camDist = 8.5 + speedNorm * 0.95;
+      const camHeight = 4.45 + speedNorm * 0.4;
+      const lookAhead = 12.0 + speedNorm * 2.0;
+      const lookY = -1.65 - speedNorm * 0.4;
       const driftSideSwing = this.player.visualSlip * 2.1;
 
       const desiredPos = new THREE.Vector3(
@@ -718,21 +727,28 @@ class ProjectDGame {
         this.player.z - fz * camDist - rz * driftSideSwing
       );
       const desiredLook = new THREE.Vector3(
-        this.player.x + fx * 12.5,
-        1.15,
-        this.player.z + fz * 12.5
+        this.player.x + fx * lookAhead,
+        lookY,
+        this.player.z + fz * lookAhead
       );
 
       this.camPos.lerp(desiredPos, 1 - Math.exp(-dt * 9.5));
       this.camLook.lerp(desiredLook, 1 - Math.exp(-dt * 12.0));
 
-      const targetFov = 60 + speedNorm * 8 + (this.player.driftBoostTimer > 0 ? 3 : 0);
+      const targetFov = 64 + speedNorm * 9 + (this.player.driftBoostTimer > 0 ? 3 : 0);
       this.camera.fov += (targetFov - this.camera.fov) * smooth;
+
+      // Subtle downhill cornering camera bank (capped ~1.8 deg)
+      const targetRoll = Math.max(-0.032, Math.min(0.032, -this.player.visualSlip * 0.065));
+      this.camRoll += (targetRoll - this.camRoll) * smooth;
     }
 
     this.camera.updateProjectionMatrix();
     this.camera.position.copy(this.camPos);
     this.camera.lookAt(this.camLook);
+    if (Math.abs(this.camRoll) > 0.0001) {
+      this.camera.rotateZ(this.camRoll);
+    }
   }
 
   _stepGame(dt) {
