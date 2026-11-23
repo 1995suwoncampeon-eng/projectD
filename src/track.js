@@ -205,10 +205,9 @@ export class TougeTrack {
       }
     }
 
-    // Temporarily disable guardrails through the 5-consecutive hairpin section
+    // Temporarily disable guardrails across the entire course for testing
     for (let i = 0; i < n; i++) {
-      const s = this.samples[i].s;
-      this.samples[i].noGuardrail = s >= 2030 && s <= 3340;
+      this.samples[i].noGuardrail = true;
     }
   }
 
