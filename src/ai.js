@@ -238,14 +238,21 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     ? track.getUpcomingCurvature(rival.s, 0, 24).signedPeak
     : proj.curvature;
   const effectiveCurv = Math.abs(proj.curvature) >= Math.abs(entryCurv) ? proj.curvature : entryCurv;
-  const aiDrifting = Math.abs(effectiveCurv) > driftThreshold && speedKmh > 52;
+  const aiDrifting = !rival.inGutter && Math.abs(effectiveCurv) > driftThreshold && speedKmh > 52;
   rival.isDrifting = aiDrifting;
   rival.driftDir = aiDrifting ? Math.sign(effectiveCurv) : 0;
 
-  const targetSlip = aiDrifting ? rival.driftDir * driftSlip : Math.max(-0.08, Math.min(0.08, headingDiff * 0.25));
+  const targetSlip = rival.inGutter
+    ? 0
+    : aiDrifting
+      ? rival.driftDir * driftSlip
+      : Math.max(-0.08, Math.min(0.08, headingDiff * 0.25));
   rival.visualSlip += (targetSlip - rival.visualSlip) * Math.min(1, dt * 8.5);
   rival.steerVisual += (Math.max(-1, Math.min(1, headingDiff * 2.2)) - rival.steerVisual) * Math.min(1, dt * 10);
-  rival.bodyRoll += (rival.driftDir * (aiDrifting ? 0.085 : 0.06) - rival.bodyRoll) * Math.min(1, dt * 9);
+  const targetRoll = rival.inGutter
+    ? rival.gutterSide * 0.055
+    : rival.driftDir * (aiDrifting ? 0.085 : 0.06);
+  rival.bodyRoll += (targetRoll - rival.bodyRoll) * Math.min(1, dt * 9);
 
   // Rotary twin-turbo spool: charge through corner apex, fire boost on exit!
   if (turboCfg) {
