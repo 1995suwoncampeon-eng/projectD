@@ -603,67 +603,96 @@ export function buildTougeEnvironment(scene, track, maxAnisotropy = 4) {
 
   const { samples, halfWidth, guardrailOffset } = track;
 
-  // 1. Sloped mountain valley ground mesh.
-  // Compute a tight windowed minimum-elevation envelope along Z so the mountain
-  // sits naturally right beneath the road while never poking through hairpins.
+  // 1. High-resolution (10m grid) mountain terrain hugging right beneath the road (-0.35m).
+  // Build a lightweight 2D spatial hash over track samples so each terrain vertex finds
+  // all road segments within 22m in O(1) time:
+  // - Right next to any road: sits snugly at (localMinRoadY - 0.35m) -> zero floating, zero poke-through!
+  // - Farther from the road: blends smoothly into surrounding mountain slopes.
   const centerX = (track.bounds.minX + track.bounds.maxX) * 0.5;
   const centerZ = (track.bounds.minZ + track.bounds.maxZ) * 0.5;
-  const zMin = Math.floor(track.bounds.minZ) - 100;
-  const zMax = Math.ceil(track.bounds.maxZ) + 100;
-  const zStep = 8;
-  const bucketCount = Math.ceil((zMax - zMin) / zStep) + 1;
-  const rawMinY = new Float32Array(bucketCount).fill(Infinity);
 
+  const cellSize = 24;
+  const spatialGrid = new Map();
   for (let i = 0; i < samples.length; i++) {
     const p = samples[i];
-    const bi = Math.max(0, Math.min(bucketCount - 1, Math.round((p.z - zMin) / zStep)));
-    if (p.y < rawMinY[bi]) rawMinY[bi] = p.y;
-  }
-
-  // Fill any empty Z buckets by nearest populated bucket (monotonic downhill along -Z)
-  let lastValid = 0;
-  for (let i = bucketCount - 1; i >= 0; i--) {
-    if (Number.isFinite(rawMinY[i])) lastValid = rawMinY[i];
-    else rawMinY[i] = lastValid;
-  }
-  for (let i = 0; i < bucketCount; i++) {
-    if (!Number.isFinite(rawMinY[i])) rawMinY[i] = lastValid;
-  }
-
-  // Tight ±24m window matches the 16m Z grid spacing: hugs road closely with zero poke-through
-  const winBuckets = 3;
-  const safeFloorY = new Float32Array(bucketCount);
-  for (let i = 0; i < bucketCount; i++) {
-    let minVal = rawMinY[i];
-    const lo = Math.max(0, i - winBuckets);
-    const hi = Math.min(bucketCount - 1, i + winBuckets);
-    for (let j = lo; j <= hi; j++) {
-      if (rawMinY[j] < minVal) minVal = rawMinY[j];
+    const cx = Math.floor(p.x / cellSize);
+    const cz = Math.floor(p.z / cellSize);
+    const key = `${cx},${cz}`;
+    let arr = spatialGrid.get(key);
+    if (!arr) {
+      arr = [];
+      spatialGrid.set(key, arr);
     }
-    safeFloorY[i] = minVal - 2.4;
+    arr.push(p);
   }
 
-  const getValleyFloorY = (wz) => {
-    const f = (wz - zMin) / zStep;
-    if (f <= 0) return safeFloorY[0];
-    if (f >= bucketCount - 1) return safeFloorY[bucketCount - 1];
-    const i0 = Math.floor(f);
-    const t = f - i0;
-    return safeFloorY[i0] + (safeFloorY[i0 + 1] - safeFloorY[i0]) * t;
+  const getTerrainY = (wx, wz) => {
+    const cx = Math.floor(wx / cellSize);
+    const cz = Math.floor(wz / cellSize);
+    let localMinY = Infinity;
+    let nearestDistSq = Infinity;
+    let nearestY = 0;
+
+    // Check 3x3 neighborhood (~24..48m radius) for any nearby road legs
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dz = -1; dz <= 1; dz++) {
+        const bucket = spatialGrid.get(`${cx + dx},${cz + dz}`);
+        if (!bucket) continue;
+        for (let k = 0; k < bucket.length; k++) {
+          const p = bucket[k];
+          const ddx = p.x - wx;
+          const ddz = p.z - wz;
+          const d2 = ddx * ddx + ddz * ddz;
+          if (d2 < 22 * 22 && p.y < localMinY) {
+            localMinY = p.y;
+          }
+          if (d2 < nearestDistSq) {
+            nearestDistSq = d2;
+            nearestY = p.y;
+          }
+        }
+      }
+    }
+
+    if (localMinY < Infinity) {
+      // Directly under or adjacent to road: hug 0.35m below lowest nearby road leg
+      return localMinY - 0.35;
+    }
+
+    // Outside 22m of any road: use nearest track point elevation + subtle natural mountain undulation
+    let baseY;
+    let distFromRoad;
+    if (nearestDistSq < Infinity) {
+      baseY = nearestY;
+      distFromRoad = Math.sqrt(nearestDistSq);
+    } else {
+      const nearest = track.projectPoint(wx, wz, -1);
+      baseY = track.getElevationAtS(nearest.s);
+      distFromRoad = Math.abs(nearest.lateral);
+    }
+    const farBlend = Math.min(1, Math.max(0, (distFromRoad - 26) / 60));
+    const ridge = (Math.sin(wx * 0.018) * Math.cos(wz * 0.014) * 5.5 - 1.2) * farBlend;
+    return baseY - 0.45 + ridge - Math.min(24, Math.max(0, distFromRoad - 140) * 0.06);
   };
 
-  const groundGeo = new THREE.PlaneGeometry(3600, 2600, 64, 160);
+  // Core high-res terrain covering entire course footprint (10m x 10m cells -> ~8k verts)
+  const coreWidth = Math.ceil((track.bounds.maxX - track.bounds.minX + 280) / 10) * 10;
+  const coreDepth = Math.ceil((track.bounds.maxZ - track.bounds.minZ + 280) / 10) * 10;
+  const segX = Math.max(40, Math.round(coreWidth / 10));
+  const segZ = Math.max(100, Math.round(coreDepth / 10));
+
+  const groundGeo = new THREE.PlaneGeometry(coreWidth, coreDepth, segX, segZ);
   groundGeo.rotateX(-Math.PI / 2);
   const gPos = groundGeo.attributes.position;
   for (let i = 0; i < gPos.count; i++) {
     const wx = gPos.getX(i) + centerX;
     const wz = gPos.getZ(i) + centerZ;
-    const floorY = getValleyFloorY(wz);
-    const lateralDist = Math.max(0, Math.abs(wx - centerX) - 200);
-    gPos.setY(i, floorY - Math.min(28, lateralDist * 0.05));
+    gPos.setY(i, getTerrainY(wx, wz));
   }
   groundGeo.computeVertexNormals();
+
   const valleyTex = createValleyTerrainTexture(maxAnisotropy);
+  valleyTex.repeat.set(Math.round(coreWidth / 28), Math.round(coreDepth / 28));
   const groundMat = new THREE.MeshLambertMaterial({
     map: valleyTex,
     color: 0x3b4d5c,
@@ -671,6 +700,23 @@ export function buildTougeEnvironment(scene, track, maxAnisotropy = 4) {
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.position.set(centerX, 0, centerZ);
   envGroup.add(ground);
+
+  // Far outer horizon mountain apron (keeps distant horizon seamless beyond core terrain)
+  const outerGeo = new THREE.PlaneGeometry(4600, 3600, 24, 32);
+  outerGeo.rotateX(-Math.PI / 2);
+  const oPos = outerGeo.attributes.position;
+  for (let i = 0; i < oPos.count; i++) {
+    const wx = oPos.getX(i) + centerX;
+    const wz = oPos.getZ(i) + centerZ;
+    const nearest = track.projectPoint(wx, wz, -1);
+    const baseY = track.getElevationAtS(nearest.s);
+    // Keep outer apron cleanly below core terrain so it never z-fights or pokes through
+    oPos.setY(i, baseY - 18.0 - Math.min(45, Math.abs(nearest.lateral) * 0.04));
+  }
+  outerGeo.computeVertexNormals();
+  const outerGround = new THREE.Mesh(outerGeo, groundMat);
+  outerGround.position.set(centerX, 0, centerZ);
+  envGroup.add(outerGround);
 
   // 2. Asphalt Road Surface (512x512 textured asphalt + lightweight Lambert shading)
   const asphaltTex = createAsphaltTexture(maxAnisotropy);
@@ -693,11 +739,16 @@ export function buildTougeEnvironment(scene, track, maxAnisotropy = 4) {
     new THREE.Mesh(buildRibbonGeometry(samples, halfWidth, guardrailOffset + 0.5, -0.015), gutterMat)
   );
 
-  // Roadside mountain slope berms connect the shoulder seamlessly to the surrounding terrain
+  // Roadside mountain slope berms bridge the small ~0.35m seam between road shoulder and terrain
   const shoulderEdge = guardrailOffset + 0.5;
+  const bermMat = new THREE.MeshLambertMaterial({
+    map: valleyTex,
+    color: 0x3b4d5c,
+    side: THREE.DoubleSide,
+  });
   envGroup.add(
-    new THREE.Mesh(buildRoadsideSlopeGeometry(samples, -1, shoulderEdge, 5.2, -0.02, -5.4), groundMat),
-    new THREE.Mesh(buildRoadsideSlopeGeometry(samples, 1, shoulderEdge, 5.2, -0.02, -5.4), groundMat)
+    new THREE.Mesh(buildRoadsideSlopeGeometry(samples, -1, shoulderEdge, 4.2, -0.02, -1.6), bermMat),
+    new THREE.Mesh(buildRoadsideSlopeGeometry(samples, 1, shoulderEdge, 4.2, -0.02, -1.6), bermMat)
   );
 
   const wallTex = createRetainingWallTexture(maxAnisotropy);
@@ -707,8 +758,8 @@ export function buildTougeEnvironment(scene, track, maxAnisotropy = 4) {
     side: THREE.DoubleSide,
   });
   envGroup.add(
-    new THREE.Mesh(buildGuardrailBeamGeometry(samples, -shoulderEdge, -95, -0.05, 0.09, 7.5), wallMat),
-    new THREE.Mesh(buildGuardrailBeamGeometry(samples, shoulderEdge, -95, -0.05, 0.09, 7.5), wallMat)
+    new THREE.Mesh(buildGuardrailBeamGeometry(samples, -shoulderEdge, -32, -0.05, 0.09, 2.8), wallMat),
+    new THREE.Mesh(buildGuardrailBeamGeometry(samples, shoulderEdge, -32, -0.05, 0.09, 2.8), wallMat)
   );
 
   // 3.5. Inside-Corner Drainage Gutters (도랑 — recessed concrete trench right next to inside guardrail)
@@ -976,7 +1027,7 @@ export function buildTougeEnvironment(scene, track, maxAnisotropy = 4) {
       continue;
     }
 
-    const baseY = getValleyFloorY(tz) - 0.5;
+    const baseY = getTerrainY(tx, tz) - 0.4;
     dummy.rotation.order = 'XYZ';
     dummy.position.set(tx, baseY + 1.5 * scale, tz);
     dummy.rotation.set(0, rand * Math.PI * 2, 0);
@@ -1019,6 +1070,7 @@ export function buildTougeEnvironment(scene, track, maxAnisotropy = 4) {
       poolInst.visible = !isDay;
       headMat.color.setHex(isDay ? 0x94a3b8 : 0xffd27d);
       groundMat.color.setHex(isDay ? 0x9db8a0 : 0x263442);
+      bermMat.color.setHex(isDay ? 0x9db8a0 : 0x263442);
       wallMat.color.setHex(isDay ? 0xcbd5e1 : 0x64748b);
       crownMat.color.setHex(isDay ? 0xb5d6ba : 0x3b594d);
       reflectorMat.color.setHex(isDay ? 0xe2e8f0 : 0x38bdf8);
