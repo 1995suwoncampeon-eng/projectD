@@ -380,6 +380,116 @@ class ProjectDGame {
     window.addEventListener('blur', () => {
       this._clearInputs();
     });
+
+    this._initTouchControls();
+  }
+
+  _initTouchControls() {
+    const hasTouch =
+      'ontouchstart' in window ||
+      (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+      (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+
+    if (hasTouch) {
+      document.body.classList.add('touch-device');
+    }
+
+    // Fallback for hybrid tablets / 2-in-1 devices on first touch
+    window.addEventListener(
+      'touchstart',
+      () => {
+        document.body.classList.add('touch-device');
+      },
+      { once: true, passive: true }
+    );
+
+    const steerPad = document.getElementById('touch-steer-pad');
+    const leftBtn = document.getElementById('btn-touch-left');
+    const rightBtn = document.getElementById('btn-touch-right');
+
+    // Steering pad supports both direct taps and smooth thumb sliding between LEFT and RIGHT
+    if (steerPad && leftBtn && rightBtn) {
+      let steerPointerId = null;
+
+      const applySteerFromClientX = (clientX) => {
+        const rect = steerPad.getBoundingClientRect();
+        const midX = rect.left + rect.width * 0.5;
+        const goLeft = clientX < midX;
+        this.input.left = goLeft;
+        this.input.right = !goLeft;
+        leftBtn.classList.toggle('pressed', goLeft);
+        rightBtn.classList.toggle('pressed', !goLeft);
+      };
+
+      const releaseSteer = () => {
+        steerPointerId = null;
+        this.input.left = false;
+        this.input.right = false;
+        leftBtn.classList.remove('pressed');
+        rightBtn.classList.remove('pressed');
+      };
+
+      steerPad.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        this.audio.unlock();
+        steerPointerId = e.pointerId;
+        steerPad.setPointerCapture?.(e.pointerId);
+        applySteerFromClientX(e.clientX);
+      });
+
+      steerPad.addEventListener('pointermove', (e) => {
+        if (e.pointerId !== steerPointerId) return;
+        e.preventDefault();
+        applySteerFromClientX(e.clientX);
+      });
+
+      steerPad.addEventListener('pointerup', (e) => {
+        if (e.pointerId === steerPointerId) releaseSteer();
+      });
+      steerPad.addEventListener('pointercancel', (e) => {
+        if (e.pointerId === steerPointerId) releaseSteer();
+      });
+      steerPad.addEventListener('lostpointercapture', (e) => {
+        if (e.pointerId === steerPointerId) releaseSteer();
+      });
+    }
+
+    // Independent multi-touch pointer tracking for ACCEL, BRAKE, and DRIFT buttons
+    const pedalDefs = [
+      { id: 'btn-touch-accel', key: 'up' },
+      { id: 'btn-touch-brake', key: 'down' },
+      { id: 'btn-touch-drift', key: 'drift' },
+    ];
+
+    for (const def of pedalDefs) {
+      const btn = document.getElementById(def.id);
+      if (!btn) continue;
+      const activePointers = new Set();
+
+      const sync = () => {
+        const pressed = activePointers.size > 0;
+        this.input[def.key] = pressed;
+        btn.classList.toggle('pressed', pressed);
+      };
+
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        this.audio.unlock();
+        activePointers.add(e.pointerId);
+        btn.setPointerCapture?.(e.pointerId);
+        sync();
+      });
+
+      const release = (e) => {
+        if (activePointers.delete(e.pointerId)) {
+          sync();
+        }
+      };
+
+      btn.addEventListener('pointerup', release);
+      btn.addEventListener('pointercancel', release);
+      btn.addEventListener('lostpointercapture', release);
+    }
   }
 
   _clearInputs() {
@@ -388,6 +498,9 @@ class ProjectDGame {
     this.input.left = false;
     this.input.right = false;
     this.input.drift = false;
+    document.querySelectorAll('.touch-btn.pressed').forEach((el) => {
+      el.classList.remove('pressed');
+    });
   }
 
   toggleMute() {

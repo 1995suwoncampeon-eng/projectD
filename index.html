@@ -224,6 +224,38 @@
           </div>
         </div>
       </div>
+
+      <!-- Mobile & Tablet Touch Controls (Auto-shown on touch devices) -->
+      <div id="touch-controls" class="touch-controls" aria-label="터치 조작 컨트롤">
+        <!-- Left Thumb: Steering Pad (supports press & smooth thumb slide) -->
+        <div id="touch-steer-pad" class="touch-steer-pad">
+          <button id="btn-touch-left" class="touch-btn touch-steer-btn" type="button" data-input="left" aria-label="좌회전">
+            <span class="touch-arrow">◀</span>
+            <span class="touch-sub">LEFT</span>
+          </button>
+          <button id="btn-touch-right" class="touch-btn touch-steer-btn" type="button" data-input="right" aria-label="우회전">
+            <span class="touch-arrow">▶</span>
+            <span class="touch-sub">RIGHT</span>
+          </button>
+        </div>
+
+        <!-- Right Thumb: Drift + Brake + Accel Pedals -->
+        <div class="touch-pedal-cluster">
+          <div class="touch-pedal-left-col">
+            <button id="btn-touch-drift" class="touch-btn touch-drift-btn" type="button" data-input="drift" aria-label="드리프트">
+              <span class="touch-label">DRIFT</span>
+            </button>
+            <button id="btn-touch-brake" class="touch-btn touch-brake-btn" type="button" data-input="down" aria-label="브레이크">
+              <span class="touch-label">BRAKE</span>
+              <span class="touch-sub">감속 / 후진</span>
+            </button>
+          </div>
+          <button id="btn-touch-accel" class="touch-btn touch-accel-btn" type="button" data-input="up" aria-label="악셀">
+            <span class="touch-label">ACCEL</span>
+            <span class="touch-sub">가속</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- ==========================================
