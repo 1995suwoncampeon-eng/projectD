@@ -136,7 +136,7 @@ export function updateDrivetrain(car) {
  * Prevents tunneling, escaping, or flipping under any circumstances.
  */
 export function enforceTrackBounds(car, track, dt = 1 / 60, wallFriction = 1.65) {
-  const proj = track.projectPoint(car.x, car.z, car.trackIndex);
+  const proj = track.projectPoint(car.x, car.z, car.trackIndex, car.speed > 0.5);
   car.trackIndex = proj.index;
   car.s = proj.s;
   car.lateral = proj.lateral;

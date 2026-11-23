@@ -265,53 +265,53 @@ export class TougeTrack {
   }
 
   /**
-   * Project an arbitrary 2D point (x, z) onto the nearest track sample.
-   * Uses a tight local window around hintIndex so razor-tight 180-degree hairpins
-   * can never snap onto the opposite leg of the switchback.
+   * Project an arbitrary 2D point (x, z) onto the nearest track polyline segment.
+   * Uses exact segment projection within a tight window around hintIndex so tight
+   * 180-degree hairpins can never drag a vehicle backwards onto an earlier sample.
    */
-  projectPoint(x, z, hintIndex = -1) {
+  projectPoint(x, z, hintIndex = -1, forwardOnly = false) {
     const samples = this.samples;
     const n = samples.length;
 
-    let bestIdx = 0;
+    let bestS = 0;
     let bestDistSq = Infinity;
 
-    if (hintIndex >= 0 && hintIndex < n) {
-      const start = Math.max(0, hintIndex - 3);
-      const end = Math.min(n - 1, hintIndex + 6);
-      for (let i = start; i <= end; i++) {
-        const dx = x - samples[i].x;
-        const dz = z - samples[i].z;
-        const dSq = dx * dx + dz * dz;
+    const scanRange = (startIdx, endIdx) => {
+      for (let i = startIdx; i < endIdx; i++) {
+        const a = samples[i];
+        const b = samples[i + 1];
+        const abx = b.x - a.x;
+        const abz = b.z - a.z;
+        const abLenSq = abx * abx + abz * abz;
+        let t = 0;
+        if (abLenSq > 1e-8) {
+          t = ((x - a.x) * abx + (z - a.z) * abz) / abLenSq;
+          if (t < 0) t = 0;
+          else if (t > 1) t = 1;
+        }
+        const px = a.x + abx * t;
+        const pz = a.z + abz * t;
+        const dSq = (x - px) * (x - px) + (z - pz) * (z - pz);
         if (dSq < bestDistSq) {
           bestDistSq = dSq;
-          bestIdx = i;
+          bestS = a.s + (b.s - a.s) * t;
         }
       }
+    };
+
+    if (hintIndex >= 0 && hintIndex < n - 1) {
+      const start = forwardOnly ? Math.max(0, hintIndex) : Math.max(0, hintIndex - 3);
+      const end = Math.min(n - 1, hintIndex + 8);
+      scanRange(start, end);
     }
 
     // Fallback global scan if hint was missing or vehicle jumped far
     if (bestDistSq > 45 * 45) {
       bestDistSq = Infinity;
-      for (let i = 0; i < n; i++) {
-        const dx = x - samples[i].x;
-        const dz = z - samples[i].z;
-        const dSq = dx * dx + dz * dz;
-        if (dSq < bestDistSq) {
-          bestDistSq = dSq;
-          bestIdx = i;
-        }
-      }
+      scanRange(0, n - 1);
     }
 
-    const base = samples[bestIdx];
-    const dx = x - base.x;
-    const dz = z - base.z;
-
-    // Project along tangent for continuous arc-length s (clamped to avoid curve overshoot)
-    const maxAlong = this.stepS * 1.5;
-    const along = Math.max(-maxAlong, Math.min(maxAlong, dx * base.tx + dz * base.tz));
-    const s = Math.max(0, Math.min(this.totalLength, base.s + along));
+    const s = Math.max(0, Math.min(this.totalLength, bestS));
     const pt = this.getPointAtS(s);
 
     const pdx = x - pt.x;
