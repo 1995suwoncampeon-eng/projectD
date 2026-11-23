@@ -212,17 +212,29 @@ export class TougeTrack {
   }
 
   /**
-   * Interpolate a smooth point on the centerline at arc-length s (meters).
+   * Interpolate a smooth point on the centerline at arc-length s (meters)
+   * using exact binary search over cumulative sample arc-lengths.
    */
   getPointAtS(s) {
+    const samples = this.samples;
+    const lastIdx = samples.length - 1;
     const clamped = Math.max(0, Math.min(this.totalLength, s));
-    const exactIdx = (clamped / this.totalLength) * (this.samples.length - 1);
-    const i0 = Math.floor(exactIdx);
-    const i1 = Math.min(this.samples.length - 1, i0 + 1);
-    const t = exactIdx - i0;
 
-    const a = this.samples[i0];
-    const b = this.samples[i1];
+    // Exact binary search: find i0 such that samples[i0].s <= clamped <= samples[i0 + 1].s
+    let lo = 0;
+    let hi = lastIdx;
+    while (lo < hi - 1) {
+      const mid = (lo + hi) >> 1;
+      if (samples[mid].s <= clamped) lo = mid;
+      else hi = mid;
+    }
+
+    const i0 = lo;
+    const i1 = Math.min(lastIdx, i0 + 1);
+    const a = samples[i0];
+    const b = samples[i1];
+    const segLen = b.s - a.s;
+    const t = segLen > 1e-6 ? Math.max(0, Math.min(1, (clamped - a.s) / segLen)) : 0;
 
     const tx = a.tx + (b.tx - a.tx) * t;
     const tz = a.tz + (b.tz - a.tz) * t;
