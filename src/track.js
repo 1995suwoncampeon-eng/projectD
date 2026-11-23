@@ -204,6 +204,12 @@ export class TougeTrack {
         }
       }
     }
+
+    // Temporarily disable guardrails through the 5-consecutive hairpin section
+    for (let i = 0; i < n; i++) {
+      const s = this.samples[i].s;
+      this.samples[i].noGuardrail = s >= 2030 && s <= 3340;
+    }
   }
 
   /**
@@ -237,6 +243,7 @@ export class TougeTrack {
       s: clamped,
       curvature: a.curvature + (b.curvature - a.curvature) * t,
       gutterSide: t < 0.5 ? a.gutterSide : b.gutterSide,
+      noGuardrail: t < 0.5 ? a.noGuardrail : b.noGuardrail,
     };
   }
 
@@ -323,6 +330,7 @@ export class TougeTrack {
       heading: pt.heading,
       curvature: pt.curvature,
       gutterSide: pt.gutterSide,
+      noGuardrail: pt.noGuardrail,
     };
   }
 

@@ -284,34 +284,38 @@ export function buildTougeEnvironment(scene, track) {
   dashInst.instanceMatrix.needsUpdate = true;
   envGroup.add(dashInst);
 
-  // 6. Guardrails (left & right metallic W-beam + posts)
+  // 6. Guardrails (left & right metallic W-beam + posts; omitted on noGuardrail sections)
   const railMat = new THREE.MeshStandardMaterial({
     color: 0x94a3b8,
     roughness: 0.42,
     metalness: 0.65,
     side: THREE.DoubleSide,
   });
-  const railLeft = new THREE.Mesh(
-    buildGuardrailBeamGeometry(samples, -guardrailOffset, 0.42, 0.88),
-    railMat
-  );
-  const railRight = new THREE.Mesh(
-    buildGuardrailBeamGeometry(samples, guardrailOffset, 0.42, 0.88),
-    railMat
-  );
-  envGroup.add(railLeft, railRight);
 
   // Reflective orange/white strip along guardrails for crisp night readability
   const reflectorMat = new THREE.MeshBasicMaterial({
     color: 0x38bdf8,
     side: THREE.DoubleSide,
   });
-  envGroup.add(
-    new THREE.Mesh(buildGuardrailBeamGeometry(samples, -guardrailOffset + 0.04, 0.62, 0.7), reflectorMat)
-  );
-  envGroup.add(
-    new THREE.Mesh(buildGuardrailBeamGeometry(samples, guardrailOffset - 0.04, 0.62, 0.7), reflectorMat)
-  );
+
+  let railStart = -1;
+  for (let i = 0; i <= samples.length; i++) {
+    const hasRail = i < samples.length && !samples[i].noGuardrail;
+    if (hasRail && railStart === -1) {
+      railStart = i;
+    } else if (!hasRail && railStart !== -1) {
+      if (i - railStart >= 2) {
+        const seg = samples.slice(railStart, i);
+        envGroup.add(
+          new THREE.Mesh(buildGuardrailBeamGeometry(seg, -guardrailOffset, 0.42, 0.88), railMat),
+          new THREE.Mesh(buildGuardrailBeamGeometry(seg, guardrailOffset, 0.42, 0.88), railMat),
+          new THREE.Mesh(buildGuardrailBeamGeometry(seg, -guardrailOffset + 0.04, 0.62, 0.7), reflectorMat),
+          new THREE.Mesh(buildGuardrailBeamGeometry(seg, guardrailOffset - 0.04, 0.62, 0.7), reflectorMat)
+        );
+      }
+      railStart = -1;
+    }
+  }
 
   // Guardrail Posts (InstancedMesh)
   const postSpacing = 11;
@@ -322,6 +326,7 @@ export function buildTougeEnvironment(scene, track) {
   let postIdx = 0;
   for (let i = 0; i < postPairs; i++) {
     const pt = track.getPointAtS(i * postSpacing);
+    if (pt.noGuardrail) continue;
     for (const side of [-1, 1]) {
       dummy.position.set(
         pt.x + pt.rx * side * (guardrailOffset + 0.12),
@@ -333,6 +338,7 @@ export function buildTougeEnvironment(scene, track) {
       postInst.setMatrixAt(postIdx++, dummy.matrix);
     }
   }
+  postInst.count = postIdx;
   postInst.instanceMatrix.needsUpdate = true;
   envGroup.add(postInst);
 

@@ -142,24 +142,26 @@ export function enforceTrackBounds(car, track, dt = 1 / 60, wallFriction = 1.65)
   car.lateral = proj.lateral;
   car.scrapedWall = false;
 
-  const limit = track.maxCarLateral;
+  const limit = proj.noGuardrail ? track.maxCarLateral + 3.5 : track.maxCarLateral;
   if (Math.abs(proj.lateral) > limit) {
     const clampedLat = Math.sign(proj.lateral) * limit;
     car.x = proj.centerX + proj.rx * clampedLat;
     car.z = proj.centerZ + proj.rz * clampedLat;
     car.lateral = clampedLat;
 
-    // Gently redirect heading back along road tangent (arcade wall-slide)
-    const headingErr = wrapAngle(proj.heading - car.heading);
-    const alignFactor = 1 - Math.exp(-dt * 14);
-    car.heading = wrapAngle(car.heading + headingErr * Math.max(0.28, alignFactor));
+    if (!proj.noGuardrail) {
+      // Gently redirect heading back along road tangent (arcade wall-slide)
+      const headingErr = wrapAngle(proj.heading - car.heading);
+      const alignFactor = 1 - Math.exp(-dt * 14);
+      car.heading = wrapAngle(car.heading + headingErr * Math.max(0.28, alignFactor));
 
-    // Frame-rate independent arcade scrape drag (scales with impact angle)
-    const impactSeverity = 0.45 + Math.min(1, Math.abs(Math.sin(headingErr)) * 2.2);
-    car.speed *= Math.exp(-dt * wallFriction * impactSeverity);
-    car.scrapedWall = true;
-    car.scrapeX = proj.centerX + proj.rx * Math.sign(proj.lateral) * (limit + 0.7);
-    car.scrapeZ = proj.centerZ + proj.rz * Math.sign(proj.lateral) * (limit + 0.7);
+      // Frame-rate independent arcade scrape drag (scales with impact angle)
+      const impactSeverity = 0.45 + Math.min(1, Math.abs(Math.sin(headingErr)) * 2.2);
+      car.speed *= Math.exp(-dt * wallFriction * impactSeverity);
+      car.scrapedWall = true;
+      car.scrapeX = proj.centerX + proj.rx * Math.sign(proj.lateral) * (limit + 0.7);
+      car.scrapeZ = proj.centerZ + proj.rz * Math.sign(proj.lateral) * (limit + 0.7);
+    }
   }
 
   // Prevent reversing behind start buffer
