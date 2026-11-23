@@ -48,46 +48,46 @@ const RAW_CONTROL_POINTS = [
   [-65, -926],
   [35, -938],
 
-  // 5. True Instant-U-Turn 5 Consecutive Hairpins (짧고 극도로 타이트한 5연속 급헤어핀: 레그 간격 24m, R≈11~12m)
-  // Hairpin #1 (Right instant 180 U-turn)
-  [118, -944],
-  [138, -950],
-  [138, -964],
-  [118, -970],
-  [0, -974],
+  // 5. Tight 5 Consecutive U-Turn Hairpins (타이트하지만 도랑이 매끄럽게 이어지는 5연속 급헤어핀: 레그 간격 ~28m, R≈12.5m)
+  // Hairpin #1 (Right 180 U-turn)
+  [116, -944],
+  [140, -951],
+  [140, -969],
+  [116, -976],
+  [0, -980],
 
-  // Hairpin #2 (Left instant 180 U-turn)
-  [-108, -978],
-  [-128, -984],
-  [-128, -998],
-  [-108, -1004],
-  [0, -1008],
+  // Hairpin #2 (Left 180 U-turn)
+  [-106, -984],
+  [-130, -991],
+  [-130, -1009],
+  [-106, -1016],
+  [0, -1020],
 
-  // Hairpin #3 (Right instant 180 U-turn)
-  [116, -1012],
-  [136, -1018],
-  [136, -1032],
-  [116, -1038],
-  [0, -1042],
+  // Hairpin #3 (Right 180 U-turn)
+  [114, -1024],
+  [138, -1031],
+  [138, -1049],
+  [114, -1056],
+  [0, -1060],
 
-  // Hairpin #4 (Left instant 180 U-turn)
-  [-110, -1046],
-  [-130, -1052],
-  [-130, -1066],
-  [-110, -1072],
-  [0, -1076],
+  // Hairpin #4 (Left 180 U-turn)
+  [-108, -1064],
+  [-132, -1071],
+  [-132, -1089],
+  [-108, -1096],
+  [0, -1100],
 
-  // Hairpin #5 (Right instant 180 U-turn)
-  [114, -1080],
-  [134, -1086],
-  [134, -1100],
-  [114, -1106],
-  [18, -1116],
+  // Hairpin #5 (Right 180 U-turn)
+  [112, -1104],
+  [136, -1111],
+  [136, -1129],
+  [112, -1136],
+  [18, -1148],
 
   // 6. Final Downhill Sprint to Finish Line
-  [-18, -1160],
-  [-24, -1245],
-  [-24, -1345],
+  [-18, -1192],
+  [-24, -1278],
+  [-24, -1380],
 ];
 
 export function wrapAngle(rad) {
@@ -205,9 +205,9 @@ export class TougeTrack {
       }
     }
 
-    // Temporarily disable guardrails across the entire course for testing
+    // Guardrails enabled across entire course
     for (let i = 0; i < n; i++) {
-      this.samples[i].noGuardrail = true;
+      this.samples[i].noGuardrail = false;
     }
   }
 
@@ -266,7 +266,8 @@ export class TougeTrack {
 
   /**
    * Project an arbitrary 2D point (x, z) onto the nearest track sample.
-   * Uses a fast local window around hintIndex and falls back to full scan if far.
+   * Uses a tight local window around hintIndex so razor-tight 180-degree hairpins
+   * can never snap onto the opposite leg of the switchback.
    */
   projectPoint(x, z, hintIndex = -1) {
     const samples = this.samples;
@@ -276,8 +277,8 @@ export class TougeTrack {
     let bestDistSq = Infinity;
 
     if (hintIndex >= 0 && hintIndex < n) {
-      const start = Math.max(0, hintIndex - 32);
-      const end = Math.min(n - 1, hintIndex + 32);
+      const start = Math.max(0, hintIndex - 8);
+      const end = Math.min(n - 1, hintIndex + 12);
       for (let i = start; i <= end; i++) {
         const dx = x - samples[i].x;
         const dz = z - samples[i].z;

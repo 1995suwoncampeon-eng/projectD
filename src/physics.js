@@ -258,18 +258,25 @@ export function updatePlayerPhysics(car, input, track, dt) {
     turnRate = steer * cfg.steerRate * highSpeedDamp * speedFactor * reverseSign;
   }
 
+  // Decay gutter exit cooldown so car never immediately re-hooks into the same gutter tail
+  if (car.gutterCooldown > 0) {
+    car.gutterCooldown = Math.max(0, car.gutterCooldown - dt);
+  }
+
   // Check if player is currently hooked in an inside-corner gutter (도랑타기)
   const curPt = track.getPointAtS(car.s);
-  const gutterRailLat = track.maxCarLateral - 0.85;  // Safe 0.85m clearance from guardrail so exit never clips
-  const gutterCatchLat = track.maxCarLateral - 1.55; // Lateral threshold to drop inside wheels into gutter
+  const gutterRailLat = track.maxCarLateral - 1.1;   // Smooth 1.1m clearance from guardrail
+  const gutterCatchLat = track.maxCarLateral - 1.65; // Lateral threshold to drop inside wheels into gutter
 
   if (car.inGutter) {
     // Stay locked in the gutter until the gutter ends or the car stops
     if (curPt.gutterSide !== car.gutterSide || car.speed < 2.0) {
       car.inGutter = false;
       car.gutterSide = 0;
+      car.gutterCooldown = 0.45;
     }
   } else if (
+    (car.gutterCooldown || 0) <= 0 &&
     curPt.gutterSide !== 0 &&
     car.speed > 4.0 &&
     car.lateral * curPt.gutterSide >= gutterCatchLat
@@ -281,42 +288,35 @@ export function updatePlayerPhysics(car, input, track, dt) {
 
   let fx, fz;
   if (car.inGutter) {
-    // Gutter-rail guided cornering: automatically follows the gutter curve without washing out!
+    // Gutter-rail guided cornering: smoothly follows the gutter tangent without washing out or snagging
     const targetLat = car.gutterSide * gutterRailLat;
-    const latSnap = 1 - Math.exp(-dt * 14);
+    const latSnap = 1 - Math.exp(-dt * 12);
     const nextLat = car.lateral + (targetLat - car.lateral) * latSnap;
-    const arcScale = Math.max(0.75, Math.min(1.25, 1 + curPt.curvature * nextLat));
+    const arcScale = Math.max(0.72, Math.min(1.25, 1 + curPt.curvature * nextLat));
     const nextS = Math.min(track.totalLength, car.s + (car.speed * dt) / arcScale);
-    const nextPt = track.getWorldPosition(nextS, nextLat);
     const nextInfo = track.getPointAtS(nextS);
+    const nextX = nextInfo.x + nextInfo.rx * nextLat;
+    const nextZ = nextInfo.z + nextInfo.rz * nextLat;
 
-    const moveDx = nextPt.x - car.x;
-    const moveDz = nextPt.z - car.z;
-    if (moveDx * moveDx + moveDz * moveDz > 1e-6) {
-      const targetHeading = Math.atan2(moveDx, moveDz);
-      const hDiff = wrapAngle(targetHeading - car.heading);
-      car.heading = wrapAngle(car.heading + hDiff * Math.min(1, dt * 18));
-    } else {
-      car.heading = nextPt.heading;
-    }
+    // Smoothly align directly to the road spline tangent (eliminates chord/jitter heading errors)
+    const hDiff = wrapAngle(nextInfo.heading - car.heading);
+    car.heading = wrapAngle(car.heading + hDiff * Math.min(1, dt * 20));
 
-    car.x = nextPt.x;
-    car.z = nextPt.z;
+    car.x = nextX;
+    car.z = nextZ;
     car.s = nextS;
     car.lateral = nextLat;
-    car.trackIndex = nextPt.index;
+    car.trackIndex = nextInfo.index;
     car.scrapedWall = false;
 
-    // Release cleanly aligned with the exit tangent so the car never clips the guardrail
+    // Release cleanly aligned with the exit tangent with cooldown to prevent re-hooking
     if (nextInfo.gutterSide !== car.gutterSide) {
-      const exitLat = car.gutterSide * (gutterRailLat - 0.25);
-      const exitPt = track.getWorldPosition(nextS, exitLat);
-      car.x = exitPt.x;
-      car.z = exitPt.z;
-      car.lateral = exitLat;
       car.heading = nextInfo.heading;
       car.inGutter = false;
       car.gutterSide = 0;
+      car.gutterCooldown = 0.45;
+      car.isDrifting = false;
+      car.driftDir = 0;
     }
 
     fx = Math.sin(car.heading);
@@ -337,8 +337,9 @@ export function updatePlayerPhysics(car, input, track, dt) {
     // Enforce guardrail collision bounds
     const proj = enforceTrackBounds(car, track, dt, 1.55);
 
-    // If steering into the inside corner wall where a gutter exists, catch the gutter immediately
+    // If steering into the inside corner where a gutter exists (and not on exit cooldown), catch the gutter
     if (
+      (car.gutterCooldown || 0) <= 0 &&
       proj.gutterSide !== 0 &&
       car.speed > 4.0 &&
       car.lateral * proj.gutterSide >= gutterCatchLat
