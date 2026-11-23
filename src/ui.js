@@ -185,6 +185,20 @@ export class UIController {
     this.cutsceneDialogueBox?.addEventListener('click', () => {
       this.advanceCutscene();
     });
+    document.getElementById('btn-time-night')?.addEventListener('click', () => {
+      this.setTimeOfDay('night');
+      this.callbacks.onTimeOfDayChange?.('night');
+    });
+    document.getElementById('btn-time-day')?.addEventListener('click', () => {
+      this.setTimeOfDay('day');
+      this.callbacks.onTimeOfDayChange?.('day');
+    });
+  }
+
+  setTimeOfDay(mode) {
+    const isDay = mode === 'day';
+    document.getElementById('btn-time-night')?.classList.toggle('active', !isDay);
+    document.getElementById('btn-time-day')?.classList.toggle('active', isDay);
   }
 
   stopCutsceneMedia() {

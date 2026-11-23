@@ -1,4 +1,31 @@
-const RPM_SEGMENTS = 20;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const GAUGE_START_DEG = -135;
+const GAUGE_SWEEP_DEG = 270;
+const RPM_MAX = 9000;
+const SPEED_MAX = 140;
+
+function polarToCartesian(cx, cy, r, angleDeg) {
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return {
+    x: cx + r * Math.cos(rad),
+    y: cy + r * Math.sin(rad),
+  };
+}
+
+function describeArc(cx, cy, r, startAngle, endAngle) {
+  const start = polarToCartesian(cx, cy, r, endAngle);
+  const end = polarToCartesian(cx, cy, r, startAngle);
+  const largeArc = endAngle - startAngle <= 180 ? '0' : '1';
+  return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} 0 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`;
+}
+
+function svgEl(tag, attrs = {}) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    el.setAttribute(k, String(v));
+  }
+  return el;
+}
 
 export function formatRaceTime(seconds) {
   const safe = Math.max(0, seconds);
@@ -15,8 +42,8 @@ export class HudController {
     this.root = document.getElementById('race-hud');
     this.speedEl = document.getElementById('hud-speed');
     this.gearEl = document.getElementById('hud-gear');
-    this.rpmValEl = document.getElementById('hud-rpm-value');
-    this.rpmBarsEl = document.getElementById('hud-rpm-bars');
+    this.rpmSvg = document.getElementById('gauge-rpm-svg');
+    this.speedSvg = document.getElementById('gauge-speed-svg');
     this.driftBadgeEl = document.getElementById('hud-drift-badge');
     this.vignetteEl = document.getElementById('speed-vignette');
 
@@ -36,24 +63,123 @@ export class HudController {
 
     this.muteBtn = document.getElementById('btn-toggle-mute');
 
-    this.rpmSegments = [];
+    this.rpmNeedleEl = null;
+    this.speedNeedleEl = null;
+    this._displayRpm = 1200;
+    this._displaySpeed = 0;
+
     this.bannerTimer = 0;
     this.rivalColorHex = '#facc15';
 
-    this._initRpmBars();
+    this._initAnalogGauges();
     this._prepareMinimapProjection();
   }
 
-  _initRpmBars() {
-    if (!this.rpmBarsEl) return;
-    this.rpmBarsEl.innerHTML = '';
-    for (let i = 0; i < RPM_SEGMENTS; i++) {
-      const seg = document.createElement('div');
-      seg.className = 'rpm-seg';
-      const heightPct = 36 + (i / (RPM_SEGMENTS - 1)) * 64;
-      seg.style.height = `${heightPct}%`;
-      this.rpmBarsEl.appendChild(seg);
-      this.rpmSegments.push(seg);
+  _buildDial(svg, { maxVal, majorStep, minorStep, labelDivisor = 1, redlineStart = null, sublabel }) {
+    if (!svg) return null;
+    svg.innerHTML = '';
+
+    // Outer bezel & dial face
+    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 95, class: 'gauge-bezel' }));
+    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 88, class: 'gauge-face' }));
+
+    // Optional redline arc
+    if (redlineStart !== null) {
+      const a0 = GAUGE_START_DEG + (redlineStart / maxVal) * GAUGE_SWEEP_DEG;
+      const a1 = GAUGE_START_DEG + GAUGE_SWEEP_DEG;
+      svg.appendChild(
+        svgEl('path', {
+          d: describeArc(100, 100, 79, a0, a1),
+          class: 'gauge-redline-arc',
+        })
+      );
+    }
+
+    // Tick marks & numbers
+    const totalSteps = Math.round(maxVal / minorStep);
+    for (let i = 0; i <= totalSteps; i++) {
+      const val = i * minorStep;
+      const ratio = val / maxVal;
+      const deg = GAUGE_START_DEG + ratio * GAUGE_SWEEP_DEG;
+      const isMajor = Math.abs(val % majorStep) < 1e-4;
+      const isRed = redlineStart !== null && val >= redlineStart;
+
+      const outerR = 83;
+      const innerR = isMajor ? 70 : 76;
+      const p1 = polarToCartesian(100, 100, outerR, deg);
+      const p2 = polarToCartesian(100, 100, innerR, deg);
+
+      svg.appendChild(
+        svgEl('line', {
+          x1: p1.x.toFixed(2),
+          y1: p1.y.toFixed(2),
+          x2: p2.x.toFixed(2),
+          y2: p2.y.toFixed(2),
+          class: isRed ? 'gauge-tick-red' : isMajor ? 'gauge-tick-major' : 'gauge-tick-minor',
+        })
+      );
+
+      if (isMajor) {
+        const np = polarToCartesian(100, 100, 56, deg);
+        const text = svgEl('text', {
+          x: np.x.toFixed(2),
+          y: np.y.toFixed(2),
+          class: isRed ? 'gauge-num gauge-num-red' : 'gauge-num',
+        });
+        text.textContent = String(Math.round(val / labelDivisor));
+        svg.appendChild(text);
+      }
+    }
+
+    // Dial caption
+    const sub = svgEl('text', { x: 100, y: 74, class: 'gauge-sublabel' });
+    sub.textContent = sublabel;
+    svg.appendChild(sub);
+
+    // Pivoting analog needle (SVG rotate(deg 100 100) uses viewBox coordinates directly)
+    const needleGroup = svgEl('g', {
+      class: 'gauge-needle-group',
+      transform: `rotate(${GAUGE_START_DEG} 100 100)`,
+    });
+    // Tapered needle pointing straight up (-Y at 0 deg) with counterweight tail
+    needleGroup.appendChild(
+      svgEl('path', {
+        d: 'M 96.8 115 L 98.5 28 L 100 20 L 101.5 28 L 103.2 115 Z',
+        class: 'gauge-needle-shaft',
+      })
+    );
+    svg.appendChild(needleGroup);
+
+    // Center hub cap
+    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 9.5, class: 'gauge-needle-cap' }));
+    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 3.8, class: 'gauge-needle-cap-core' }));
+
+    return needleGroup;
+  }
+
+  _initAnalogGauges() {
+    this.rpmNeedleEl = this._buildDial(this.rpmSvg, {
+      maxVal: RPM_MAX,
+      majorStep: 1000,
+      minorStep: 500,
+      labelDivisor: 1000,
+      redlineStart: 7500,
+      sublabel: 'RPM x1000',
+    });
+
+    this.speedNeedleEl = this._buildDial(this.speedSvg, {
+      maxVal: SPEED_MAX,
+      majorStep: 20,
+      minorStep: 10,
+      labelDivisor: 1,
+      redlineStart: null,
+      sublabel: 'SPEED',
+    });
+  }
+
+  setTimeOfDay(mode) {
+    if (this.root) {
+      this.root.dataset.time = mode === 'day' ? 'day' : 'night';
     }
   }
 
@@ -147,32 +273,28 @@ export class HudController {
       }
     }
 
-    // 1. Speedometer, Gear, RPM LEDs
+    // 1. Dual Analog Needles (RPM + Speedometer) + Gear / Digital Speed Readout
+    const smooth = dt > 0 ? 1 - Math.exp(-dt * 16) : 1;
+    this._displayRpm += (player.rpm - this._displayRpm) * smooth;
+    this._displaySpeed += (player.speedKmh - this._displaySpeed) * smooth;
+
+    const rpmRatio = Math.max(0, Math.min(1, this._displayRpm / RPM_MAX));
+    const rpmDeg = GAUGE_START_DEG + rpmRatio * GAUGE_SWEEP_DEG;
+    if (this.rpmNeedleEl) {
+      this.rpmNeedleEl.setAttribute('transform', `rotate(${rpmDeg.toFixed(2)} 100 100)`);
+    }
+
+    const speedRatio = Math.max(0, Math.min(1, this._displaySpeed / SPEED_MAX));
+    const speedDeg = GAUGE_START_DEG + speedRatio * GAUGE_SWEEP_DEG;
+    if (this.speedNeedleEl) {
+      this.speedNeedleEl.setAttribute('transform', `rotate(${speedDeg.toFixed(2)} 100 100)`);
+    }
+
     if (this.speedEl) {
       this.speedEl.textContent = String(Math.round(player.speedKmh));
     }
     if (this.gearEl) {
       this.gearEl.textContent = player.gear;
-    }
-    if (this.rpmValEl) {
-      this.rpmValEl.textContent = (player.rpm / 1000).toFixed(1);
-    }
-
-    const rpmRatio = Math.max(0, Math.min(1, (player.rpm - 1000) / 7600));
-    const litCount = Math.round(rpmRatio * RPM_SEGMENTS);
-    for (let i = 0; i < this.rpmSegments.length; i++) {
-      const seg = this.rpmSegments[i];
-      if (i < litCount) {
-        if (i >= 16) {
-          seg.className = 'rpm-seg lit-red';
-        } else if (i >= 11) {
-          seg.className = 'rpm-seg lit-mid';
-        } else {
-          seg.className = 'rpm-seg lit-low';
-        }
-      } else {
-        seg.className = 'rpm-seg';
-      }
     }
 
     // Drift indicator + screen edge glow

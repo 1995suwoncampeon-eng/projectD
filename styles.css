@@ -320,7 +320,54 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 16px;
+}
+
+.select-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.time-toggle-group {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  gap: 3px;
+}
+
+.time-toggle-btn {
+  padding: 7px 13px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.time-toggle-btn:hover {
+  color: #f8fafc;
+}
+
+.time-toggle-btn.active[data-time="night"] {
+  background: linear-gradient(135deg, #1e3a8a, #0284c7);
+  color: #f8fafc;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.45);
+}
+
+.time-toggle-btn.active[data-time="day"] {
+  background: linear-gradient(135deg, #f59e0b, #fde047);
+  color: #1e293b;
+  box-shadow: 0 0 14px rgba(250, 204, 21, 0.45);
 }
 
 .section-eyebrow {
@@ -891,23 +938,24 @@ kbd {
   color: #cbd5e1;
 }
 
-/* Bottom Right: Arcade Tachometer + Digital Speedometer */
-.hud-cluster {
+/* Bottom Right: Dual Analog Instrument Cluster (RPM + Speedometer) */
+.hud-cluster.analog-cluster {
   position: absolute;
   right: 18px;
-  bottom: 18px;
-  width: 266px;
-  padding: 13px 16px 14px;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.58);
+  bottom: 16px;
+  width: auto;
+  padding: 10px 14px;
+  border-radius: 20px;
+  background: rgba(6, 10, 20, 0.84);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65);
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .drift-badge {
   position: absolute;
   top: -30px;
-  right: 10px;
+  right: 14px;
   padding: 4px 12px;
   border-radius: 6px;
   background: linear-gradient(90deg, #f59e0b, #ef4444);
@@ -919,115 +967,298 @@ kbd {
   box-shadow: 0 0 18px rgba(245, 158, 11, 0.65);
 }
 
-.rpm-header {
+.analog-gauges-row {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 6px;
-  font-family: var(--font-mono);
-}
-
-.rpm-label {
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--text-muted);
-}
-
-.rpm-num {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--cyan-bright);
-}
-
-.rpm-bars {
-  display: grid;
-  grid-template-columns: repeat(20, 1fr);
-  gap: 3px;
-  height: 22px;
-  align-items: end;
-  margin-bottom: 10px;
-}
-
-.rpm-seg {
-  height: 100%;
-  border-radius: 2px;
-  background: rgba(51, 65, 85, 0.55);
-  transition: background 0.05s linear, box-shadow 0.05s linear;
-}
-
-.rpm-seg.lit-low {
-  background: #38bdf8;
-  box-shadow: 0 0 6px rgba(56, 189, 248, 0.7);
-}
-
-.rpm-seg.lit-mid {
-  background: #facc15;
-  box-shadow: 0 0 6px rgba(250, 204, 21, 0.75);
-}
-
-.rpm-seg.lit-red {
-  background: #ef4444;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.9);
-}
-
-.speed-gear-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  align-items: center;
   gap: 12px;
 }
 
-.gear-box {
+.analog-gauge-wrap {
+  position: relative;
+  width: 158px;
+  height: 158px;
+}
+
+.analog-gauge-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* Gauge SVG base elements */
+.gauge-bezel {
+  fill: #090e1a;
+  stroke: #334155;
+  stroke-width: 4;
+}
+
+.gauge-face {
+  fill: #0b1120;
+}
+
+.gauge-tick-minor {
+  stroke: rgba(148, 163, 184, 0.5);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.gauge-tick-major {
+  stroke: #e2e8f0;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.gauge-tick-red {
+  stroke: #ef4444;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+}
+
+.gauge-redline-arc {
+  fill: none;
+  stroke: #ef4444;
+  stroke-width: 5.5;
+  stroke-linecap: butt;
+  opacity: 0.85;
+}
+
+.gauge-num {
+  fill: #e2e8f0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.gauge-num-red {
+  fill: #f87171;
+}
+
+.gauge-sublabel {
+  fill: #94a3b8;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-anchor: middle;
+}
+
+.gauge-needle-shaft {
+  fill: #dc2626;
+  stroke: #991b1b;
+  stroke-width: 0.7;
+}
+
+.gauge-needle-cap {
+  fill: #1e293b;
+  stroke: #64748b;
+  stroke-width: 2;
+}
+
+.gauge-needle-cap-core {
+  fill: #475569;
+}
+
+/* Center Inset Readouts */
+.gauge-center-readout {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  width: 58px;
-  height: 58px;
-  border-radius: 9px;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(250, 204, 21, 0.45);
-}
-
-.gear-caption {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
-}
-
-.gear-value {
-  font-family: var(--font-mono);
-  font-size: 30px;
-  font-weight: 900;
+  pointer-events: none;
   line-height: 1;
+}
+
+.gauge-gear-caption {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+
+.gauge-gear-value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 900;
   color: var(--yellow);
 }
 
-.speed-box {
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
-  gap: 6px;
-  flex: 1;
-}
-
-.speed-value {
+.gauge-speed-digital {
   font-family: var(--font-mono);
-  font-size: 52px;
+  font-size: 19px;
   font-weight: 900;
-  font-style: italic;
-  line-height: 0.92;
-  letter-spacing: -0.02em;
-  color: #ffffff;
-  text-shadow: 0 0 18px rgba(56, 189, 248, 0.42);
+  color: #f8fafc;
 }
 
-.speed-unit {
+.gauge-speed-unit {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 8.5px;
   font-weight: 700;
-  color: var(--cyan-bright);
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* ============================================================================
+   NIGHT MODE GAUGE ILLUMINATION (Realistic Backlit Cluster + Glowing Needles)
+   ============================================================================ */
+#race-hud[data-time="night"] .hud-cluster.analog-cluster {
+  background: rgba(5, 8, 18, 0.9);
+  border-color: rgba(251, 146, 60, 0.34);
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.78),
+    inset 0 0 22px rgba(251, 146, 60, 0.08);
+}
+
+#race-hud[data-time="night"] .gauge-bezel {
+  fill: #050811;
+  stroke: #3f4c63;
+}
+
+#race-hud[data-time="night"] .gauge-face {
+  fill: #070c18;
+}
+
+#race-hud[data-time="night"] .gauge-tick-major {
+  stroke: #fde68a;
+  filter: drop-shadow(0 0 2.5px rgba(251, 191, 36, 0.75));
+}
+
+#race-hud[data-time="night"] .gauge-tick-minor {
+  stroke: rgba(253, 230, 138, 0.45);
+}
+
+#race-hud[data-time="night"] .gauge-tick-red,
+#race-hud[data-time="night"] .gauge-redline-arc {
+  stroke: #ff3b30;
+  filter: drop-shadow(0 0 4px rgba(255, 59, 48, 0.9));
+}
+
+#race-hud[data-time="night"] .gauge-num {
+  fill: #fef3c7;
+  filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.65));
+}
+
+#race-hud[data-time="night"] .gauge-num-red {
+  fill: #ff5a4f;
+  filter: drop-shadow(0 0 4px rgba(255, 59, 48, 0.9));
+}
+
+#race-hud[data-time="night"] .gauge-needle-group {
+  filter:
+    drop-shadow(0 0 3px rgba(255, 110, 50, 1))
+    drop-shadow(0 0 8px rgba(255, 45, 20, 0.95));
+}
+
+#race-hud[data-time="night"] .gauge-needle-shaft {
+  fill: #ff4d26;
+  stroke: #ffad87;
+  stroke-width: 0.9;
+}
+
+#race-hud[data-time="night"] .gauge-needle-cap {
+  fill: #141926;
+  stroke: #fb923c;
+  filter: drop-shadow(0 0 4px rgba(251, 146, 60, 0.6));
+}
+
+#race-hud[data-time="night"] .gauge-needle-cap-core {
+  fill: #ff5a36;
+  filter: drop-shadow(0 0 4px rgba(255, 70, 35, 0.95));
+}
+
+#race-hud[data-time="night"] .gauge-gear-value {
+  color: #fde047;
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.75);
+}
+
+#race-hud[data-time="night"] .gauge-speed-digital {
+  color: #fef3c7;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
+}
+
+/* ============================================================================
+   DAY MODE GAUGE CLUSTER (Clean Unlit Daylight Dials + Solid Painted Needles)
+   ============================================================================ */
+#race-hud[data-time="day"] .hud-cluster.analog-cluster {
+  background: rgba(241, 245, 249, 0.88);
+  border-color: rgba(100, 116, 139, 0.55);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.32);
+}
+
+#race-hud[data-time="day"] .gauge-bezel {
+  fill: #cbd5e1;
+  stroke: #475569;
+}
+
+#race-hud[data-time="day"] .gauge-face {
+  fill: #f8fafc;
+}
+
+#race-hud[data-time="day"] .gauge-tick-major {
+  stroke: #0f172a;
+}
+
+#race-hud[data-time="day"] .gauge-tick-minor {
+  stroke: #64748b;
+}
+
+#race-hud[data-time="day"] .gauge-tick-red,
+#race-hud[data-time="day"] .gauge-redline-arc {
+  stroke: #dc2626;
+  opacity: 0.92;
+}
+
+#race-hud[data-time="day"] .gauge-num {
+  fill: #0f172a;
+}
+
+#race-hud[data-time="day"] .gauge-num-red {
+  fill: #dc2626;
+}
+
+#race-hud[data-time="day"] .gauge-sublabel {
+  fill: #475569;
+}
+
+#race-hud[data-time="day"] .gauge-needle-group {
+  filter: drop-shadow(1px 2px 1.5px rgba(15, 23, 42, 0.35));
+}
+
+#race-hud[data-time="day"] .gauge-needle-shaft {
+  fill: #dc2626;
+  stroke: #7f1d1d;
+  stroke-width: 0.7;
+}
+
+#race-hud[data-time="day"] .gauge-needle-cap {
+  fill: #334155;
+  stroke: #94a3b8;
+}
+
+#race-hud[data-time="day"] .gauge-needle-cap-core {
+  fill: #cbd5e1;
+}
+
+#race-hud[data-time="day"] .gauge-gear-caption,
+#race-hud[data-time="day"] .gauge-speed-unit {
+  color: #475569;
+}
+
+#race-hud[data-time="day"] .gauge-gear-value {
+  color: #b45309;
+  text-shadow: none;
+}
+
+#race-hud[data-time="day"] .gauge-speed-digital {
+  color: #0f172a;
+  text-shadow: none;
 }
 
 /* ============================================================================

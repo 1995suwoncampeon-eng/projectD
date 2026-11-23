@@ -247,11 +247,13 @@ function attachArcadeLights(root, { isPlayer, accentColor, carSize }) {
     blending: THREE.AdditiveBlending,
   });
 
+  const headlightBeams = [];
   for (const hx of [-halfWid * 0.62, halfWid * 0.62]) {
     const beam = new THREE.Mesh(beamGeo, beamMat);
     beam.position.set(hx, 0.55, halfLen + 7.2);
     beam.scale.set(1.0, 0.22, 1.0);
     root.add(beam);
+    headlightBeams.push(beam);
   }
 
   // Rear taillight halo glow sprites (reacts to braking)
@@ -298,7 +300,7 @@ function attachArcadeLights(root, { isPlayer, accentColor, carSize }) {
     root.add(headlightSpot);
   }
 
-  return { tailGlowMat, underglowMat, headlightSpot };
+  return { headlightBeams, tailGlowMat, underglow, underglowMat, headlightSpot };
 }
 
 /**
@@ -343,12 +345,23 @@ export async function loadCarModel({
   }
 
   const lightRefs = attachArcadeLights(visualBody, { isPlayer, accentColor, carSize });
+  let isDayMode = false;
 
   return {
     root,
     visualBody,
     isFallback,
     size: carSize,
+    setTimeOfDay(mode) {
+      isDayMode = mode === 'day';
+      for (const beam of lightRefs.headlightBeams) {
+        beam.visible = !isDayMode;
+      }
+      lightRefs.underglow.visible = !isDayMode;
+      if (lightRefs.headlightSpot) {
+        lightRefs.headlightSpot.intensity = isDayMode ? 0 : 95;
+      }
+    },
     setColors(newBodyColor, newAccentColor) {
       if (fallbackRefs) {
         fallbackRefs.bodyMat.color.set(newBodyColor);
@@ -358,9 +371,10 @@ export async function loadCarModel({
     },
     setBrakeIntensity(intensity) {
       const clamped = Math.max(0, Math.min(1, intensity));
-      lightRefs.tailGlowMat.opacity = 0.36 + clamped * 0.56;
+      const baseOpacity = isDayMode ? 0.08 : 0.36;
+      lightRefs.tailGlowMat.opacity = baseOpacity + clamped * (isDayMode ? 0.48 : 0.56);
       if (fallbackRefs) {
-        fallbackRefs.taillightMat.emissiveIntensity = 1.2 + clamped * 2.4;
+        fallbackRefs.taillightMat.emissiveIntensity = (isDayMode ? 0.45 : 1.2) + clamped * 2.4;
       }
     },
     updateWheelAnimation(steerRad, distanceMeters) {

@@ -435,11 +435,25 @@ export function buildTougeEnvironment(scene, track) {
     createGantry(track, track.finishS, 'FINISH LINE', '#111827', '#ffffff', '#4ade80')
   );
 
-  // 11. Distant Night Starfield & Horizon Mountain Ring
-  envGroup.add(createNightSkyBackdrop());
+  // 11. Night Starfield/Moon & Daytime Sun Sky Backdrop
+  const skyBackdrop = createSkyBackdrop();
+  envGroup.add(skyBackdrop.group);
 
   scene.add(envGroup);
-  return envGroup;
+
+  return {
+    group: envGroup,
+    setTimeOfDay(mode) {
+      const isDay = mode === 'day';
+      skyBackdrop.nightGroup.visible = !isDay;
+      skyBackdrop.dayGroup.visible = isDay;
+      poolInst.visible = !isDay;
+      headMat.color.setHex(isDay ? 0x94a3b8 : 0xffd27d);
+      groundMat.color.setHex(isDay ? 0x1e3324 : 0x070b14);
+      crownMat.color.setHex(isDay ? 0x1b4d32 : 0x0d1f1c);
+      reflectorMat.color.setHex(isDay ? 0xe2e8f0 : 0x38bdf8);
+    },
+  };
 }
 
 function createGantry(track, s, label, bgHex, stripeHex, accentHex) {
@@ -504,10 +518,13 @@ function createGantry(track, s, label, bgHex, stripeHex, accentHex) {
   return group;
 }
 
-function createNightSkyBackdrop() {
-  const skyGroup = new THREE.Group();
+function createSkyBackdrop() {
+  const group = new THREE.Group();
+  const nightGroup = new THREE.Group();
+  const dayGroup = new THREE.Group();
+  dayGroup.visible = false;
 
-  // Starfield points high above the mountain pass
+  // Night: Starfield points high above the mountain pass
   const starCount = 700;
   const starPos = new Float32Array(starCount * 3);
   for (let i = 0; i < starCount; i++) {
@@ -526,15 +543,37 @@ function createNightSkyBackdrop() {
     transparent: true,
     opacity: 0.78,
   });
-  skyGroup.add(new THREE.Points(starGeo, starMat));
+  nightGroup.add(new THREE.Points(starGeo, starMat));
 
-  // Stylized pale full moon in the midnight touge sky
+  // Night: Stylized pale full moon in the midnight touge sky
   const moon = new THREE.Mesh(
     new THREE.SphereGeometry(26, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0xe2e8f0, fog: false })
   );
   moon.position.set(-420, 310, -1650);
-  skyGroup.add(moon);
+  nightGroup.add(moon);
 
-  return skyGroup;
+  // Day: Bright warm sun disc high over the mountain valley
+  const sun = new THREE.Mesh(
+    new THREE.SphereGeometry(38, 18, 18),
+    new THREE.MeshBasicMaterial({ color: 0xfff7cc, fog: false })
+  );
+  sun.position.set(360, 420, -1680);
+  dayGroup.add(sun);
+
+  const sunHalo = new THREE.Mesh(
+    new THREE.SphereGeometry(62, 16, 16),
+    new THREE.MeshBasicMaterial({
+      color: 0xfef08a,
+      transparent: true,
+      opacity: 0.25,
+      fog: false,
+      depthWrite: false,
+    })
+  );
+  sunHalo.position.copy(sun.position);
+  dayGroup.add(sunHalo);
+
+  group.add(nightGroup, dayGroup);
+  return { group, nightGroup, dayGroup };
 }

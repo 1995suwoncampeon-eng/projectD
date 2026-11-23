@@ -24,8 +24,9 @@ import { UIController } from './ui.js';
 
 class ProjectDGame {
   constructor() {
-    this.state = 'TITLE'; // TITLE | SELECT | COUNTDOWN | RACING | RESULT
+    this.state = 'TITLE'; // TITLE | SELECT | CUTSCENE_INTRO | COUNTDOWN | RACING | CUTSCENE_OUTRO | RESULT
     this.selectedRival = RIVALS[0];
+    this.timeOfDay = 'night'; // 'night' | 'day'
 
     this.canvas = document.getElementById('game-canvas');
     this.renderer = new THREE.WebGLRenderer({
@@ -53,7 +54,7 @@ class ProjectDGame {
 
     // Core world & track
     this.track = new TougeTrack();
-    buildTougeEnvironment(this.scene, this.track);
+    this.envController = buildTougeEnvironment(this.scene, this.track);
 
     // Subsystems
     this.effects = new EffectsManager(this.scene);
@@ -100,6 +101,7 @@ class ProjectDGame {
       onOpenTitle: () => this.enterTitle(),
       onOpenSelect: () => this.enterSelect(),
       onRivalPreview: (rival) => this.applyRivalSelection(rival),
+      onTimeOfDayChange: (mode) => this.setTimeOfDay(mode),
       onStartRace: (rival) => this.enterIntroCutscene(rival),
       onRetryRace: () => this.startRace(this.selectedRival),
       onCutsceneComplete: () => this.completeCutscene(),
@@ -109,12 +111,14 @@ class ProjectDGame {
 
     this._bindEvents();
     this._loadVehicleModels();
+    this.setTimeOfDay('night');
     this.enterTitle();
 
     // Expose safe diagnostic handle for verification & WebView bridges
     window.__PROJECT_D__ = {
       getState: () => ({
         screen: this.state,
+        timeOfDay: this.timeOfDay,
         modelsReady: this.modelsReady,
         playerFallback: this.playerCar ? this.playerCar.isFallback : null,
         rivalFallback: this.rivalCar ? this.rivalCar.isFallback : null,
@@ -171,16 +175,66 @@ class ProjectDGame {
   }
 
   _setupLighting() {
-    const hemi = new THREE.HemisphereLight(0x475569, 0x0f172a, 1.35);
-    this.scene.add(hemi);
+    this.hemiLight = new THREE.HemisphereLight(0x475569, 0x0f172a, 1.35);
+    this.scene.add(this.hemiLight);
 
-    const moonLight = new THREE.DirectionalLight(0xc7d2fe, 1.35);
-    moonLight.position.set(-120, 240, -180);
-    this.scene.add(moonLight);
+    this.mainDirLight = new THREE.DirectionalLight(0xc7d2fe, 1.35);
+    this.mainDirLight.position.set(-120, 240, -180);
+    this.scene.add(this.mainDirLight);
 
-    const fillLight = new THREE.DirectionalLight(0xf59e0b, 0.55);
-    fillLight.position.set(140, 80, 120);
-    this.scene.add(fillLight);
+    this.fillLight = new THREE.DirectionalLight(0xf59e0b, 0.55);
+    this.fillLight.position.set(140, 80, 120);
+    this.scene.add(this.fillLight);
+  }
+
+  setTimeOfDay(mode) {
+    const isDay = mode === 'day';
+    this.timeOfDay = isDay ? 'day' : 'night';
+
+    if (isDay) {
+      this.scene.background.setHex(0x7ec8f2);
+      this.scene.fog.color.setHex(0x9bd3f0);
+      this.scene.fog.density = 0.0014;
+      this.renderer.toneMappingExposure = 1.05;
+
+      this.hemiLight.color.setHex(0xe0f2fe);
+      this.hemiLight.groundColor.setHex(0x3b5249);
+      this.hemiLight.intensity = 1.85;
+
+      this.mainDirLight.color.setHex(0xfffbeb);
+      this.mainDirLight.intensity = 2.35;
+      this.mainDirLight.position.set(220, 340, -260);
+
+      this.fillLight.color.setHex(0xbae6fd);
+      this.fillLight.intensity = 0.65;
+    } else {
+      this.scene.background.setHex(0x050814);
+      this.scene.fog.color.setHex(0x050814);
+      this.scene.fog.density = 0.0044;
+      this.renderer.toneMappingExposure = 1.15;
+
+      this.hemiLight.color.setHex(0x475569);
+      this.hemiLight.groundColor.setHex(0x0f172a);
+      this.hemiLight.intensity = 1.35;
+
+      this.mainDirLight.color.setHex(0xc7d2fe);
+      this.mainDirLight.intensity = 1.35;
+      this.mainDirLight.position.set(-120, 240, -180);
+
+      this.fillLight.color.setHex(0xf59e0b);
+      this.fillLight.intensity = 0.55;
+    }
+
+    this.envController?.setTimeOfDay(this.timeOfDay);
+    this.hud?.setTimeOfDay(this.timeOfDay);
+    this.ui?.setTimeOfDay(this.timeOfDay);
+
+    if (this.playerCar) {
+      this.playerCar.setTimeOfDay(this.timeOfDay);
+    }
+    for (const promise of this.rivalCarCache.values()) {
+      promise.then((car) => car.setTimeOfDay(this.timeOfDay));
+    }
   }
 
   _getOrLoadRivalCar(rival) {
@@ -191,6 +245,9 @@ class ProjectDGame {
         isPlayer: false,
         bodyColor: rival.colorNum,
         accentColor: rival.colorNum,
+      }).then((car) => {
+        car.setTimeOfDay(this.timeOfDay);
+        return car;
       });
       this.rivalCarCache.set(rival.id, promise);
     }
@@ -210,11 +267,13 @@ class ProjectDGame {
     ]);
 
     this.playerCar = playerCar;
+    this.playerCar.setTimeOfDay(this.timeOfDay);
     this.scene.add(this.playerCar.root);
 
     // Attach initial rival car only if user has not already switched to another rival
     if (this.selectedRival.id === initialRival.id && !this.rivalCar) {
       this.rivalCar = rivalCar;
+      this.rivalCar.setTimeOfDay(this.timeOfDay);
       this.scene.add(this.rivalCar.root);
     }
 
