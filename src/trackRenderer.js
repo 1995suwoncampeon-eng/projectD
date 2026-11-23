@@ -529,6 +529,71 @@ function buildGuardrailBeamGeometry(samples, sideOffset, yBottom, yTop, uvScaleU
 }
 
 /**
+ * Generates a natural grassy/rocky mountain berm sloping downward from the road shoulder
+ * into the valley floor, automatically narrowing on tight inside hairpin bends so it never
+ * folds or pokes onto the road.
+ */
+function buildRoadsideSlopeGeometry(samples, side, innerOffset, maxWidth, yInner, yOuter, uvScaleU = 0.08) {
+  const n = samples.length;
+  const positions = new Float32Array(n * 2 * 3);
+  const uvs = new Float32Array(n * 2 * 2);
+  const indices = [];
+
+  for (let i = 0; i < n; i++) {
+    const p = samples[i];
+    const baseY = p.y || 0;
+
+    // If this side is the inside of a sharp curve, cap outer width safely inside the radius of curvature
+    const isInsideTurn = (p.curvature > 0 && side === -1) || (p.curvature < 0 && side === 1);
+    let width = maxWidth;
+    if (isInsideTurn && Math.abs(p.curvature) > 0.005) {
+      const safeRadius = 0.78 / Math.abs(p.curvature);
+      width = Math.max(0.6, Math.min(maxWidth, safeRadius - innerOffset));
+    }
+
+    const outerOffset = innerOffset + width;
+    const ix = p.x + p.rx * side * innerOffset;
+    const iz = p.z + p.rz * side * innerOffset;
+    const ox = p.x + p.rx * side * outerOffset;
+    const oz = p.z + p.rz * side * outerOffset;
+
+    const vi = i * 6;
+    positions[vi] = ix;
+    positions[vi + 1] = baseY + yInner;
+    positions[vi + 2] = iz;
+    positions[vi + 3] = ox;
+    positions[vi + 4] = baseY + yOuter;
+    positions[vi + 5] = oz;
+
+    const ui = i * 4;
+    const u = p.s * uvScaleU;
+    uvs[ui] = u;
+    uvs[ui + 1] = 0;
+    uvs[ui + 2] = u;
+    uvs[ui + 3] = 1;
+
+    if (i < n - 1) {
+      const a = i * 2;
+      const b = a + 1;
+      const c = a + 2;
+      const d = a + 3;
+      if (side > 0) {
+        indices.push(a, b, c, b, d, c);
+      } else {
+        indices.push(a, c, b, b, c, d);
+      }
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/**
  * Builds the entire mountain pass environment using lightweight MeshLambertMaterial
  * + high-detail procedural textures for crisp visuals and smooth low-end GPU performance.
  */
@@ -539,14 +604,13 @@ export function buildTougeEnvironment(scene, track, maxAnisotropy = 4) {
   const { samples, halfWidth, guardrailOffset } = track;
 
   // 1. Sloped mountain valley ground mesh.
-  // Compute a windowed minimum-elevation envelope along Z so that even across
-  // tight switchbacks / 5 consecutive hairpins, no terrain triangle can ever
-  // rise above any road segment.
+  // Compute a tight windowed minimum-elevation envelope along Z so the mountain
+  // sits naturally right beneath the road while never poking through hairpins.
   const centerX = (track.bounds.minX + track.bounds.maxX) * 0.5;
   const centerZ = (track.bounds.minZ + track.bounds.maxZ) * 0.5;
   const zMin = Math.floor(track.bounds.minZ) - 100;
   const zMax = Math.ceil(track.bounds.maxZ) + 100;
-  const zStep = 10;
+  const zStep = 8;
   const bucketCount = Math.ceil((zMax - zMin) / zStep) + 1;
   const rawMinY = new Float32Array(bucketCount).fill(Infinity);
 
@@ -566,8 +630,8 @@ export function buildTougeEnvironment(scene, track, maxAnisotropy = 4) {
     if (!Number.isFinite(rawMinY[i])) rawMinY[i] = lastValid;
   }
 
-  // Windowed minimum across ±90m in Z so coarse terrain triangles never bridge above a lower leg
-  const winBuckets = 9;
+  // Tight ±24m window matches the 16m Z grid spacing: hugs road closely with zero poke-through
+  const winBuckets = 3;
   const safeFloorY = new Float32Array(bucketCount);
   for (let i = 0; i < bucketCount; i++) {
     let minVal = rawMinY[i];
@@ -576,7 +640,7 @@ export function buildTougeEnvironment(scene, track, maxAnisotropy = 4) {
     for (let j = lo; j <= hi; j++) {
       if (rawMinY[j] < minVal) minVal = rawMinY[j];
     }
-    safeFloorY[i] = minVal - 5.5;
+    safeFloorY[i] = minVal - 2.4;
   }
 
   const getValleyFloorY = (wz) => {
@@ -588,15 +652,15 @@ export function buildTougeEnvironment(scene, track, maxAnisotropy = 4) {
     return safeFloorY[i0] + (safeFloorY[i0 + 1] - safeFloorY[i0]) * t;
   };
 
-  const groundGeo = new THREE.PlaneGeometry(5400, 5400, 48, 96);
+  const groundGeo = new THREE.PlaneGeometry(3600, 2600, 64, 160);
   groundGeo.rotateX(-Math.PI / 2);
   const gPos = groundGeo.attributes.position;
   for (let i = 0; i < gPos.count; i++) {
     const wx = gPos.getX(i) + centerX;
     const wz = gPos.getZ(i) + centerZ;
     const floorY = getValleyFloorY(wz);
-    const lateralDist = Math.max(0, Math.abs(wx - centerX) - 220);
-    gPos.setY(i, floorY - Math.min(45, lateralDist * 0.08));
+    const lateralDist = Math.max(0, Math.abs(wx - centerX) - 200);
+    gPos.setY(i, floorY - Math.min(28, lateralDist * 0.05));
   }
   groundGeo.computeVertexNormals();
   const valleyTex = createValleyTerrainTexture(maxAnisotropy);
@@ -618,7 +682,7 @@ export function buildTougeEnvironment(scene, track, maxAnisotropy = 4) {
   const roadMesh = new THREE.Mesh(roadGeo, roadMat);
   envGroup.add(roadMesh);
 
-  // 3. Outer Shoulder Apron + Textured Concrete Retaining Wall Skirt
+  // 3. Outer Shoulder Apron + Natural Mountain Berm Slopes + Concrete Retaining Wall Skirt
   const gutterMat = new THREE.MeshLambertMaterial({
     color: 0x1e2533,
   });
@@ -629,6 +693,13 @@ export function buildTougeEnvironment(scene, track, maxAnisotropy = 4) {
     new THREE.Mesh(buildRibbonGeometry(samples, halfWidth, guardrailOffset + 0.5, -0.015), gutterMat)
   );
 
+  // Roadside mountain slope berms connect the shoulder seamlessly to the surrounding terrain
+  const shoulderEdge = guardrailOffset + 0.5;
+  envGroup.add(
+    new THREE.Mesh(buildRoadsideSlopeGeometry(samples, -1, shoulderEdge, 5.2, -0.02, -5.4), groundMat),
+    new THREE.Mesh(buildRoadsideSlopeGeometry(samples, 1, shoulderEdge, 5.2, -0.02, -5.4), groundMat)
+  );
+
   const wallTex = createRetainingWallTexture(maxAnisotropy);
   const wallMat = new THREE.MeshLambertMaterial({
     map: wallTex,
@@ -636,8 +707,8 @@ export function buildTougeEnvironment(scene, track, maxAnisotropy = 4) {
     side: THREE.DoubleSide,
   });
   envGroup.add(
-    new THREE.Mesh(buildGuardrailBeamGeometry(samples, -guardrailOffset - 0.5, -135, -0.015, 0.09, 10.0), wallMat),
-    new THREE.Mesh(buildGuardrailBeamGeometry(samples, guardrailOffset + 0.5, -135, -0.015, 0.09, 10.0), wallMat)
+    new THREE.Mesh(buildGuardrailBeamGeometry(samples, -shoulderEdge, -95, -0.05, 0.09, 7.5), wallMat),
+    new THREE.Mesh(buildGuardrailBeamGeometry(samples, shoulderEdge, -95, -0.05, 0.09, 7.5), wallMat)
   );
 
   // 3.5. Inside-Corner Drainage Gutters (도랑 — recessed concrete trench right next to inside guardrail)
