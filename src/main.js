@@ -597,11 +597,11 @@ class ProjectDGame {
     resetVehicleToSpawn(this.rival, this.track, this.track.startS, 2.6);
     this._syncCarMeshes(0);
 
-    // Snap chase camera cleanly behind player for countdown (moderate downhill illusion pitch ~23.5 deg)
+    // Snap chase camera cleanly behind player for countdown (gentle downhill illusion pitch ~12 deg)
     const fx = Math.sin(this.player.heading);
     const fz = Math.cos(this.player.heading);
-    this.camPos.set(this.player.x - fx * 8.4, 5.9, this.player.z - fz * 8.4);
-    this.camLook.set(this.player.x + fx * 10.5, -2.3, this.player.z + fz * 10.5);
+    this.camPos.set(this.player.x - fx * 8.1, 3.9, this.player.z - fz * 8.1);
+    this.camLook.set(this.player.x + fx * 12.2, -0.4, this.player.z + fz * 12.2);
     this.camRoll = 0;
 
     this.raceElapsed = 0;
@@ -715,10 +715,10 @@ class ProjectDGame {
       const rz = fx;
 
       const speedNorm = Math.min(1, this.player.speedKmh / 105);
-      const camDist = 8.4 + speedNorm * 0.9;
-      const camHeight = 5.9 + speedNorm * 0.5;
-      const lookAhead = 10.5 + speedNorm * 2.0;
-      const lookY = -2.3 - speedNorm * 0.4;
+      const camDist = 8.1 + speedNorm * 0.95;
+      const camHeight = 3.9 + speedNorm * 0.3;
+      const lookAhead = 12.2 + speedNorm * 2.0;
+      const lookY = -0.4 - speedNorm * 0.25;
       const driftSideSwing = this.player.visualSlip * 2.1;
 
       const desiredPos = new THREE.Vector3(
@@ -735,7 +735,7 @@ class ProjectDGame {
       this.camPos.lerp(desiredPos, 1 - Math.exp(-dt * 9.5));
       this.camLook.lerp(desiredLook, 1 - Math.exp(-dt * 12.0));
 
-      const targetFov = 68 + speedNorm * 8 + (this.player.driftBoostTimer > 0 ? 3 : 0);
+      const targetFov = 62 + speedNorm * 8 + (this.player.driftBoostTimer > 0 ? 3 : 0);
       this.camera.fov += (targetFov - this.camera.fov) * smooth;
 
       // Subtle downhill cornering camera bank (capped ~1.8 deg)
