@@ -88,11 +88,12 @@ function buildRibbonGeometry(samples, leftOffset, rightOffset, y, uvScaleV = 0.1
     const rz = p.z + p.rz * rightOffset;
 
     const vi = i * 6;
+    const baseY = p.y || 0;
     positions[vi] = lx;
-    positions[vi + 1] = y;
+    positions[vi + 1] = baseY + y;
     positions[vi + 2] = lz;
     positions[vi + 3] = rx;
-    positions[vi + 4] = y;
+    positions[vi + 4] = baseY + y;
     positions[vi + 5] = rz;
 
     normals[vi] = 0;
@@ -123,6 +124,7 @@ function buildRibbonGeometry(samples, leftOffset, rightOffset, y, uvScaleV = 0.1
   geo.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
   geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
   geo.setIndex(indices);
+  geo.computeVertexNormals();
   return geo;
 }
 
@@ -136,14 +138,15 @@ function buildGuardrailBeamGeometry(samples, sideOffset, yBottom, yTop) {
 
   for (let i = 0; i < n; i++) {
     const p = samples[i];
+    const baseY = p.y || 0;
     const gx = p.x + p.rx * sideOffset;
     const gz = p.z + p.rz * sideOffset;
     const vi = i * 6;
     positions[vi] = gx;
-    positions[vi + 1] = yBottom;
+    positions[vi + 1] = baseY + yBottom;
     positions[vi + 2] = gz;
     positions[vi + 3] = gx;
-    positions[vi + 4] = yTop;
+    positions[vi + 4] = baseY + yTop;
     positions[vi + 5] = gz;
 
     if (i < n - 1) {
@@ -173,21 +176,32 @@ export function buildTougeEnvironment(scene, track) {
 
   const { samples, halfWidth, guardrailOffset } = track;
 
-  // 1. Dark ground plane (mountain floor slightly below asphalt to avoid Z-fighting)
-  const groundGeo = new THREE.PlaneGeometry(6000, 6000);
+  // 1. Sloped mountain valley ground mesh (sculpted below visual track elevation so it never pokes through)
+  const centerX = (track.bounds.minX + track.bounds.maxX) * 0.5;
+  const centerZ = (track.bounds.minZ + track.bounds.maxZ) * 0.5;
+  const groundGeo = new THREE.PlaneGeometry(5400, 5400, 36, 72);
+  groundGeo.rotateX(-Math.PI / 2);
+  const gPos = groundGeo.attributes.position;
+  for (let i = 0; i < gPos.count; i++) {
+    const wx = gPos.getX(i) + centerX;
+    const wz = gPos.getZ(i) + centerZ;
+    const nearest = track.projectPoint(wx, wz, -1);
+    const trackY = track.getElevationAtS(nearest.s);
+    const distFromRoad = Math.max(0, Math.abs(nearest.lateral) - (guardrailOffset + 4));
+    // Stay cleanly below roadbed and gently drop away into mountain valley
+    gPos.setY(i, trackY - 3.2 - Math.min(40, distFromRoad * 0.12));
+  }
+  groundGeo.computeVertexNormals();
   const groundMat = new THREE.MeshStandardMaterial({
     color: 0x070b14,
     roughness: 0.98,
     metalness: 0.05,
   });
   const ground = new THREE.Mesh(groundGeo, groundMat);
-  ground.rotation.x = -Math.PI / 2;
-  const centerX = (track.bounds.minX + track.bounds.maxX) * 0.5;
-  const centerZ = (track.bounds.minZ + track.bounds.maxZ) * 0.5;
-  ground.position.set(centerX, -0.08, centerZ);
+  ground.position.set(centerX, 0, centerZ);
   envGroup.add(ground);
 
-  // 2. Asphalt Road Surface (flat at Y = 0)
+  // 2. Asphalt Road Surface (follows visual downhill elevation y(s))
   const asphaltTex = createAsphaltTexture();
   const roadGeo = buildRibbonGeometry(samples, -halfWidth, halfWidth, 0.0, 0.08);
   const roadMat = new THREE.MeshStandardMaterial({
@@ -198,7 +212,7 @@ export function buildTougeEnvironment(scene, track) {
   const roadMesh = new THREE.Mesh(roadGeo, roadMat);
   envGroup.add(roadMesh);
 
-  // 3. Outer Shoulder Apron (slightly darker concrete gutter strip)
+  // 3. Outer Shoulder Apron + Mountain Retaining Wall Skirt (prevents floating road look on switchbacks)
   const gutterMat = new THREE.MeshStandardMaterial({
     color: 0x111622,
     roughness: 0.92,
@@ -208,6 +222,17 @@ export function buildTougeEnvironment(scene, track) {
   );
   envGroup.add(
     new THREE.Mesh(buildRibbonGeometry(samples, halfWidth, guardrailOffset + 0.5, -0.015), gutterMat)
+  );
+
+  const wallMat = new THREE.MeshStandardMaterial({
+    color: 0x161c28,
+    roughness: 0.95,
+    metalness: 0.05,
+    side: THREE.DoubleSide,
+  });
+  envGroup.add(
+    new THREE.Mesh(buildGuardrailBeamGeometry(samples, -guardrailOffset - 0.5, -34, -0.015), wallMat),
+    new THREE.Mesh(buildGuardrailBeamGeometry(samples, guardrailOffset + 0.5, -34, -0.015), wallMat)
   );
 
   // 3.5. Inside-Corner Drainage Gutters (도랑 — recessed concrete trench right next to inside guardrail)
@@ -276,8 +301,9 @@ export function buildTougeEnvironment(scene, track) {
 
   for (let i = 0; i < dashCount; i++) {
     const pt = track.getPointAtS(i * dashSpacing + 4);
-    dummy.position.set(pt.x, 0.022, pt.z);
-    dummy.rotation.set(0, pt.heading, 0);
+    dummy.position.set(pt.x, pt.y + 0.025, pt.z);
+    dummy.rotation.order = 'YXZ';
+    dummy.rotation.set(-pt.slope, pt.heading, 0);
     dummy.updateMatrix();
     dashInst.setMatrixAt(i, dummy.matrix);
   }
@@ -330,9 +356,10 @@ export function buildTougeEnvironment(scene, track) {
     for (const side of [-1, 1]) {
       dummy.position.set(
         pt.x + pt.rx * side * (guardrailOffset + 0.12),
-        0.47,
+        pt.y + 0.47,
         pt.z + pt.rz * side * (guardrailOffset + 0.12)
       );
+      dummy.rotation.order = 'XYZ';
       dummy.rotation.set(0, pt.heading, 0);
       dummy.updateMatrix();
       postInst.setMatrixAt(postIdx++, dummy.matrix);
@@ -362,8 +389,9 @@ export function buildTougeEnvironment(scene, track) {
 
     chevronPositions.forEach(({ pt, side }, idx) => {
       const dist = guardrailOffset + 0.45;
-      dummy.position.set(pt.x + pt.rx * side * dist, 1.5, pt.z + pt.rz * side * dist);
+      dummy.position.set(pt.x + pt.rx * side * dist, pt.y + 1.5, pt.z + pt.rz * side * dist);
       // Face oncoming traffic slightly angled inward
+      dummy.rotation.order = 'XYZ';
       dummy.rotation.set(0, pt.heading + side * 0.25, 0);
       dummy.updateMatrix();
       boardInst.setMatrixAt(idx, dummy.matrix);
@@ -403,27 +431,29 @@ export function buildTougeEnvironment(scene, track) {
     const px = pt.x + pt.rx * side * poleDist;
     const pz = pt.z + pt.rz * side * poleDist;
 
-    dummy.position.set(px, 3.4, pz);
+    dummy.position.set(px, pt.y + 3.4, pz);
+    dummy.rotation.order = 'XYZ';
     dummy.rotation.set(0, pt.heading, 0);
     dummy.updateMatrix();
     poleInst.setMatrixAt(i, dummy.matrix);
 
     const armX = pt.x + pt.rx * side * (poleDist - 1.2);
     const armZ = pt.z + pt.rz * side * (poleDist - 1.2);
-    dummy.position.set(armX, 6.75, armZ);
+    dummy.position.set(armX, pt.y + 6.75, armZ);
     dummy.rotation.set(0, pt.heading, 0);
     dummy.updateMatrix();
     armInst.setMatrixAt(i, dummy.matrix);
 
     const headX = pt.x + pt.rx * side * (poleDist - 2.35);
     const headZ = pt.z + pt.rz * side * (poleDist - 2.35);
-    dummy.position.set(headX, 6.62, headZ);
+    dummy.position.set(headX, pt.y + 6.62, headZ);
     dummy.rotation.set(0, pt.heading, 0);
     dummy.updateMatrix();
     headInst.setMatrixAt(i, dummy.matrix);
 
-    dummy.position.set(headX, 0.028, headZ);
-    dummy.rotation.set(-Math.PI / 2, 0, 0);
+    dummy.position.set(headX, pt.y + 0.035, headZ);
+    dummy.rotation.order = 'YXZ';
+    dummy.rotation.set(-Math.PI / 2 - pt.slope, pt.heading, 0);
     dummy.updateMatrix();
     poolInst.setMatrixAt(i, dummy.matrix);
   }
@@ -460,13 +490,15 @@ export function buildTougeEnvironment(scene, track) {
       continue;
     }
 
-    dummy.position.set(tx, 1.5 * scale, tz);
+    const baseY = track.getElevationAtS(nearest.s) - 2.6;
+    dummy.rotation.order = 'XYZ';
+    dummy.position.set(tx, baseY + 1.5 * scale, tz);
     dummy.rotation.set(0, rand * Math.PI * 2, 0);
     dummy.scale.set(scale, scale, scale);
     dummy.updateMatrix();
     trunkInst.setMatrixAt(tIdx, dummy.matrix);
 
-    dummy.position.set(tx, 6.2 * scale, tz);
+    dummy.position.set(tx, baseY + 6.2 * scale, tz);
     dummy.updateMatrix();
     crownInst.setMatrixAt(tIdx, dummy.matrix);
     tIdx++;
@@ -501,8 +533,12 @@ export function buildTougeEnvironment(scene, track) {
       poolInst.visible = !isDay;
       headMat.color.setHex(isDay ? 0x94a3b8 : 0xffd27d);
       groundMat.color.setHex(isDay ? 0x1e3324 : 0x070b14);
+      wallMat.color.setHex(isDay ? 0x334155 : 0x161c28);
       crownMat.color.setHex(isDay ? 0x1b4d32 : 0x0d1f1c);
       reflectorMat.color.setHex(isDay ? 0xe2e8f0 : 0x38bdf8);
+    },
+    syncSkyToCamera(camY) {
+      skyBackdrop.group.position.y = camY;
     },
   };
 }
@@ -511,11 +547,11 @@ function createGantry(track, s, label, bgHex, stripeHex, accentHex) {
   const group = new THREE.Group();
   const pt = track.getPointAtS(s);
 
-  group.position.set(pt.x, 0, pt.z);
+  group.position.set(pt.x, pt.y, pt.z);
   group.rotation.y = pt.heading;
 
   const span = track.guardrailOffset * 2 + 1.8;
-  const height = 8.6;
+  const height = 6.8;
 
   const pillarMat = new THREE.MeshStandardMaterial({
     color: 0x334155,
@@ -545,7 +581,7 @@ function createGantry(track, s, label, bgHex, stripeHex, accentHex) {
   banner.position.set(0, height - 0.6, 0);
   group.add(banner);
 
-  // Painted Start/Finish Checker Strip on the Asphalt
+  // Painted Start/Finish Checker Strip on the Asphalt (tilted to match road slope)
   const checkerCanvas = document.createElement('canvas');
   checkerCanvas.width = 256;
   checkerCanvas.height = 64;
@@ -562,8 +598,8 @@ function createGantry(track, s, label, bgHex, stripeHex, accentHex) {
     new THREE.PlaneGeometry(track.roadWidth - 0.8, 2.2),
     new THREE.MeshBasicMaterial({ map: checkerTex })
   );
-  lineMesh.rotation.x = -Math.PI / 2;
-  lineMesh.position.y = 0.032;
+  lineMesh.rotation.x = -Math.PI / 2 - pt.slope;
+  lineMesh.position.y = 0.036;
   group.add(lineMesh);
 
   return group;

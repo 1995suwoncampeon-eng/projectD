@@ -143,15 +143,20 @@ export class TougeTrack {
       const rz = tx;
       const heading = Math.atan2(tx, tz);
 
+      const y = this.getElevationAtS(cumulativeS);
+      const slope = this.getSlopeAtS(cumulativeS);
+
       this.samples.push({
         index: i,
         x: p.x,
+        y,
         z: p.z,
         tx,
         tz,
         rx,
         rz,
         heading,
+        slope,
         s: cumulativeS,
         curvature: 0,
         gutterSide: 0,
@@ -212,6 +217,25 @@ export class TougeTrack {
   }
 
   /**
+   * Visual-only downhill elevation profile y(s) in meters.
+   * 2D physics remain strictly flat on X-Z, while 3D rendering drops continuously
+   * (~10.5% average grade with gentle mountain pass undulations, always downhill).
+   */
+  getElevationAtS(s) {
+    const clamped = Math.max(0, s);
+    return -0.105 * clamped + 1.8 * Math.sin(clamped * 0.014);
+  }
+
+  /**
+   * Visual-only downhill pitch angle in radians (negative = descending).
+   */
+  getSlopeAtS(s) {
+    const clamped = Math.max(0, s);
+    const dyds = -0.105 + 1.8 * 0.014 * Math.cos(clamped * 0.014);
+    return Math.atan(dyds);
+  }
+
+  /**
    * Interpolate a smooth point on the centerline at arc-length s (meters)
    * using exact binary search over cumulative sample arc-lengths.
    */
@@ -245,12 +269,14 @@ export class TougeTrack {
     return {
       index: i0,
       x: a.x + (b.x - a.x) * t,
+      y: this.getElevationAtS(clamped),
       z: a.z + (b.z - a.z) * t,
       tx: ntx,
       tz: ntz,
       rx: -ntz,
       rz: ntx,
       heading: Math.atan2(ntx, ntz),
+      slope: this.getSlopeAtS(clamped),
       s: clamped,
       curvature: a.curvature + (b.curvature - a.curvature) * t,
       gutterSide: t < 0.5 ? a.gutterSide : b.gutterSide,

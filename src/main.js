@@ -6,8 +6,8 @@ import {
   PLAYER_THEME,
   RIVALS,
 } from './config.js';
-import { TougeTrack } from './track.js?v=12';
-import { buildTougeEnvironment } from './trackRenderer.js?v=14';
+import { TougeTrack } from './track.js?v=13';
+import { buildTougeEnvironment } from './trackRenderer.js?v=15';
 import { loadCarModel } from './carModel.js';
 import {
   createVehicleState,
@@ -17,7 +17,7 @@ import {
   resolveCarCollision,
 } from './physics.js?v=12';
 import { updateRivalAI } from './ai.js';
-import { EffectsManager } from './effects.js';
+import { EffectsManager } from './effects.js?v=13';
 import { ArcadeAudio } from './audio.js';
 import { HudController } from './hud.js';
 import { UIController } from './ui.js';
@@ -597,11 +597,13 @@ class ProjectDGame {
     resetVehicleToSpawn(this.rival, this.track, this.track.startS, 2.6);
     this._syncCarMeshes(0);
 
-    // Snap chase camera cleanly behind player for countdown (gentle downhill illusion pitch ~12 deg)
+    // Snap chase camera cleanly behind player along visual downhill elevation
     const fx = Math.sin(this.player.heading);
     const fz = Math.cos(this.player.heading);
-    this.camPos.set(this.player.x - fx * 8.1, 3.9, this.player.z - fz * 8.1);
-    this.camLook.set(this.player.x + fx * 12.2, -0.4, this.player.z + fz * 12.2);
+    const behindY = this.track.getElevationAtS(Math.max(0, this.player.s - 8.2));
+    const aheadY = this.track.getElevationAtS(Math.min(this.track.totalLength, this.player.s + 14.0));
+    this.camPos.set(this.player.x - fx * 8.2, behindY + 3.2, this.player.z - fz * 8.2);
+    this.camLook.set(this.player.x + fx * 14.0, aheadY + 1.05, this.player.z + fz * 14.0);
     this.camRoll = 0;
 
     this.raceElapsed = 0;
@@ -649,8 +651,12 @@ class ProjectDGame {
 
   _syncCarMeshes(dt) {
     if (this.playerCar) {
-      this.playerCar.root.position.set(this.player.x, 0, this.player.z);
+      const py = this.track.getElevationAtS(this.player.s);
+      const pSlope = this.track.getSlopeAtS(this.player.s);
+      this.playerCar.root.position.set(this.player.x, py, this.player.z);
+      this.playerCar.root.rotation.order = 'YXZ';
       this.playerCar.root.rotation.y = this.player.heading;
+      this.playerCar.root.rotation.x = -pSlope;
       this.playerCar.visualBody.rotation.y = this.player.visualSlip;
       this.playerCar.visualBody.rotation.z = this.player.bodyRoll;
       this.playerCar.setBrakeIntensity(this.player.isBraking ? 1 : 0);
@@ -658,8 +664,12 @@ class ProjectDGame {
     }
 
     if (this.rivalCar) {
-      this.rivalCar.root.position.set(this.rival.x, 0, this.rival.z);
+      const ry = this.track.getElevationAtS(this.rival.s);
+      const rSlope = this.track.getSlopeAtS(this.rival.s);
+      this.rivalCar.root.position.set(this.rival.x, ry, this.rival.z);
+      this.rivalCar.root.rotation.order = 'YXZ';
       this.rivalCar.root.rotation.y = this.rival.heading;
+      this.rivalCar.root.rotation.x = -rSlope;
       this.rivalCar.visualBody.rotation.y = this.rival.visualSlip;
       this.rivalCar.visualBody.rotation.z = this.rival.bodyRoll;
       this.rivalCar.setBrakeIntensity(this.rival.isBraking ? 1 : 0);
@@ -676,10 +686,10 @@ class ProjectDGame {
       const radius = 14.5;
       const targetPos = new THREE.Vector3(
         pt.x + Math.sin(orbitAngle) * radius,
-        4.8 + Math.sin(this.clockTime * 0.5) * 0.5,
+        pt.y + 4.8 + Math.sin(this.clockTime * 0.5) * 0.5,
         pt.z + Math.cos(orbitAngle) * radius
       );
-      const targetLook = new THREE.Vector3(pt.x, 1.1, pt.z - 2);
+      const targetLook = new THREE.Vector3(pt.x, pt.y + 1.1, pt.z - 2);
       this.camPos.lerp(targetPos, Math.min(1, dt * 3.5));
       this.camLook.lerp(targetLook, Math.min(1, dt * 3.5));
       this.camera.fov += (58 - this.camera.fov) * smooth;
@@ -687,55 +697,56 @@ class ProjectDGame {
     } else if (this.state === 'SELECT' || this.state === 'CUTSCENE_INTRO') {
       const pt = this.track.getPointAtS(this.track.startS);
       const sway = Math.sin(this.clockTime * 0.65) * 2.2;
-      const targetPos = new THREE.Vector3(pt.x + 2.6 + sway, 3.6, pt.z - 10.5);
-      const targetLook = new THREE.Vector3(pt.x + 1.4, 1.0, pt.z);
+      const targetPos = new THREE.Vector3(pt.x + 2.6 + sway, pt.y + 3.6, pt.z - 10.5);
+      const targetLook = new THREE.Vector3(pt.x + 1.4, pt.y + 1.0, pt.z);
       this.camPos.lerp(targetPos, Math.min(1, dt * 4.5));
       this.camLook.lerp(targetLook, Math.min(1, dt * 4.5));
       this.camera.fov += (54 - this.camera.fov) * smooth;
       this.camRoll += (0 - this.camRoll) * smooth;
     } else if (this.state === 'RESULT' || this.state === 'CUTSCENE_OUTRO') {
+      const py = this.track.getElevationAtS(this.player.s);
       const orbitAngle = this.clockTime * 0.42;
       const targetPos = new THREE.Vector3(
         this.player.x + Math.sin(orbitAngle) * 10.5,
-        3.6,
+        py + 3.6,
         this.player.z + Math.cos(orbitAngle) * 10.5
       );
-      const targetLook = new THREE.Vector3(this.player.x, 1.0, this.player.z);
+      const targetLook = new THREE.Vector3(this.player.x, py + 1.0, this.player.z);
       this.camPos.lerp(targetPos, Math.min(1, dt * 3.5));
       this.camLook.lerp(targetLook, Math.min(1, dt * 3.5));
       this.camera.fov += (56 - this.camera.fov) * smooth;
       this.camRoll += (0 - this.camRoll) * smooth;
     } else {
-      // COUNTDOWN & RACING: Downhill optical illusion chase cam on flat terrain.
-      // Elevated camera pitching steeply downward raises the horizon (~72-76% up)
-      // so the flat road visually plunges downward like a steep mountain pass.
+      // COUNTDOWN & RACING: Natural chase cam following true visual downhill elevation y(s)
       const fx = Math.sin(this.player.heading);
       const fz = Math.cos(this.player.heading);
       const rx = -fz;
       const rz = fx;
 
       const speedNorm = Math.min(1, this.player.speedKmh / 105);
-      const camDist = 8.1 + speedNorm * 0.95;
-      const camHeight = 3.9 + speedNorm * 0.3;
-      const lookAhead = 12.2 + speedNorm * 2.0;
-      const lookY = -0.4 - speedNorm * 0.25;
+      const camDist = 7.9 + speedNorm * 1.0;
+      const camHeightOffset = 3.15 + speedNorm * 0.22;
+      const lookAhead = 14.0 + speedNorm * 2.5;
       const driftSideSwing = this.player.visualSlip * 2.1;
+
+      const behindY = this.track.getElevationAtS(Math.max(0, this.player.s - camDist));
+      const aheadY = this.track.getElevationAtS(Math.min(this.track.totalLength, this.player.s + lookAhead));
 
       const desiredPos = new THREE.Vector3(
         this.player.x - fx * camDist - rx * driftSideSwing,
-        camHeight,
+        behindY + camHeightOffset,
         this.player.z - fz * camDist - rz * driftSideSwing
       );
       const desiredLook = new THREE.Vector3(
         this.player.x + fx * lookAhead,
-        lookY,
+        aheadY + 1.05,
         this.player.z + fz * lookAhead
       );
 
       this.camPos.lerp(desiredPos, 1 - Math.exp(-dt * 9.5));
       this.camLook.lerp(desiredLook, 1 - Math.exp(-dt * 12.0));
 
-      const targetFov = 62 + speedNorm * 8 + (this.player.driftBoostTimer > 0 ? 3 : 0);
+      const targetFov = 60 + speedNorm * 8 + (this.player.driftBoostTimer > 0 ? 3 : 0);
       this.camera.fov += (targetFov - this.camera.fov) * smooth;
 
       // Subtle downhill cornering camera bank (capped ~1.8 deg)
@@ -749,6 +760,7 @@ class ProjectDGame {
     if (Math.abs(this.camRoll) > 0.0001) {
       this.camera.rotateZ(this.camRoll);
     }
+    this.envController?.syncSkyToCamera(this.camPos.y);
   }
 
   _stepGame(dt) {
@@ -787,14 +799,19 @@ class ProjectDGame {
       updateRivalAI(this.rival, this.player, this.selectedRival, this.track, dt);
 
       // 2. Resolve 2D car-to-car contact
+      const playerY = this.track.getElevationAtS(this.player.s);
+      const playerSlope = this.track.getSlopeAtS(this.player.s);
+      const rivalY = this.track.getElevationAtS(this.rival.s);
+      const rivalSlope = this.track.getSlopeAtS(this.rival.s);
+
       const hit = resolveCarCollision(this.player, this.rival, this.track);
       if (hit) {
-        this.effects.spawnSparks(hit.x, hit.z, 8, 0x38bdf8, 11);
+        this.effects.spawnSparks(hit.x, hit.z, 8, 0x38bdf8, 11, (playerY + rivalY) * 0.5);
       }
 
-      // 3. Emit drift tire marks & sparks
-      this.effects.emitCarEffects('player', this.player, dt);
-      this.effects.emitCarEffects('rival', this.rival, dt);
+      // 3. Emit drift tire marks & sparks at visual road elevation
+      this.effects.emitCarEffects('player', this.player, dt, playerY, playerSlope);
+      this.effects.emitCarEffects('rival', this.rival, dt, rivalY, rivalSlope);
       this.effects.update(dt);
 
       // 4. Audio & HUD updates

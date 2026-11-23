@@ -56,6 +56,7 @@ export class EffectsManager {
         active: false,
         x: 0,
         y: 0,
+        groundY: 0,
         z: 0,
         vx: 0,
         vy: 0,
@@ -87,9 +88,10 @@ export class EffectsManager {
     this.sparkMesh.instanceMatrix.needsUpdate = true;
   }
 
-  _stampSkid(x, z, heading) {
-    this._dummy.position.set(x, 0.026, z);
-    this._dummy.rotation.set(0, heading, 0);
+  _stampSkid(x, y, z, heading, slope = 0) {
+    this._dummy.position.set(x, y + 0.03, z);
+    this._dummy.rotation.order = 'YXZ';
+    this._dummy.rotation.set(-slope, heading, 0);
     this._dummy.scale.set(1, 1, 1);
     this._dummy.updateMatrix();
     this.skidMesh.setMatrixAt(this.skidCursor, this._dummy.matrix);
@@ -97,7 +99,7 @@ export class EffectsManager {
     this.skidMesh.instanceMatrix.needsUpdate = true;
   }
 
-  spawnSparks(x, z, count = 6, colorHex = 0xffae00, spread = 8) {
+  spawnSparks(x, z, count = 6, colorHex = 0xffae00, spread = 8, baseY = 0) {
     const col = new THREE.Color(colorHex);
     for (let i = 0; i < count; i++) {
       const p = this.particles[this.particleCursor];
@@ -106,7 +108,8 @@ export class EffectsManager {
 
       p.active = true;
       p.x = x + (Math.random() - 0.5) * 0.5;
-      p.y = 0.25 + Math.random() * 0.3;
+      p.groundY = baseY + 0.05;
+      p.y = baseY + 0.25 + Math.random() * 0.3;
       p.z = z + (Math.random() - 0.5) * 0.5;
       p.vx = (Math.random() - 0.5) * spread;
       p.vy = 2.0 + Math.random() * 4.2;
@@ -118,7 +121,7 @@ export class EffectsManager {
     if (this.sparkMesh.instanceColor) this.sparkMesh.instanceColor.needsUpdate = true;
   }
 
-  emitCarEffects(carId, car, dt) {
+  emitCarEffects(carId, car, dt, baseY = 0, slope = 0) {
     const timer = (this.skidCooldown.get(carId) || 0) - dt;
     const bodyAngle = car.heading + car.visualSlip;
     const sinA = Math.sin(bodyAngle);
@@ -137,14 +140,14 @@ export class EffectsManager {
 
     if (car.isDrifting && car.speedKmh > 30) {
       if (timer <= 0) {
-        this._stampSkid(rlx, rlz, car.heading);
-        this._stampSkid(rrx, rrz, car.heading);
+        this._stampSkid(rlx, baseY, rlz, car.heading, slope);
+        this._stampSkid(rrx, baseY, rrz, car.heading, slope);
         this.skidCooldown.set(carId, 0.035);
 
         // Emit bright drift sparks / heat particles from rear tires
         const sparkCol = car.driftCharge > 0.55 ? 0x38bdf8 : 0xffb703;
-        this.spawnSparks(rlx, rlz, 2, sparkCol, 5.5);
-        this.spawnSparks(rrx, rrz, 2, sparkCol, 5.5);
+        this.spawnSparks(rlx, rlz, 2, sparkCol, 5.5, baseY);
+        this.spawnSparks(rrx, rrz, 2, sparkCol, 5.5, baseY);
       } else {
         this.skidCooldown.set(carId, timer);
       }
@@ -153,7 +156,7 @@ export class EffectsManager {
     }
 
     if (car.scrapedWall && car.speedKmh > 25) {
-      this.spawnSparks(car.scrapeX, car.scrapeZ, 5, 0xff7b00, 10);
+      this.spawnSparks(car.scrapeX, car.scrapeZ, 5, 0xff7b00, 10, baseY);
     }
   }
 
@@ -173,12 +176,13 @@ export class EffectsManager {
 
       p.vy -= 14.5 * dt;
       p.x += p.vx * dt;
-      p.y = Math.max(0.05, p.y + p.vy * dt);
+      p.y = Math.max(p.groundY, p.y + p.vy * dt);
       p.z += p.vz * dt;
 
       const fade = 1 - p.life / p.maxLife;
       const s = p.scale * fade;
       this._dummy.position.set(p.x, p.y, p.z);
+      this._dummy.rotation.order = 'XYZ';
       this._dummy.rotation.set(0, Math.atan2(p.vx, p.vz), 0);
       this._dummy.scale.set(s, s, s * 1.4);
       this._dummy.updateMatrix();
