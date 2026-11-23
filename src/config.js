@@ -216,6 +216,7 @@ export const RIVALS = [
       rubberBandCatchup: 0.12,
       rubberBandEase: 0.04,
       laneBias: 0.9,
+      useGutterRun: true,
     },
     cutscenes: RIVAL_CUTSCENES.bunta,
   },

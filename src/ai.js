@@ -82,6 +82,15 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
 
   // 4. Target Waypoint & Racing Line Lateral Offset
   // Hug inside apex on sharp turns (turning left -> negative right offset)
+  const curPt = track.getPointAtS(rival.s);
+  const gutterRailLat = track.maxCarLateral - 1.1;
+  const aheadGutterPt = ai.useGutterRun
+    ? track.getPointAtS(Math.min(track.totalLength, rival.s + 18))
+    : null;
+  const activeGutterSide = ai.useGutterRun
+    ? (curPt.gutterSide || (aheadGutterPt ? aheadGutterPt.gutterSide : 0))
+    : 0;
+
   const apexRatio = ai.apexRatio ?? 0.56;
   const maxLatRatio = ai.maxLateralRatio ?? 0.78;
   const nearCurv = ai.fullThrottleCorners
@@ -90,29 +99,89 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   const curveThreshold = ai.fullThrottleCorners ? 0.003 : 0.0065;
 
   let targetLateral = ai.laneBias;
-  if (Math.abs(nearCurv.signedPeak) > curveThreshold) {
+  if (activeGutterSide !== 0) {
+    // Line up directly with the inside drainage gutter for gutter-run cornering
+    targetLateral = activeGutterSide * gutterRailLat;
+  } else if (Math.abs(nearCurv.signedPeak) > curveThreshold) {
     const insideDir = nearCurv.signedPeak > 0 ? -1 : 1;
     targetLateral = insideDir * (track.maxCarLateral * apexRatio);
   }
 
-  // Polite lateral spacing when side-by-side with player (skipped if fullThrottleCorners apex-locked)
+  // Polite lateral spacing when side-by-side with player (skipped if apex-locked or gutter-running)
   const longDiff = Math.abs(rival.s - player.s);
-  if (longDiff < 14 && !(ai.fullThrottleCorners && Math.abs(nearCurv.signedPeak) > curveThreshold)) {
+  if (
+    longDiff < 14 &&
+    activeGutterSide === 0 &&
+    !(ai.fullThrottleCorners && Math.abs(nearCurv.signedPeak) > curveThreshold)
+  ) {
     const sideOffset = player.lateral > 0 ? -2.4 : 2.4;
     targetLateral = targetLateral * 0.45 + sideOffset * 0.55;
   }
 
-  targetLateral = Math.max(
-    -track.maxCarLateral * maxLatRatio,
-    Math.min(track.maxCarLateral * maxLatRatio, targetLateral)
-  );
+  const latClamp = activeGutterSide !== 0
+    ? Math.max(gutterRailLat, track.maxCarLateral * maxLatRatio)
+    : track.maxCarLateral * maxLatRatio;
+  targetLateral = Math.max(-latClamp, Math.min(latClamp, targetLateral));
+
+  // Decay AI gutter exit cooldown
+  if (rival.gutterCooldown > 0) {
+    rival.gutterCooldown = Math.max(0, rival.gutterCooldown - dt);
+  }
+
+  // Engage / release gutter hook for gutter-run rivals (e.g. BUNTA)
+  if (ai.useGutterRun) {
+    if (rival.inGutter) {
+      if (curPt.gutterSide !== rival.gutterSide || rival.speed < 2.0) {
+        rival.inGutter = false;
+        rival.gutterSide = 0;
+        rival.gutterCooldown = 0.45;
+      }
+    } else if (
+      (rival.gutterCooldown || 0) <= 0 &&
+      curPt.gutterSide !== 0 &&
+      rival.speed > 4.0 &&
+      rival.lateral * curPt.gutterSide >= gutterRailLat - 0.95
+    ) {
+      rival.inGutter = true;
+      rival.gutterSide = curPt.gutterSide;
+    }
+  } else {
+    rival.inGutter = false;
+    rival.gutterSide = 0;
+  }
 
   let headingDiff = 0;
   let proj;
-  if (ai.fullThrottleCorners) {
+  if (rival.inGutter) {
+    // Gutter-rail guided cornering (mirrors player's gutter run cleanly through tight hairpins)
+    const targetLat = rival.gutterSide * gutterRailLat;
+    const latSnap = 1 - Math.exp(-dt * 12);
+    const nextLat = rival.lateral + (targetLat - rival.lateral) * latSnap;
+    const arcScale = Math.max(0.72, Math.min(1.25, 1 + curPt.curvature * nextLat));
+    const nextS = Math.min(track.totalLength, rival.s + (rival.speed * dt) / arcScale);
+    const nextInfo = track.getPointAtS(nextS);
+    const nextX = nextInfo.x + nextInfo.rx * nextLat;
+    const nextZ = nextInfo.z + nextInfo.rz * nextLat;
+
+    headingDiff = wrapAngle(nextInfo.heading - rival.heading);
+    rival.heading = wrapAngle(rival.heading + headingDiff * Math.min(1, dt * 20));
+    rival.x = nextX;
+    rival.z = nextZ;
+    rival.s = nextS;
+    rival.lateral = nextLat;
+    rival.trackIndex = nextInfo.index;
+    rival.scrapedWall = false;
+    proj = nextInfo;
+
+    if (nextInfo.gutterSide !== rival.gutterSide) {
+      rival.heading = nextInfo.heading;
+      rival.inGutter = false;
+      rival.gutterSide = 0;
+      rival.gutterCooldown = 0.45;
+    }
+  } else if (ai.fullThrottleCorners) {
     // High-precision spline-locked inside-apex tracking so full-throttle cornering
     // hugs right up to the guardrail limit without scraping or decelerating.
-    const curPt = track.getPointAtS(rival.s);
     const latFollow = 1 - Math.exp(-dt * 5.2);
     const nextLat = Math.max(
       -track.maxCarLateral * maxLatRatio,
