@@ -144,7 +144,7 @@ export class EffectsManager {
     this.skidMesh.instanceMatrix.needsUpdate = true;
   }
 
-  spawnSparks(x, z, count = 6, colorHex = 0xff5500, spread = 8, baseY = 0) {
+  spawnSparks(x, z, count = 6, colorHex = 0xff9e00, spread = 10, baseY = 0, biasVx = 0, biasVz = 0) {
     const col = new THREE.Color(colorHex);
     for (let i = 0; i < count; i++) {
       const p = this.particles[this.particleCursor];
@@ -152,16 +152,16 @@ export class EffectsManager {
       this.particleCursor = (this.particleCursor + 1) % MAX_PARTICLES;
 
       p.active = true;
-      p.x = x + (Math.random() - 0.5) * 0.4;
+      p.x = x + (Math.random() - 0.5) * 0.25;
       p.groundY = baseY + 0.05;
-      p.y = baseY + 0.2 + Math.random() * 0.25;
-      p.z = z + (Math.random() - 0.5) * 0.4;
-      p.vx = (Math.random() - 0.5) * spread;
-      p.vy = 2.0 + Math.random() * 4.2;
-      p.vz = (Math.random() - 0.5) * spread;
+      p.y = baseY + 0.14 + Math.random() * 0.16;
+      p.z = z + (Math.random() - 0.5) * 0.25;
+      p.vx = biasVx + (Math.random() - 0.5) * spread;
+      p.vy = 2.4 + Math.random() * 4.8;
+      p.vz = biasVz + (Math.random() - 0.5) * spread;
       p.life = 0;
-      p.maxLife = 0.22 + Math.random() * 0.26;
-      p.scale = 0.7 + Math.random() * 0.85;
+      p.maxLife = 0.16 + Math.random() * 0.2;
+      p.scale = 0.55 + Math.random() * 0.65;
     }
     if (this.sparkMesh.instanceColor) this.sparkMesh.instanceColor.needsUpdate = true;
   }
@@ -224,7 +224,7 @@ export class EffectsManager {
       this.skidCooldown.set(carId, 0);
     }
 
-    // 2. Gutter-run sparks: emit bright red-orange sparks ONLY from the wheels hooked in the gutter
+    // 2. Gutter-run sparks: crisp metallic scrape sparks flying backward from gutter-hooked wheels
     const gTimer = (this.gutterSparkCooldown.get(carId) || 0) - dt;
     if (car.inGutter && car.gutterSide !== 0 && car.speedKmh > 20) {
       if (gTimer <= 0) {
@@ -233,10 +233,12 @@ export class EffectsManager {
         const gFrontZ = car.z + cosA * frontOffset + rz * gSide * trackHalf;
         const gRearX = car.x + sinA * rearOffset + rx * gSide * trackHalf;
         const gRearZ = car.z + cosA * rearOffset + rz * gSide * trackHalf;
+        const backVx = -sinA * 7.5;
+        const backVz = -cosA * 7.5;
 
-        this.spawnSparks(gFrontX, gFrontZ, 2, 0xff4500, 6.0, baseY);
-        this.spawnSparks(gRearX, gRearZ, 2, 0xff7b00, 5.5, baseY);
-        this.gutterSparkCooldown.set(carId, 0.04);
+        this.spawnSparks(gFrontX, gFrontZ, 3, 0xffd166, 9.5, baseY, backVx, backVz);
+        this.spawnSparks(gRearX, gRearZ, 3, 0xff7b00, 10.5, baseY, backVx, backVz);
+        this.gutterSparkCooldown.set(carId, 0.045);
       } else {
         this.gutterSparkCooldown.set(carId, gTimer);
       }

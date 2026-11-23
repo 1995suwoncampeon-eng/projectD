@@ -17,7 +17,7 @@ import {
   resolveCarCollision,
 } from './physics.js?v=18';
 import { updateRivalAI } from './ai.js?v=14';
-import { EffectsManager } from './effects.js?v=14';
+import { EffectsManager } from './effects.js?v=15';
 import { ArcadeAudio } from './audio.js?v=14';
 import { HudController } from './hud.js';
 import { UIController } from './ui.js?v=17';
