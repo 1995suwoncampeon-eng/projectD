@@ -5,22 +5,22 @@ import {
   RIVAL_MODEL_PATH,
   PLAYER_THEME,
   RIVALS,
-} from './config.js?v=16';
+} from './config.js?v=17';
 import { TougeTrack } from './track.js?v=13';
 import { buildTougeEnvironment } from './trackRenderer.js?v=19';
-import { loadCarModel } from './carModel.js?v=14';
+import { loadCarModel } from './carModel.js?v=15';
 import {
   createVehicleState,
   resetVehicleToSpawn,
   recoverVehicleToTrack,
   updatePlayerPhysics,
   resolveCarCollision,
-} from './physics.js?v=15';
+} from './physics.js?v=16';
 import { updateRivalAI } from './ai.js';
 import { EffectsManager } from './effects.js?v=13';
 import { ArcadeAudio } from './audio.js?v=14';
 import { HudController } from './hud.js';
-import { UIController } from './ui.js?v=14';
+import { UIController } from './ui.js?v=15';
 
 class ProjectDGame {
   constructor() {
@@ -238,6 +238,7 @@ class ProjectDGame {
         isPlayer: false,
         bodyColor: rival.colorNum,
         accentColor: rival.colorNum,
+        taillights: rival.taillights ?? null,
       }).then((car) => {
         car.setTimeOfDay(this.timeOfDay);
         return car;

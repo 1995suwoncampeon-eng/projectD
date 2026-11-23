@@ -286,7 +286,7 @@ function getSoftGlowTexture() {
  * soft taillight glow, subtle underglow, and grounded contact shadow).
  * Zero real-time PointLight/SpotLight overhead for smooth low-end performance.
  */
-function attachArcadeLights(root, { isPlayer, accentColor, carSize }) {
+function attachArcadeLights(root, { isPlayer, accentColor, carSize, taillights = null }) {
   const halfLen = Math.max(1.8, carSize.z * 0.5);
   const halfWid = Math.max(0.85, carSize.x * 0.42);
 
@@ -322,7 +322,7 @@ function attachArcadeLights(root, { isPlayer, accentColor, carSize }) {
   root.add(roadBeam);
   const headlightBeams = [roadBeam];
 
-  // 3. Rear taillight soft halo glow sprites (reacts to braking)
+  // 3. Rear taillight soft halo glow sprites (reacts to braking, aligned per vehicle model)
   const tailGlowMat = new THREE.MeshBasicMaterial({
     color: 0xff2a2a,
     map: getSoftGlowTexture(),
@@ -331,10 +331,15 @@ function attachArcadeLights(root, { isPlayer, accentColor, carSize }) {
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   });
-  const tailGlowGeo = new THREE.PlaneGeometry(0.9, 0.46);
-  for (const tx of [-halfWid * 0.68, halfWid * 0.68]) {
+  const tlX = taillights?.x ?? halfWid * 0.68;
+  const tlY = taillights?.y ?? 0.72;
+  const tlZ = -halfLen + (taillights?.zOffset ?? -0.08);
+  const tlW = taillights?.width ?? 0.9;
+  const tlH = taillights?.height ?? 0.46;
+  const tailGlowGeo = new THREE.PlaneGeometry(tlW, tlH);
+  for (const tx of [-tlX, tlX]) {
     const glow = new THREE.Mesh(tailGlowGeo, tailGlowMat);
-    glow.position.set(tx, 0.72, -halfLen - 0.08);
+    glow.position.set(tx, tlY, tlZ);
     glow.rotation.y = Math.PI;
     root.add(glow);
   }
@@ -370,6 +375,7 @@ export async function loadCarModel({
   isPlayer = true,
   bodyColor = 0xf8fafc,
   accentColor = 0x38bdf8,
+  taillights = null,
 }) {
   const root = new THREE.Group();
   root.name = isPlayer ? 'PlayerCarRoot' : 'RivalCarRoot';
@@ -400,7 +406,12 @@ export async function loadCarModel({
     carSize = fallbackRefs.size;
   }
 
-  const lightRefs = attachArcadeLights(visualBody, { isPlayer, accentColor, carSize });
+  const lightRefs = attachArcadeLights(visualBody, {
+    isPlayer,
+    accentColor,
+    carSize,
+    taillights: isFallback ? null : taillights,
+  });
   let isDayMode = false;
 
   return {

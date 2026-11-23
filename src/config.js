@@ -107,6 +107,7 @@ export const RIVALS = [
     accentHex: '#fde047',
     modelPath: 'assets/models/New_GenCup.glb',
     modelRotationY: Math.PI / 2,
+    taillights: { x: 0.65, y: 1.01, zOffset: 0.04, width: 0.72, height: 0.36 },
     tagline: '강력한 탈출 가속과 과감한 드리프트로 압박하는 중급 라이벌입니다.',
     stats: {
       topSpeedKmh: 125,
@@ -145,6 +146,7 @@ export const RIVALS = [
     accentHex: '#38bdf8',
     modelPath: 'assets/models/Old_GenCup.glb',
     modelRotationY: Math.PI / 2,
+    taillights: { x: 0.61, y: 0.97, zOffset: 0.04, width: 0.68, height: 0.34 },
     tagline: '정밀한 에이펙스 공략과 완벽한 코너링 안정성을 갖춘 최강 라이벌입니다.',
     stats: {
       topSpeedKmh: 110,
@@ -187,6 +189,7 @@ export const RIVALS = [
     accentHex: '#e879f9',
     modelPath: 'assets/models/Mohavi.glb',
     modelRotationY: Math.PI / 2,
+    taillights: { x: 0.72, y: 1.14, zOffset: 0.02, width: 0.48, height: 0.46 },
     tagline: '아키나 최속의 전설. 차원이 다른 코너링과 속도로 압도하는 최강 GOD 라이벌입니다.',
     stats: {
       topSpeedKmh: 150,
