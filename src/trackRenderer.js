@@ -176,20 +176,65 @@ export function buildTougeEnvironment(scene, track) {
 
   const { samples, halfWidth, guardrailOffset } = track;
 
-  // 1. Sloped mountain valley ground mesh (sculpted below visual track elevation so it never pokes through)
+  // 1. Sloped mountain valley ground mesh.
+  // Compute a windowed minimum-elevation envelope along Z so that even across
+  // tight switchbacks / 5 consecutive hairpins, no terrain triangle can ever
+  // rise above any road segment.
   const centerX = (track.bounds.minX + track.bounds.maxX) * 0.5;
   const centerZ = (track.bounds.minZ + track.bounds.maxZ) * 0.5;
-  const groundGeo = new THREE.PlaneGeometry(5400, 5400, 36, 72);
+  const zMin = Math.floor(track.bounds.minZ) - 100;
+  const zMax = Math.ceil(track.bounds.maxZ) + 100;
+  const zStep = 10;
+  const bucketCount = Math.ceil((zMax - zMin) / zStep) + 1;
+  const rawMinY = new Float32Array(bucketCount).fill(Infinity);
+
+  for (let i = 0; i < samples.length; i++) {
+    const p = samples[i];
+    const bi = Math.max(0, Math.min(bucketCount - 1, Math.round((p.z - zMin) / zStep)));
+    if (p.y < rawMinY[bi]) rawMinY[bi] = p.y;
+  }
+
+  // Fill any empty Z buckets by nearest populated bucket (monotonic downhill along -Z)
+  let lastValid = 0;
+  for (let i = bucketCount - 1; i >= 0; i--) {
+    if (Number.isFinite(rawMinY[i])) lastValid = rawMinY[i];
+    else rawMinY[i] = lastValid;
+  }
+  for (let i = 0; i < bucketCount; i++) {
+    if (!Number.isFinite(rawMinY[i])) rawMinY[i] = lastValid;
+  }
+
+  // Windowed minimum across ±90m in Z so coarse terrain triangles never bridge above a lower leg
+  const winBuckets = 9;
+  const safeFloorY = new Float32Array(bucketCount);
+  for (let i = 0; i < bucketCount; i++) {
+    let minVal = rawMinY[i];
+    const lo = Math.max(0, i - winBuckets);
+    const hi = Math.min(bucketCount - 1, i + winBuckets);
+    for (let j = lo; j <= hi; j++) {
+      if (rawMinY[j] < minVal) minVal = rawMinY[j];
+    }
+    safeFloorY[i] = minVal - 5.5;
+  }
+
+  const getValleyFloorY = (wz) => {
+    const f = (wz - zMin) / zStep;
+    if (f <= 0) return safeFloorY[0];
+    if (f >= bucketCount - 1) return safeFloorY[bucketCount - 1];
+    const i0 = Math.floor(f);
+    const t = f - i0;
+    return safeFloorY[i0] + (safeFloorY[i0 + 1] - safeFloorY[i0]) * t;
+  };
+
+  const groundGeo = new THREE.PlaneGeometry(5400, 5400, 48, 96);
   groundGeo.rotateX(-Math.PI / 2);
   const gPos = groundGeo.attributes.position;
   for (let i = 0; i < gPos.count; i++) {
     const wx = gPos.getX(i) + centerX;
     const wz = gPos.getZ(i) + centerZ;
-    const nearest = track.projectPoint(wx, wz, -1);
-    const trackY = track.getElevationAtS(nearest.s);
-    const distFromRoad = Math.max(0, Math.abs(nearest.lateral) - (guardrailOffset + 4));
-    // Stay cleanly below roadbed and gently drop away into mountain valley
-    gPos.setY(i, trackY - 3.2 - Math.min(40, distFromRoad * 0.12));
+    const floorY = getValleyFloorY(wz);
+    const lateralDist = Math.max(0, Math.abs(wx - centerX) - 220);
+    gPos.setY(i, floorY - Math.min(45, lateralDist * 0.08));
   }
   groundGeo.computeVertexNormals();
   const groundMat = new THREE.MeshStandardMaterial({
@@ -212,7 +257,7 @@ export function buildTougeEnvironment(scene, track) {
   const roadMesh = new THREE.Mesh(roadGeo, roadMat);
   envGroup.add(roadMesh);
 
-  // 3. Outer Shoulder Apron + Mountain Retaining Wall Skirt (prevents floating road look on switchbacks)
+  // 3. Outer Shoulder Apron + Mountain Retaining Wall Skirt (reaches cleanly down into valley floor)
   const gutterMat = new THREE.MeshStandardMaterial({
     color: 0x111622,
     roughness: 0.92,
@@ -231,8 +276,8 @@ export function buildTougeEnvironment(scene, track) {
     side: THREE.DoubleSide,
   });
   envGroup.add(
-    new THREE.Mesh(buildGuardrailBeamGeometry(samples, -guardrailOffset - 0.5, -34, -0.015), wallMat),
-    new THREE.Mesh(buildGuardrailBeamGeometry(samples, guardrailOffset + 0.5, -34, -0.015), wallMat)
+    new THREE.Mesh(buildGuardrailBeamGeometry(samples, -guardrailOffset - 0.5, -135, -0.015), wallMat),
+    new THREE.Mesh(buildGuardrailBeamGeometry(samples, guardrailOffset + 0.5, -135, -0.015), wallMat)
   );
 
   // 3.5. Inside-Corner Drainage Gutters (도랑 — recessed concrete trench right next to inside guardrail)
@@ -490,7 +535,7 @@ export function buildTougeEnvironment(scene, track) {
       continue;
     }
 
-    const baseY = track.getElevationAtS(nearest.s) - 2.6;
+    const baseY = getValleyFloorY(tz) - 0.5;
     dummy.rotation.order = 'XYZ';
     dummy.position.set(tx, baseY + 1.5 * scale, tz);
     dummy.rotation.set(0, rand * Math.PI * 2, 0);

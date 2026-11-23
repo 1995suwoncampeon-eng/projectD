@@ -7,7 +7,7 @@ import {
   RIVALS,
 } from './config.js';
 import { TougeTrack } from './track.js?v=13';
-import { buildTougeEnvironment } from './trackRenderer.js?v=15';
+import { buildTougeEnvironment } from './trackRenderer.js?v=16';
 import { loadCarModel } from './carModel.js';
 import {
   createVehicleState,
