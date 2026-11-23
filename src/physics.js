@@ -258,8 +258,8 @@ export function updatePlayerPhysics(car, input, track, dt) {
 
   // Check if player is currently hooked in an inside-corner gutter (도랑타기)
   const curPt = track.getPointAtS(car.s);
-  const gutterRailLat = track.maxCarLateral - 0.16; // Right beside inside guardrail without scraping
-  const gutterCatchLat = track.maxCarLateral - 1.35; // Lateral threshold to drop inside wheels into gutter
+  const gutterRailLat = track.maxCarLateral - 0.85;  // Safe 0.85m clearance from guardrail so exit never clips
+  const gutterCatchLat = track.maxCarLateral - 1.55; // Lateral threshold to drop inside wheels into gutter
 
   if (car.inGutter) {
     // Stay locked in the gutter until the gutter ends or the car stops
@@ -305,8 +305,14 @@ export function updatePlayerPhysics(car, input, track, dt) {
     car.trackIndex = nextPt.index;
     car.scrapedWall = false;
 
-    // Release immediately if we just crossed the end of the gutter
+    // Release cleanly aligned with the exit tangent so the car never clips the guardrail
     if (nextInfo.gutterSide !== car.gutterSide) {
+      const exitLat = car.gutterSide * (gutterRailLat - 0.25);
+      const exitPt = track.getWorldPosition(nextS, exitLat);
+      car.x = exitPt.x;
+      car.z = exitPt.z;
+      car.lateral = exitLat;
+      car.heading = nextInfo.heading;
       car.inGutter = false;
       car.gutterSide = 0;
     }

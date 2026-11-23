@@ -244,8 +244,9 @@ export function buildTougeEnvironment(scene, track) {
     if (side !== segSide) {
       if (segSide !== 0 && i - segStart >= 2) {
         const segSamples = samples.slice(segStart, i);
-        const innerEdge = segSide === -1 ? -guardrailOffset + 0.12 : halfWidth - 0.65;
-        const outerEdge = segSide === -1 ? -halfWidth + 0.65 : guardrailOffset - 0.12;
+        // Leave ~0.9m concrete shoulder buffer between guardrail (7.35m) and gutter trough (5.25m..6.45m)
+        const innerEdge = segSide === -1 ? -(halfWidth - 0.3) : halfWidth - 1.5;
+        const outerEdge = segSide === -1 ? -(halfWidth - 1.5) : halfWidth - 0.3;
         const ditchGeo = buildRibbonGeometry(segSamples, innerEdge, outerEdge, 0.014, 0.45);
         envGroup.add(new THREE.Mesh(ditchGeo, ditchMat));
       }
