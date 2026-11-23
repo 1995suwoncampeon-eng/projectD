@@ -210,6 +210,50 @@ export function buildTougeEnvironment(scene, track) {
     new THREE.Mesh(buildRibbonGeometry(samples, halfWidth, guardrailOffset + 0.5, -0.015), gutterMat)
   );
 
+  // 3.5. Inside-Corner Drainage Gutters (도랑 — recessed concrete trench right next to inside guardrail)
+  const ditchCanvas = document.createElement('canvas');
+  ditchCanvas.width = 64;
+  ditchCanvas.height = 64;
+  const dCtx = ditchCanvas.getContext('2d');
+  // Concrete outer lip + deep dark drainage trough + subtle grate ribs
+  dCtx.fillStyle = '#05070d';
+  dCtx.fillRect(0, 0, 64, 64);
+  dCtx.fillStyle = '#475569';
+  dCtx.fillRect(0, 0, 8, 64);
+  dCtx.fillRect(56, 0, 8, 64);
+  dCtx.fillStyle = '#1e293b';
+  for (let y = 0; y < 64; y += 16) {
+    dCtx.fillRect(8, y, 48, 3);
+  }
+  const ditchTex = new THREE.CanvasTexture(ditchCanvas);
+  ditchTex.wrapS = THREE.ClampToEdgeWrapping;
+  ditchTex.wrapT = THREE.RepeatWrapping;
+  ditchTex.colorSpace = THREE.SRGBColorSpace;
+
+  const ditchMat = new THREE.MeshStandardMaterial({
+    map: ditchTex,
+    roughness: 0.85,
+    metalness: 0.2,
+  });
+
+  // Extract contiguous inside-corner gutter segments and place recessed trough beside inside guardrail
+  let segStart = -1;
+  let segSide = 0;
+  for (let i = 0; i <= samples.length; i++) {
+    const side = i < samples.length ? samples[i].gutterSide : 0;
+    if (side !== segSide) {
+      if (segSide !== 0 && i - segStart >= 2) {
+        const segSamples = samples.slice(segStart, i);
+        const innerEdge = segSide === -1 ? -guardrailOffset + 0.12 : halfWidth - 0.65;
+        const outerEdge = segSide === -1 ? -halfWidth + 0.65 : guardrailOffset - 0.12;
+        const ditchGeo = buildRibbonGeometry(segSamples, innerEdge, outerEdge, 0.014, 0.45);
+        envGroup.add(new THREE.Mesh(ditchGeo, ditchMat));
+      }
+      segStart = side !== 0 ? i : -1;
+      segSide = side;
+    }
+  }
+
   // 4. Solid White Road Edge Lines
   const edgeLineMat = new THREE.MeshBasicMaterial({ color: 0xdbeafe });
   const edgeOffset = halfWidth - 0.36;

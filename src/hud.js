@@ -45,6 +45,7 @@ export class HudController {
     this.rpmSvg = document.getElementById('gauge-rpm-svg');
     this.speedSvg = document.getElementById('gauge-speed-svg');
     this.driftBadgeEl = document.getElementById('hud-drift-badge');
+    this.gutterBadgeEl = document.getElementById('hud-gutter-badge');
     this.vignetteEl = document.getElementById('speed-vignette');
 
     this.positionEl = document.getElementById('hud-position');
@@ -297,13 +298,16 @@ export class HudController {
       this.gearEl.textContent = player.gear;
     }
 
-    // Drift indicator + screen edge glow
+    // Drift & Gutter Hook indicators + screen edge glow
     const showDrift = player.isDrifting && player.speedKmh > 30;
     if (this.driftBadgeEl) {
       this.driftBadgeEl.classList.toggle('hidden', !showDrift);
     }
+    if (this.gutterBadgeEl) {
+      this.gutterBadgeEl.classList.toggle('hidden', !player.inGutter);
+    }
     if (this.vignetteEl) {
-      this.vignetteEl.classList.toggle('drifting', showDrift);
+      this.vignetteEl.classList.toggle('drifting', showDrift || Boolean(player.inGutter));
     }
 
     // 2. Position, Gap (+/- meters), Elapsed Time

@@ -21,6 +21,8 @@ export function createVehicleState(track, startS, lateralOffset = 0) {
     driftBoostTimer: 0,
     cornerExitCharge: 0,
     turboBoostTimer: 0,
+    inGutter: false,
+    gutterSide: 0,
     isBraking: false,
     scrapedWall: false,
     scrapeX: spawn.x,
@@ -52,6 +54,8 @@ export function resetVehicleToSpawn(car, track, startS, lateralOffset = 0) {
   car.driftBoostTimer = 0;
   car.cornerExitCharge = 0;
   car.turboBoostTimer = 0;
+  car.inGutter = false;
+  car.gutterSide = 0;
   car.isBraking = false;
   car.scrapedWall = false;
   car.trackIndex = spawn.index;
@@ -79,6 +83,8 @@ export function recoverVehicleToTrack(car, track) {
   car.isDrifting = false;
   car.driftDir = 0;
   car.driftCharge = 0;
+  car.inGutter = false;
+  car.gutterSide = 0;
   car.visualSlip = 0;
   car.bodyRoll = 0;
   car.speed = Math.min(Math.max(car.speed, 4), 10);
@@ -250,28 +256,103 @@ export function updatePlayerPhysics(car, input, track, dt) {
     turnRate = steer * cfg.steerRate * highSpeedDamp * speedFactor * reverseSign;
   }
 
-  car.heading = wrapAngle(car.heading + turnRate * dt);
+  // Check if player is currently hooked in an inside-corner gutter (도랑타기)
+  const curPt = track.getPointAtS(car.s);
+  const gutterRailLat = track.maxCarLateral - 0.16; // Right beside inside guardrail without scraping
+  const gutterCatchLat = track.maxCarLateral - 1.35; // Lateral threshold to drop inside wheels into gutter
 
-  // Move strictly on the 2D X-Z plane (Y = 0)
-  const fx = Math.sin(car.heading);
-  const fz = Math.cos(car.heading);
+  if (car.inGutter) {
+    // Stay locked in the gutter until the gutter ends or the car stops
+    if (curPt.gutterSide !== car.gutterSide || car.speed < 2.0) {
+      car.inGutter = false;
+      car.gutterSide = 0;
+    }
+  } else if (
+    curPt.gutterSide !== 0 &&
+    car.speed > 4.0 &&
+    car.lateral * curPt.gutterSide >= gutterCatchLat
+  ) {
+    // Inside tires dropped into the corner gutter -> hook engaged!
+    car.inGutter = true;
+    car.gutterSide = curPt.gutterSide;
+  }
 
-  // Subtle lateral slide component during drift for authentic Initial D feel
-  const slideOffsetAngle = car.isDrifting ? -car.driftDir * 0.14 : 0;
-  const moveHeading = car.heading + slideOffsetAngle;
-  car.x += Math.sin(moveHeading) * car.speed * dt;
-  car.z += Math.cos(moveHeading) * car.speed * dt;
+  let fx, fz;
+  if (car.inGutter) {
+    // Gutter-rail guided cornering: automatically follows the gutter curve without washing out!
+    const targetLat = car.gutterSide * gutterRailLat;
+    const latSnap = 1 - Math.exp(-dt * 14);
+    const nextLat = car.lateral + (targetLat - car.lateral) * latSnap;
+    const arcScale = Math.max(0.75, Math.min(1.25, 1 + curPt.curvature * nextLat));
+    const nextS = Math.min(track.totalLength, car.s + (car.speed * dt) / arcScale);
+    const nextPt = track.getWorldPosition(nextS, nextLat);
+    const nextInfo = track.getPointAtS(nextS);
 
-  // Enforce guardrail collision bounds
-  enforceTrackBounds(car, track, dt, 1.55);
+    const moveDx = nextPt.x - car.x;
+    const moveDz = nextPt.z - car.z;
+    if (moveDx * moveDx + moveDz * moveDz > 1e-6) {
+      const targetHeading = Math.atan2(moveDx, moveDz);
+      const hDiff = wrapAngle(targetHeading - car.heading);
+      car.heading = wrapAngle(car.heading + hDiff * Math.min(1, dt * 18));
+    } else {
+      car.heading = nextPt.heading;
+    }
+
+    car.x = nextPt.x;
+    car.z = nextPt.z;
+    car.s = nextS;
+    car.lateral = nextLat;
+    car.trackIndex = nextPt.index;
+    car.scrapedWall = false;
+
+    // Release immediately if we just crossed the end of the gutter
+    if (nextInfo.gutterSide !== car.gutterSide) {
+      car.inGutter = false;
+      car.gutterSide = 0;
+    }
+
+    fx = Math.sin(car.heading);
+    fz = Math.cos(car.heading);
+  } else {
+    car.heading = wrapAngle(car.heading + turnRate * dt);
+
+    // Move strictly on the 2D X-Z plane (Y = 0)
+    fx = Math.sin(car.heading);
+    fz = Math.cos(car.heading);
+
+    // Subtle lateral slide component during drift for authentic Initial D feel
+    const slideOffsetAngle = car.isDrifting ? -car.driftDir * 0.14 : 0;
+    const moveHeading = car.heading + slideOffsetAngle;
+    car.x += Math.sin(moveHeading) * car.speed * dt;
+    car.z += Math.cos(moveHeading) * car.speed * dt;
+
+    // Enforce guardrail collision bounds
+    const proj = enforceTrackBounds(car, track, dt, 1.55);
+
+    // If steering into the inside corner wall where a gutter exists, catch the gutter immediately
+    if (
+      proj.gutterSide !== 0 &&
+      car.speed > 4.0 &&
+      car.lateral * proj.gutterSide >= gutterCatchLat
+    ) {
+      car.inGutter = true;
+      car.gutterSide = proj.gutterSide;
+      car.scrapedWall = false;
+    }
+  }
 
   // Smooth visual feedback (body slip angle, front wheel steering, subtle roll)
-  const targetSlip = car.isDrifting
-    ? car.driftDir * cfg.maxVisualSlipRad * (0.7 + 0.3 * Math.min(1, speedKmh / 85))
-    : steer * 0.05 * speedFactor;
+  const targetSlip = car.inGutter
+    ? -car.gutterSide * 0.18
+    : car.isDrifting
+      ? car.driftDir * cfg.maxVisualSlipRad * (0.7 + 0.3 * Math.min(1, speedKmh / 85))
+      : steer * 0.05 * speedFactor;
   car.visualSlip += (targetSlip - car.visualSlip) * Math.min(1, dt * 9.5);
 
-  const targetRoll = (car.isDrifting ? car.driftDir * 0.075 : steer * 0.04) * speedFactor;
+  // Subtle inward dip/roll when inside wheel is dropped into the gutter
+  const targetRoll = car.inGutter
+    ? -car.gutterSide * 0.095
+    : (car.isDrifting ? car.driftDir * 0.075 : steer * 0.04) * speedFactor;
   car.bodyRoll += (targetRoll - car.bodyRoll) * Math.min(1, dt * 10);
   car.steerVisual += (steer - car.steerVisual) * Math.min(1, dt * 14);
 

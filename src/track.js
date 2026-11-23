@@ -154,6 +154,7 @@ export class TougeTrack {
         heading,
         s: cumulativeS,
         curvature: 0,
+        gutterSide: 0,
       });
 
       if (p.x < this.bounds.minX) this.bounds.minX = p.x;
@@ -173,6 +174,35 @@ export class TougeTrack {
       const ds = Math.max(0.01, this.samples[i1].s - this.samples[i0].s);
       const dHeading = wrapAngle(this.samples[i1].heading - this.samples[i0].heading);
       this.samples[i].curvature = dHeading / ds;
+    }
+
+    // Mark inside-corner drainage gutters (Initial D style gutter run)
+    // Left turn (curvature > 0) -> inside is left (-1); Right turn (curvature < 0) -> inside is right (+1)
+    const n = this.samples.length;
+    const rawGutter = new Int8Array(n);
+    for (let i = 0; i < n; i++) {
+      const c = this.samples[i].curvature;
+      if (Math.abs(c) > 0.011) {
+        rawGutter[i] = c > 0 ? -1 : 1;
+      }
+    }
+    // Extend each gutter slightly (4 samples ~8m) into entry/exit for smooth hooking & clean exit
+    const pad = 4;
+    for (let i = 0; i < n; i++) {
+      if (rawGutter[i] !== 0) {
+        this.samples[i].gutterSide = rawGutter[i];
+        continue;
+      }
+      for (let d = 1; d <= pad; d++) {
+        if (i - d >= 0 && rawGutter[i - d] !== 0) {
+          this.samples[i].gutterSide = rawGutter[i - d];
+          break;
+        }
+        if (i + d < n && rawGutter[i + d] !== 0) {
+          this.samples[i].gutterSide = rawGutter[i + d];
+          break;
+        }
+      }
     }
   }
 
@@ -206,6 +236,7 @@ export class TougeTrack {
       heading: Math.atan2(ntx, ntz),
       s: clamped,
       curvature: a.curvature + (b.curvature - a.curvature) * t,
+      gutterSide: t < 0.5 ? a.gutterSide : b.gutterSide,
     };
   }
 
@@ -291,6 +322,7 @@ export class TougeTrack {
       rz: pt.rz,
       heading: pt.heading,
       curvature: pt.curvature,
+      gutterSide: pt.gutterSide,
     };
   }
 
