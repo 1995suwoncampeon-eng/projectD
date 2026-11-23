@@ -515,7 +515,7 @@ function createGantry(track, s, label, bgHex, stripeHex, accentHex) {
   group.rotation.y = pt.heading;
 
   const span = track.guardrailOffset * 2 + 1.8;
-  const height = 7.8;
+  const height = 8.6;
 
   const pillarMat = new THREE.MeshStandardMaterial({
     color: 0x334155,
