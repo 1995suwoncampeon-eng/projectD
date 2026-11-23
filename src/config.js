@@ -38,13 +38,21 @@ export const TRACK_CONFIG = {
 export const PLAYER_PHYSICS = {
   maxSpeedKmh: 100,
   reverseMaxKmh: 24,
-  accel: 7.8,              // m/s^2 grounded low/mid-end pull for 100 km/h cap
-  brakeDecel: 19.5,        // m/s^2 braking power
-  coastDecel: 3.6,         // m/s^2 engine braking / aero drag
+  accel: 3.85,             // m/s^2 base pull (scaled by gear torque ratio & RPM powerband -> ~13s 0-100 km/h)
+  brakeDecel: 18.5,        // m/s^2 braking power
+  coastDecel: 2.8,         // m/s^2 engine braking / aero drag
+  shiftCutDuration: 0.14,  // brief torque cut during upshift for manual-transmission feel
+  gears: [
+    { gear: '1', minKmh: 0,  maxKmh: 28,  upshiftKmh: 27,  downshiftKmh: 0,  torqueMult: 1.38, minRpm: 1200, maxRpm: 8450 },
+    { gear: '2', minKmh: 16, maxKmh: 48,  upshiftKmh: 47,  downshiftKmh: 21, torqueMult: 1.02, minRpm: 4100, maxRpm: 8450 },
+    { gear: '3', minKmh: 34, maxKmh: 68,  upshiftKmh: 67,  downshiftKmh: 40, torqueMult: 0.74, minRpm: 4500, maxRpm: 8450 },
+    { gear: '4', minKmh: 52, maxKmh: 86,  upshiftKmh: 85,  downshiftKmh: 58, torqueMult: 0.52, minRpm: 4900, maxRpm: 8450 },
+    { gear: '5', minKmh: 70, maxKmh: 108, upshiftKmh: 999, downshiftKmh: 76, torqueMult: 0.36, minRpm: 5200, maxRpm: 8550 },
+  ],
   steerRate: 2.25,         // rad/s base grip turn rate
   driftSteerBoost: 1.45,   // extra yaw authority while drifting
   driftMinSpeedKmh: 32,    // minimum speed to engage drift
-  driftDrag: 1.5,          // mild speed bleed during deep drift
+  driftDrag: 1.35,         // mild speed bleed during deep drift
   driftBoostMaxKmh: 8,     // brief exit boost after clean drift
   maxVisualSlipRad: 0.42,  // car body yaw slip angle during drift (~24 deg)
   wallSpeedKeep: 0.84,     // speed retention on guardrail scrape
@@ -77,7 +85,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 130,
-      accel: 9.2,
+      accel: 4.2,
       cornerSpeedFactor: 0.78,
       lookAheadBase: 16,
       rubberBandCatchup: 0.09,  // Max boost when behind
@@ -108,7 +116,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 125,
-      accel: 9.8,
+      accel: 4.6,
       cornerSpeedFactor: 0.89,
       apexRatio: 0.68,
       maxLateralRatio: 0.84,
@@ -146,7 +154,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 110,
-      accel: 10.4,
+      accel: 5.0,
       cornerSpeedFactor: 0.97,
       coastOnlyCorners: true,
       cornerDecelScale: 0.28,
@@ -188,7 +196,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 150,
-      accel: 12.2,
+      accel: 5.8,
       cornerSpeedFactor: 1.04,
       fullThrottleCorners: true,
       apexRatio: 0.97,

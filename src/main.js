@@ -5,7 +5,7 @@ import {
   RIVAL_MODEL_PATH,
   PLAYER_THEME,
   RIVALS,
-} from './config.js';
+} from './config.js?v=14';
 import { TougeTrack } from './track.js?v=13';
 import { buildTougeEnvironment } from './trackRenderer.js?v=19';
 import { loadCarModel } from './carModel.js?v=14';
@@ -15,10 +15,10 @@ import {
   recoverVehicleToTrack,
   updatePlayerPhysics,
   resolveCarCollision,
-} from './physics.js?v=12';
+} from './physics.js?v=13';
 import { updateRivalAI } from './ai.js';
 import { EffectsManager } from './effects.js?v=13';
-import { ArcadeAudio } from './audio.js';
+import { ArcadeAudio } from './audio.js?v=14';
 import { HudController } from './hud.js';
 import { UIController } from './ui.js';
 
@@ -774,7 +774,7 @@ class ProjectDGame {
         this.audio.playCountdown(true);
       }
 
-      this.audio.updateEngine(1500 + (this.input.up ? 2800 : 0), false, true);
+      this.audio.updateEngine(1500 + (this.input.up ? 3400 : 0), false, true, this.input.up ? 1 : 0, false);
       this.hud.update(this.player, this.rival, 0, dt);
     } else if (this.state === 'RACING') {
       this.raceElapsed += dt;
@@ -807,7 +807,13 @@ class ProjectDGame {
       this.effects.update(dt);
 
       // 4. Audio & HUD updates
-      this.audio.updateEngine(this.player.rpm, this.player.isDrifting, true);
+      this.audio.updateEngine(
+        this.player.rpm,
+        this.player.isDrifting,
+        true,
+        this.input.up ? 1 : 0,
+        this.player.shiftCutTimer > 0
+      );
       this.hud.update(this.player, this.rival, this.raceElapsed, dt);
 
       // 5. Check Finish Line crossing

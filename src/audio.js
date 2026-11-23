@@ -28,22 +28,34 @@ export class ArcadeAudio {
       this.ctx = new AudioCtx();
       this.initialized = true;
 
-      // Engine synth voice (muted at idle/menu, ramped during race)
+      // Dual-harmonic engine synth voice (fundamental exhaust sawtooth + 2x high-RPM intake harmonic)
       const osc = this.ctx.createOscillator();
+      const harmOsc = this.ctx.createOscillator();
+      const harmGain = this.ctx.createGain();
       const filter = this.ctx.createBiquadFilter();
       const gain = this.ctx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.value = 65;
+      osc.frequency.value = 55;
+      harmOsc.type = 'triangle';
+      harmOsc.frequency.value = 110;
+      harmGain.gain.value = 0.35;
+
       filter.type = 'lowpass';
-      filter.frequency.value = 340;
+      filter.frequency.value = 320;
+      filter.Q.value = 2.2;
       gain.gain.value = 0;
 
       osc.connect(filter);
+      harmOsc.connect(harmGain);
+      harmGain.connect(filter);
       filter.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start();
+      harmOsc.start();
 
       this.engineOsc = osc;
+      this.engineHarmOsc = harmOsc;
+      this.engineHarmGain = harmGain;
       this.engineFilter = filter;
       this.engineGain = gain;
 
@@ -94,7 +106,7 @@ export class ArcadeAudio {
     this.screechGain.gain.setTargetAtTime(0, now, 0.04);
   }
 
-  updateEngine(rpm, isDrifting, active) {
+  updateEngine(rpm, isDrifting, active, throttle = 0, isShifting = false) {
     if (!this.ctx || !this.engineGain || !this.engineOsc || !this.screechGain) return;
     const now = this.ctx.currentTime;
 
@@ -104,10 +116,23 @@ export class ArcadeAudio {
       return;
     }
 
-    const freq = 52 + (rpm / 8800) * 168;
-    this.engineOsc.frequency.setTargetAtTime(freq, now, 0.04);
-    this.engineFilter.frequency.setTargetAtTime(240 + (rpm / 8800) * 900, now, 0.05);
-    this.engineGain.gain.setTargetAtTime(0.036, now, 0.05);
+    const rpmNorm = Math.max(0, Math.min(1, (rpm - 1100) / 7700));
+    const baseFreq = 42 + rpmNorm * 198;
+    this.engineOsc.frequency.setTargetAtTime(baseFreq, now, 0.032);
+    if (this.engineHarmOsc && this.engineHarmGain) {
+      this.engineHarmOsc.frequency.setTargetAtTime(baseFreq * 2.01, now, 0.032);
+      // High-RPM twin-cam induction growl blooms above 5000 RPM
+      const harmLevel = 0.22 + rpmNorm * rpmNorm * 0.55;
+      this.engineHarmGain.gain.setTargetAtTime(harmLevel, now, 0.04);
+    }
+
+    const loadBoost = throttle > 0 && !isShifting ? 460 : 0;
+    const cutoff = 210 + rpmNorm * 1150 + loadBoost;
+    this.engineFilter.frequency.setTargetAtTime(cutoff, now, 0.04);
+
+    // Subtle volume dip during upshift cut makes gear changes audibly crisp
+    const targetGain = isShifting ? 0.014 : 0.026 + (throttle > 0 ? 0.018 : 0) + rpmNorm * 0.012;
+    this.engineGain.gain.setTargetAtTime(targetGain, now, 0.035);
 
     const screechTarget = isDrifting ? 0.032 : 0;
     this.screechGain.gain.setTargetAtTime(screechTarget, now, 0.04);

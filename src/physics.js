@@ -1,4 +1,4 @@
-import { PLAYER_PHYSICS } from './config.js';
+import { PLAYER_PHYSICS } from './config.js?v=14';
 import { wrapAngle } from './track.js';
 
 const KMH_TO_MS = 1 / 3.6;
@@ -31,6 +31,8 @@ export function createVehicleState(track, startS, lateralOffset = 0) {
     s: spawn.s,
     lateral: lateralOffset,
     gear: '1',
+    gearIndex: 0,
+    shiftCutTimer: 0,
     rpm: 1200,
     maxSpeedAchievedKmh: 0,
     finished: false,
@@ -62,6 +64,8 @@ export function resetVehicleToSpawn(car, track, startS, lateralOffset = 0) {
   car.s = spawn.s;
   car.lateral = lateralOffset;
   car.gear = '1';
+  car.gearIndex = 0;
+  car.shiftCutTimer = 0;
   car.rpm = 1200;
   car.maxSpeedAchievedKmh = 0;
   car.finished = false;
@@ -89,10 +93,12 @@ export function recoverVehicleToTrack(car, track) {
   car.bodyRoll = 0;
   car.speed = Math.min(Math.max(car.speed, 4), 10);
   car.speedKmh = Math.abs(car.speed * MS_TO_KMH);
+  car.gearIndex = 0;
+  car.shiftCutTimer = 0;
 }
 
 /**
- * Computes arcade 5-speed gear and RPM readout for HUD & audio.
+ * Computes realistic 5-speed gear with shift hysteresis and RPM readout for HUD & audio.
  */
 export function updateDrivetrain(car) {
   const kmh = car.speed * MS_TO_KMH;
@@ -108,27 +114,25 @@ export function updateDrivetrain(car) {
   }
 
   const speed = Math.max(0, kmh);
-  const bands = [
-    { gear: '1', min: 0, max: 24 },
-    { gear: '2', min: 20, max: 44 },
-    { gear: '3', min: 40, max: 64 },
-    { gear: '4', min: 60, max: 84 },
-    { gear: '5', min: 80, max: 112 },
-  ];
+  const gears = PLAYER_PHYSICS.gears;
+  let gi = Math.max(0, Math.min(gears.length - 1, car.gearIndex ?? 0));
 
-  let chosen = bands[0];
-  for (let i = 0; i < bands.length; i++) {
-    if (speed <= bands[i].max || i === bands.length - 1) {
-      chosen = bands[i];
-      break;
-    }
+  // Shift hysteresis prevents rapid gear hunting around corner speeds
+  while (gi < gears.length - 1 && speed >= gears[gi].upshiftKmh) {
+    gi++;
+    car.shiftCutTimer = PLAYER_PHYSICS.shiftCutDuration ?? 0.14;
+  }
+  while (gi > 0 && speed < gears[gi].downshiftKmh) {
+    gi--;
   }
 
-  const ratio = Math.max(0, Math.min(1, (speed - chosen.min) / Math.max(1, chosen.max - chosen.min)));
-  const baseRpm = chosen.gear === '1' ? 1250 + ratio * 7150 : 3700 + ratio * 4850;
-  const driftRevBump = car.isDrifting ? 650 : 0;
-  car.gear = chosen.gear;
-  car.rpm = Math.min(8800, baseRpm + driftRevBump);
+  car.gearIndex = gi;
+  const g = gears[gi];
+  const ratio = Math.max(0, Math.min(1, (speed - g.minKmh) / Math.max(1, g.maxKmh - g.minKmh)));
+  const baseRpm = g.minRpm + ratio * (g.maxRpm - g.minRpm);
+  const driftRevBump = car.isDrifting ? 620 : 0;
+  car.gear = g.gear;
+  car.rpm = Math.min(8850, baseRpm + driftRevBump);
 }
 
 /**
@@ -183,22 +187,31 @@ export function updatePlayerPhysics(car, input, track, dt) {
   const steer = (input.left ? 1 : 0) - (input.right ? 1 : 0);
   const wantDrift = Boolean(input.drift);
 
-  // Decay drift exit boost timer
+  // Decay drift exit boost & upshift cut timers
   if (car.driftBoostTimer > 0) {
     car.driftBoostTimer = Math.max(0, car.driftBoostTimer - dt);
+  }
+  if (car.shiftCutTimer > 0) {
+    car.shiftCutTimer = Math.max(0, car.shiftCutTimer - dt);
   }
 
   const boostBonusMs = car.driftBoostTimer > 0 ? cfg.driftBoostMaxKmh * KMH_TO_MS : 0;
   const maxSpeedMs = cfg.maxSpeedKmh * KMH_TO_MS + boostBonusMs;
   const reverseMaxMs = cfg.reverseMaxKmh * KMH_TO_MS;
 
-  // Longitudinal acceleration / braking / coasting
+  // Longitudinal acceleration / braking / coasting (gear-ratio torque + high-RPM powerband + aero drag)
   car.isBraking = false;
   if (throttle > 0) {
     const speedRatio = Math.max(0, car.speed / maxSpeedMs);
-    // Punchier low/mid-range acceleration like arcade racers
-    const accelCurve = cfg.accel * (1.15 - 0.62 * speedRatio * speedRatio);
-    car.speed += accelCurve * dt;
+    const activeGear = cfg.gears[Math.max(0, Math.min(cfg.gears.length - 1, car.gearIndex ?? 0))];
+    const rpmNorm = Math.max(0, Math.min(1, (car.rpm - 1200) / 7300));
+    // High-revving NA powerband: builds pull strongly above 5000 RPM, tapers slightly at redline
+    const powerband = 0.78 + 0.36 * Math.sin(rpmNorm * Math.PI * 0.86);
+    const shiftMult = car.shiftCutTimer > 0 ? 0.15 : 1.0;
+    const boostMult = car.driftBoostTimer > 0 ? 1.25 : 1.0;
+    const aeroDrag = 0.52 * speedRatio * speedRatio;
+    const accelNet = Math.max(0.18, cfg.accel * activeGear.torqueMult * powerband * shiftMult * boostMult - aeroDrag);
+    car.speed += accelNet * dt;
     if (car.speed > maxSpeedMs) {
       car.speed += (maxSpeedMs - car.speed) * Math.min(1, dt * 4.5);
     }
