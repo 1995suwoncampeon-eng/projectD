@@ -866,6 +866,41 @@ class ProjectDGame {
   }
 }
 
+function setupPWA() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
+  const installBtn = document.getElementById('btn-install-app');
+  if (!installBtn) return;
+
+  let deferredPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.classList.remove('hidden');
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    try {
+      await deferredPrompt.userChoice;
+    } catch (_err) {
+      // ignore cancelled prompt
+    }
+    deferredPrompt = null;
+    installBtn.classList.add('hidden');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    installBtn.classList.add('hidden');
+  });
+}
+
 window.addEventListener('DOMContentLoaded', () => {
+  setupPWA();
   new ProjectDGame();
 });
