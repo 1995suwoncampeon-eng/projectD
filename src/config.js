@@ -9,7 +9,7 @@
  *  -Math.PI / 2 -> model front faces +X
  */
 
-import { RIVAL_CUTSCENES } from './dialogues.js';
+import { RIVAL_CUTSCENES } from './dialogues.js?v=14';
 
 // ============================================================================
 // 3D CAR MODEL SETTINGS (Edit here when dropping in custom .glb models)
@@ -60,9 +60,71 @@ export const PLAYER_PHYSICS = {
 };
 
 // ============================================================================
-// RIVAL ROSTER (4 Tiers: EASY / NORMAL / HARD / GOD)
+// RIVAL ROSTER (8 Tiers: ROOKIE -> BEGINNER -> EASY -> NORMAL -> EXPERT -> HARD -> MASTER -> GOD)
 // ============================================================================
 export const RIVALS = [
+  {
+    id: 'rookie1',
+    name: 'ROOKIE 1',
+    team: 'SPEED STARS',
+    difficulty: 'ROOKIE',
+    difficultyKr: '입문',
+    badgeClass: 'rookie',
+    carLabel: 'CUSTOM MODEL SLOT #1',
+    colorHex: '#38bdf8',
+    colorNum: 0x38bdf8,
+    accentHex: '#7dd3fc',
+    modelPath: null, // 추후 .glb 추가 시 'assets/models/<파일명>.glb' 지정
+    modelRotationY: Math.PI / 2,
+    tagline: '고갯길에 처음 도전하는 입문 라이벌. 여유로운 페이스로 코스를 익히기 좋습니다.',
+    stats: {
+      topSpeedKmh: 92,
+      corneringStability: 0.62,
+      accelFactor: 0.66,
+      aggression: 0.45,
+    },
+    ai: {
+      maxSpeedKmh: 92,
+      accel: 3.3,
+      cornerSpeedFactor: 0.62,
+      lookAheadBase: 17,
+      rubberBandCatchup: 0.05,
+      rubberBandEase: 0.18,
+      laneBias: 2.1,
+    },
+    cutscenes: RIVAL_CUTSCENES.rookie1,
+  },
+  {
+    id: 'rookie2',
+    name: 'ROOKIE 2',
+    team: 'SPEED STARS',
+    difficulty: 'BEGINNER',
+    difficultyKr: '초보',
+    badgeClass: 'beginner',
+    carLabel: 'CUSTOM MODEL SLOT #2',
+    colorHex: '#14b8a6',
+    colorNum: 0x14b8a6,
+    accentHex: '#2dd4bf',
+    modelPath: null, // 추후 .glb 추가 시 'assets/models/<파일명>.glb' 지정
+    modelRotationY: Math.PI / 2,
+    tagline: '기본기를 다진 초보 라이벌. 직선에서는 꾸준히 밀어붙이지만 코너 진입이 보수적입니다.',
+    stats: {
+      topSpeedKmh: 108,
+      corneringStability: 0.70,
+      accelFactor: 0.75,
+      aggression: 0.55,
+    },
+    ai: {
+      maxSpeedKmh: 108,
+      accel: 3.75,
+      cornerSpeedFactor: 0.70,
+      lookAheadBase: 16.5,
+      rubberBandCatchup: 0.07,
+      rubberBandEase: 0.15,
+      laneBias: 1.9,
+    },
+    cutscenes: RIVAL_CUTSCENES.rookie2,
+  },
   {
     id: 'takeshi',
     name: 'TAKESHI',
@@ -134,6 +196,44 @@ export const RIVALS = [
     cutscenes: RIVAL_CUTSCENES.keisuke,
   },
   {
+    id: 'expert1',
+    name: 'CHALLENGER',
+    team: 'EMPEROR',
+    difficulty: 'EXPERT',
+    difficultyKr: '상급',
+    badgeClass: 'expert',
+    carLabel: 'CUSTOM MODEL SLOT #5',
+    colorHex: '#f97316',
+    colorNum: 0xf97316,
+    accentHex: '#fb923c',
+    modelPath: null, // 추후 .glb 추가 시 'assets/models/<파일명>.glb' 지정
+    modelRotationY: Math.PI / 2,
+    tagline: '날카로운 에이펙스 공략과 탈출 가속을 겸비한 상급 라이벌입니다.',
+    stats: {
+      topSpeedKmh: 118,
+      corneringStability: 0.93,
+      accelFactor: 0.97,
+      aggression: 0.90,
+    },
+    ai: {
+      maxSpeedKmh: 118,
+      accel: 4.8,
+      cornerSpeedFactor: 0.93,
+      apexRatio: 0.76,
+      maxLateralRatio: 0.86,
+      twinTurboBoost: {
+        boostKmh: 18,
+        boostAccelMult: 1.95,
+        boostDuration: 1.45,
+      },
+      lookAheadBase: 17,
+      rubberBandCatchup: 0.11,
+      rubberBandEase: 0.06,
+      laneBias: 1.1,
+    },
+    cutscenes: RIVAL_CUTSCENES.expert1,
+  },
+  {
     id: 'ryosuke',
     name: 'RYOSUKE',
     team: 'WHITE COMET',
@@ -147,7 +247,7 @@ export const RIVALS = [
     modelPath: 'assets/models/Old_GenCup.glb',
     modelRotationY: Math.PI / 2,
     taillights: { x: 0.61, y: 0.97, zOffset: 0.04, width: 0.68, height: 0.34 },
-    tagline: '정밀한 에이펙스 공략과 완벽한 코너링 안정성을 갖춘 최강 라이벌입니다.',
+    tagline: '정밀한 에이펙스 공략과 완벽한 코너링 안정성을 갖춘 고수 라이벌입니다.',
     stats: {
       topSpeedKmh: 110,
       corneringStability: 0.97,
@@ -177,6 +277,48 @@ export const RIVALS = [
     cutscenes: RIVAL_CUTSCENES.ryosuke,
   },
   {
+    id: 'master1',
+    name: 'LEGEND',
+    team: 'PURPLE SHADOW',
+    difficulty: 'MASTER',
+    difficultyKr: '달인',
+    badgeClass: 'master',
+    carLabel: 'CUSTOM MODEL SLOT #7',
+    colorHex: '#ec4899',
+    colorNum: 0xec4899,
+    accentHex: '#f472b6',
+    modelPath: null, // 추후 .glb 추가 시 'assets/models/<파일명>.glb' 지정
+    modelRotationY: Math.PI / 2,
+    tagline: '빈틈없는 코너링 라인과 높은 탈출 속도로 몰아붙이는 달인급 라이벌입니다.',
+    stats: {
+      topSpeedKmh: 114,
+      corneringStability: 0.98,
+      accelFactor: 1.0,
+      aggression: 0.97,
+    },
+    ai: {
+      maxSpeedKmh: 114,
+      accel: 5.1,
+      cornerSpeedFactor: 0.98,
+      coastOnlyCorners: true,
+      cornerDecelScale: 0.24,
+      minCornerSpeedRatio: 0.84,
+      coastDecel: 3.2,
+      apexRatio: 0.86,
+      maxLateralRatio: 0.90,
+      twinTurboBoost: {
+        boostKmh: 20,
+        boostAccelMult: 2.1,
+        boostDuration: 1.55,
+      },
+      lookAheadBase: 16,
+      rubberBandCatchup: 0.12,
+      rubberBandEase: 0.03,
+      laneBias: 0.8,
+    },
+    cutscenes: RIVAL_CUTSCENES.master1,
+  },
+  {
     id: 'bunta',
     name: 'BUNTA',
     team: 'FUJIWARA TOFU',
@@ -190,7 +332,7 @@ export const RIVALS = [
     modelPath: 'assets/models/Mohavi.glb',
     modelRotationY: Math.PI / 2,
     taillights: { x: 0.72, y: 1.14, zOffset: 0.02, width: 0.48, height: 0.46 },
-    tagline: '아키나 최속의 전설. 차원이 다른 코너링과 속도로 압도하는 최강 GOD 라이벌입니다.',
+    tagline: '아키나 최속의 전설. 도랑타기 라인으로 코너를 파고드는 최강 GOD 라이벌입니다.',
     stats: {
       topSpeedKmh: 110,
       corneringStability: 0.97,

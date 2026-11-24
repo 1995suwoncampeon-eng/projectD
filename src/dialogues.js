@@ -1,8 +1,9 @@
 /**
- * 라이벌별 컷신 대사 & 캐릭터 이미지 설정 파일
+ * 라이벌별 컷신 대사 & 캐릭터 이미지 설정 파일 (총 8명)
  *
  * 수정 방법:
- * - 각 라이벌(takeshi / keisuke / ryosuke / bunta)의 `intro`(시작 전), `outro`(종료 후)를 편집하세요.
+ * - 각 라이벌(rookie1 / rookie2 / takeshi / keisuke / expert1 / ryosuke / master1 / bunta)의
+ *   `intro`(시작 전), `outro`(종료 후)를 편집하세요.
  * - `characterImage`: 해당 컷신 기본 캐릭터 이미지 경로 (예: 'assets/cutscenes/takeshi.png')
  * - `lines`: 대사 문단 배열 (대화창 클릭 시 순서대로 넘어감)
  *     - speaker : 화자 이름
@@ -13,7 +14,95 @@
 
 export const RIVAL_CUTSCENES = {
   // ==========================================================================
-  // 1. TAKESHI (초급 // EASY)
+  // 1. ROOKIE 1 (입문 // ROOKIE — 타케시 하위 #1)
+  // ==========================================================================
+  rookie1: {
+    intro: {
+      enabled: true,
+      title: 'VS ROOKIE 1 // AKINA SPEED STARS',
+      characterImage: null, // 예: 'assets/cutscenes/rookie1.png'
+      lines: [
+        {
+          speaker: 'ROOKIE 1',
+          color: '#38bdf8',
+          image: null,
+          text: '[ROOKIE 1 시작 전 대사 1 — src/dialogues.js에서 수정하세요]',
+        },
+        {
+          speaker: 'ROOKIE 1',
+          color: '#38bdf8',
+          image: null,
+          text: '[ROOKIE 1 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
+        },
+      ],
+    },
+    outro: {
+      enabled: true,
+      title: 'AFTER BATTLE // ROOKIE 1',
+      characterImage: null,
+      lines: [
+        {
+          speaker: 'ROOKIE 1',
+          color: '#38bdf8',
+          image: null,
+          text: '[ROOKIE 1 종료 후 대사 1 — src/dialogues.js에서 수정하세요]',
+        },
+        {
+          speaker: 'ROOKIE 1',
+          color: '#38bdf8',
+          image: null,
+          text: '[ROOKIE 1 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
+        },
+      ],
+    },
+  },
+
+  // ==========================================================================
+  // 2. ROOKIE 2 (초보 // BEGINNER — 타케시 하위 #2)
+  // ==========================================================================
+  rookie2: {
+    intro: {
+      enabled: true,
+      title: 'VS ROOKIE 2 // AKINA SPEED STARS',
+      characterImage: null, // 예: 'assets/cutscenes/rookie2.png'
+      lines: [
+        {
+          speaker: 'ROOKIE 2',
+          color: '#2dd4bf',
+          image: null,
+          text: '[ROOKIE 2 시작 전 대사 1 — src/dialogues.js에서 수정하세요]',
+        },
+        {
+          speaker: 'ROOKIE 2',
+          color: '#2dd4bf',
+          image: null,
+          text: '[ROOKIE 2 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
+        },
+      ],
+    },
+    outro: {
+      enabled: true,
+      title: 'AFTER BATTLE // ROOKIE 2',
+      characterImage: null,
+      lines: [
+        {
+          speaker: 'ROOKIE 2',
+          color: '#2dd4bf',
+          image: null,
+          text: '[ROOKIE 2 종료 후 대사 1 — src/dialogues.js에서 수정하세요]',
+        },
+        {
+          speaker: 'ROOKIE 2',
+          color: '#2dd4bf',
+          image: null,
+          text: '[ROOKIE 2 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
+        },
+      ],
+    },
+  },
+
+  // ==========================================================================
+  // 3. TAKESHI (초급 // EASY)
   // ==========================================================================
   takeshi: {
     intro: {
@@ -57,7 +146,7 @@ export const RIVAL_CUTSCENES = {
   },
 
   // ==========================================================================
-  // 2. KEISUKE (중급 // NORMAL)
+  // 4. KEISUKE (중급 // NORMAL)
   // ==========================================================================
   keisuke: {
     intro: {
@@ -101,7 +190,51 @@ export const RIVAL_CUTSCENES = {
   },
 
   // ==========================================================================
-  // 3. RYOSUKE (고수 // HARD)
+  // 5. CHALLENGER (상급 // EXPERT — 케이스케와 료스케 사이)
+  // ==========================================================================
+  expert1: {
+    intro: {
+      enabled: true,
+      title: 'VS CHALLENGER // EMPEROR',
+      characterImage: null, // 예: 'assets/cutscenes/expert1.png'
+      lines: [
+        {
+          speaker: 'CHALLENGER',
+          color: '#fb923c',
+          image: null,
+          text: '[CHALLENGER 시작 전 대사 1 — src/dialogues.js에서 수정하세요]',
+        },
+        {
+          speaker: 'CHALLENGER',
+          color: '#fb923c',
+          image: null,
+          text: '[CHALLENGER 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
+        },
+      ],
+    },
+    outro: {
+      enabled: true,
+      title: 'AFTER BATTLE // CHALLENGER',
+      characterImage: null,
+      lines: [
+        {
+          speaker: 'CHALLENGER',
+          color: '#fb923c',
+          image: null,
+          text: '[CHALLENGER 종료 후 대사 1 — src/dialogues.js에서 수정하세요]',
+        },
+        {
+          speaker: 'CHALLENGER',
+          color: '#fb923c',
+          image: null,
+          text: '[CHALLENGER 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
+        },
+      ],
+    },
+  },
+
+  // ==========================================================================
+  // 6. RYOSUKE (고수 // HARD)
   // ==========================================================================
   ryosuke: {
     intro: {
@@ -145,7 +278,51 @@ export const RIVAL_CUTSCENES = {
   },
 
   // ==========================================================================
-  // 4. BUNTA (신 // GOD)
+  // 7. LEGEND (달인 // MASTER — 료스케와 분타 사이)
+  // ==========================================================================
+  master1: {
+    intro: {
+      enabled: true,
+      title: 'VS LEGEND // PURPLE SHADOW',
+      characterImage: null, // 예: 'assets/cutscenes/master1.png'
+      lines: [
+        {
+          speaker: 'LEGEND',
+          color: '#f472b6',
+          image: null,
+          text: '[LEGEND 시작 전 대사 1 — src/dialogues.js에서 수정하세요]',
+        },
+        {
+          speaker: 'LEGEND',
+          color: '#f472b6',
+          image: null,
+          text: '[LEGEND 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
+        },
+      ],
+    },
+    outro: {
+      enabled: true,
+      title: 'AFTER BATTLE // LEGEND',
+      characterImage: null,
+      lines: [
+        {
+          speaker: 'LEGEND',
+          color: '#f472b6',
+          image: null,
+          text: '[LEGEND 종료 후 대사 1 — src/dialogues.js에서 수정하세요]',
+        },
+        {
+          speaker: 'LEGEND',
+          color: '#f472b6',
+          image: null,
+          text: '[LEGEND 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
+        },
+      ],
+    },
+  },
+
+  // ==========================================================================
+  // 8. BUNTA (신 // GOD)
   // ==========================================================================
   bunta: {
     intro: {

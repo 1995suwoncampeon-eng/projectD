@@ -1,4 +1,4 @@
-import { RIVALS } from './config.js?v=19';
+import { RIVALS } from './config.js?v=20';
 import { formatRaceTime } from './hud.js';
 
 const STORAGE_KEY_PREFIX = 'projectD_bestTime_';
@@ -91,7 +91,7 @@ export class UIController {
       card.setAttribute('role', 'option');
       card.setAttribute('aria-selected', 'false');
 
-      const speedPct = Math.round(((rival.stats.topSpeedKmh - 95) / 60) * 100);
+      const speedPct = Math.round(((rival.stats.topSpeedKmh - 80) / 70) * 100);
       const cornerPct = Math.round(rival.stats.corneringStability * 100);
       const aggrPct = Math.round(rival.stats.aggression * 100);
 
@@ -111,7 +111,7 @@ export class UIController {
         <div class="stat-bars">
           <div class="stat-row">
             <div class="stat-row-head"><span>TOP SPEED</span><strong>${rival.stats.topSpeedKmh} km/h</strong></div>
-            <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100, Math.max(20, speedPct))}%"></div></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100, Math.max(18, speedPct))}%"></div></div>
           </div>
           <div class="stat-row">
             <div class="stat-row-head"><span>CORNERING</span><strong>${cornerPct}%</strong></div>
@@ -143,6 +143,9 @@ export class UIController {
       card.classList.toggle('selected', active);
       card.setAttribute('aria-selected', active ? 'true' : 'false');
     });
+    if (notify) {
+      this.rivalCards[safeIdx]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
 
     if (this.selectedNameEl) {
       this.selectedNameEl.textContent = `${rival.name} (${rival.difficultyKr} · ${rival.team})`;
