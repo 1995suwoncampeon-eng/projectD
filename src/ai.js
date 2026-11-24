@@ -305,10 +305,11 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     const desiredHeading = Math.atan2(targetPt.x - rival.x, targetPt.z - rival.z);
     headingDiff = wrapAngle(desiredHeading - rival.heading);
 
-    // Smooth steering authority proportional to cornering stability (with hairpin turn boost)
+    // Smooth steering authority proportional to cornering stability (with hairpin & agile-car turn boost)
     const hairpinBoost = nearPeak > 0.018 ? 1.45 : 1.0;
-    const maxTurnRate = (2.8 + ai.cornerSpeedFactor * 1.45) * hairpinBoost * dt;
-    const turnDelta = Math.max(-maxTurnRate, Math.min(maxTurnRate, headingDiff * 5.6 * dt));
+    const turnMult = ai.turnRateMult ?? 1.0;
+    const maxTurnRate = (2.8 + ai.cornerSpeedFactor * 1.45) * hairpinBoost * turnMult * dt;
+    const turnDelta = Math.max(-maxTurnRate, Math.min(maxTurnRate, headingDiff * 5.6 * turnMult * dt));
     rival.heading = wrapAngle(rival.heading + turnDelta);
 
     // Advance on 2D X-Z plane
