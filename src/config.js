@@ -129,30 +129,41 @@ export const RIVALS = [
     id: 'takeshi',
     name: 'TAKESHI',
     team: 'NIGHT KIDS',
-    difficulty: 'EASY',
-    difficultyKr: '초급',
-    badgeClass: 'easy',
+    difficulty: 'NORMAL',
+    difficultyKr: '중급',
+    badgeClass: 'normal',
     carLabel: 'BONGO FRONTIER',
     colorHex: '#2563eb',
     colorNum: 0x2563eb,
     accentHex: '#60a5fa',
     modelPath: 'assets/models/Bongo.glb',
     modelRotationY: Math.PI / 2,
-    tagline: '안정적인 그립 주행을 선호하는 초급 라이벌. 코너 진입 전 일찍 감속합니다.',
+    tagline: '코너 진입 시 급감속 후 인코스를 파고들어 풀가속과 터보 부스트로 탈출하는 그립 주행 중급 라이벌입니다.',
     stats: {
       topSpeedKmh: 130,
-      corneringStability: 0.78, // 0..1 (higher = carries more corner speed)
-      accelFactor: 0.84,
-      aggression: 0.65,
+      corneringStability: 0.87, // 0..1 (higher = carries more corner speed)
+      accelFactor: 0.92,
+      aggression: 0.82,
     },
     ai: {
       maxSpeedKmh: 130,
-      accel: 4.2,
-      cornerSpeedFactor: 0.78,
+      accel: 4.6,
+      cornerSpeedFactor: 0.86,
+      lateBrakeApexFullThrottle: true,
+      hardBrakeDecel: 24.0,
+      apexRatio: 0.78,
+      maxLateralRatio: 0.86,
+      driftCurvatureThreshold: 0.024, // Grip-focused driving style
+      driftSlipRad: 0.14,
+      twinTurboBoost: {
+        boostKmh: 24,
+        boostAccelMult: 1.95,
+        boostDuration: 1.55,
+      },
       lookAheadBase: 16,
-      rubberBandCatchup: 0.09,  // Max boost when behind
-      rubberBandEase: 0.13,     // Max ease when far ahead
-      laneBias: 1.8,            // Right-side bias on straights
+      rubberBandCatchup: 0.10,  // Max boost when behind
+      rubberBandEase: 0.08,     // Max ease when far ahead
+      laneBias: 1.5,            // Right-side bias on straights
     },
     cutscenes: RIVAL_CUTSCENES.takeshi,
   },

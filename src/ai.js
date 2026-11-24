@@ -13,8 +13,9 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
 
   // 1. Inspect upcoming curvature to calculate smooth cornering speed target
   const { peakAbs, signedPeak } = track.getUpcomingCurvature(rival.s, 10, 92);
+  const entryPt = track.getPointAtS(rival.s);
 
-  // Rotary twin-turbo corner-exit boost timer decay
+  // Rotary / turbo corner-exit boost timer decay
   if (rival.turboBoostTimer > 0) {
     rival.turboBoostTimer = Math.max(0, rival.turboBoostTimer - dt);
   }
@@ -22,9 +23,29 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   const turboActive = Boolean(turboCfg && rival.turboBoostTimer > 0);
 
   let targetSpeedKmh;
+  let hardBrakingEntry = false;
   if (ai.fullThrottleCorners) {
     // Full throttle through every corner — never lifts off the accelerator
     targetSpeedKmh = ai.maxSpeedKmh;
+  } else if (ai.lateBrakeApexFullThrottle) {
+    // Grip-turbo style (e.g. Takeshi): hard brake on corner entry, then full throttle through the apex!
+    const immediateAhead = track.getUpcomingCurvature(rival.s, 8, 52);
+    const inCornerNow = Math.abs(entryPt.curvature) >= 0.008;
+    const oppositeCornerAhead =
+      immediateAhead.peakAbs > 0.011 &&
+      Math.sign(immediateAhead.signedPeak) !== Math.sign(entryPt.curvature);
+
+    if (inCornerNow && !oppositeCornerAhead) {
+      // Already clipped into the corner -> get back on full throttle through the turn!
+      targetSpeedKmh = ai.maxSpeedKmh;
+    } else if (immediateAhead.peakAbs > 0.0085) {
+      // Approaching a corner -> hard late braking to set up the inside apex
+      hardBrakingEntry = true;
+      const entrySensitivity = 36;
+      targetSpeedKmh = Math.max(46, ai.maxSpeedKmh / (1 + immediateAhead.peakAbs * entrySensitivity));
+    } else {
+      targetSpeedKmh = ai.maxSpeedKmh;
+    }
   } else {
     // Higher cornerSpeedFactor (e.g. Ryosuke 0.97) carries far more speed through hairpins
     const baseSensitivity = 48 - ai.cornerSpeedFactor * 27;
@@ -74,6 +95,9 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
       const decelRate = ai.coastDecel ?? 3.4;
       if (excess > 9.5) rival.isBraking = true;
       rival.speed = Math.max(desiredSpeedMs, rival.speed - decelRate * dt);
+    } else if (hardBrakingEntry && ai.hardBrakeDecel) {
+      if (excess > 1.2) rival.isBraking = true;
+      rival.speed = Math.max(desiredSpeedMs, rival.speed - ai.hardBrakeDecel * dt);
     } else {
       if (excess > 3.0) rival.isBraking = true;
       rival.speed = Math.max(desiredSpeedMs, rival.speed - 16.0 * dt);
