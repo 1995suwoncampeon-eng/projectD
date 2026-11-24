@@ -9,7 +9,7 @@
  *  -Math.PI / 2 -> model front faces +X
  */
 
-import { RIVAL_CUTSCENES } from './dialogues.js?v=15';
+import { RIVAL_CUTSCENES } from './dialogues.js?v=16';
 
 // ============================================================================
 // 3D CAR MODEL SETTINGS (Edit here when dropping in custom .glb models)
@@ -210,42 +210,41 @@ export const RIVALS = [
     cutscenes: RIVAL_CUTSCENES.keisuke,
   },
   {
-    id: 'expert1',
-    name: 'CHALLENGER',
-    team: 'EMPEROR',
+    id: 'kozo',
+    name: 'KOZO',
+    team: 'PURPLE SHADOW',
     difficulty: 'EXPERT',
     difficultyKr: '상급',
     badgeClass: 'expert',
-    carLabel: 'CUSTOM MODEL SLOT #5',
-    colorHex: '#f97316',
-    colorNum: 0xf97316,
+    carLabel: 'KIA BONGO III 4WD',
+    colorHex: '#d97706',
+    colorNum: 0xd97706,
     accentHex: '#fb923c',
-    modelPath: null, // 추후 .glb 추가 시 'assets/models/<파일명>.glb' 지정
+    modelPath: null, // 추후 기아 봉고 3 4WD .glb 추가 시 경로 지정
     modelRotationY: Math.PI / 2,
-    tagline: '날카로운 에이펙스 공략과 탈출 가속을 겸비한 상급 라이벌입니다.',
+    tagline: '과감한 풀브레이킹·풀악셀 그립 주행과 5연속 헤어핀 아웃-인 스핀턴을 구사하는 상급 라이벌입니다.',
     stats: {
-      topSpeedKmh: 118,
+      topSpeedKmh: 140,
       corneringStability: 0.93,
-      accelFactor: 0.97,
-      aggression: 0.90,
+      accelFactor: 0.96,
+      aggression: 0.92,
     },
     ai: {
-      maxSpeedKmh: 118,
-      accel: 4.8,
+      maxSpeedKmh: 140,
+      accel: 6.2,
+      highSpeedDropKmh: 115,     // 115 km/h 이후 가속 급감 (초반 폭발, 후반 극저가속)
+      highSpeedAccelScale: 0.14,
       cornerSpeedFactor: 0.93,
-      apexRatio: 0.76,
+      godFootStyle: true,        // 평소 과감한 그립 주행 + 5연속 헤어핀 아웃 급가속 -> 급감속 인 스핀턴
+      hardBrakeDecel: 26.0,
+      apexRatio: 0.78,
       maxLateralRatio: 0.86,
-      twinTurboBoost: {
-        boostKmh: 18,
-        boostAccelMult: 1.95,
-        boostDuration: 1.45,
-      },
-      lookAheadBase: 17,
-      rubberBandCatchup: 0.11,
+      lookAheadBase: 16.5,
+      rubberBandCatchup: 0.10,
       rubberBandEase: 0.06,
       laneBias: 1.1,
     },
-    cutscenes: RIVAL_CUTSCENES.expert1,
+    cutscenes: RIVAL_CUTSCENES.kozo,
   },
   {
     id: 'ryosuke',

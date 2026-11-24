@@ -24,9 +24,47 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
 
   let targetSpeedKmh;
   let hardBrakingEntry = false;
+  let godFootPhase = 'grip'; // 'grip' | 'hairpin_out_sprint' | 'hairpin_spin_turn'
+  let godFootHairpinSign = 0;
+
   if (ai.fullThrottleCorners) {
     // Full throttle through every corner — never lifts off the accelerator
     targetSpeedKmh = ai.maxSpeedKmh;
+  } else if (ai.godFootStyle) {
+    // Kozo Hoshino ("God Foot") style:
+    // - Regular corners: aggressive late-brake & hard-throttle grip driving
+    // - 5-consecutive hairpins (z in -930..-1150): sprint on the OUTSIDE, then slam brakes & spin-turn INSIDE!
+    const in5HairpinZone = rival.z < -930 && rival.z > -1150;
+    const immediateAhead = track.getUpcomingCurvature(rival.s, 6, 46);
+    const hairpinAhead = track.getUpcomingCurvature(rival.s, 14, 72);
+    const curAbs = Math.abs(entryPt.curvature);
+
+    if (in5HairpinZone && (curAbs > 0.022 || immediateAhead.peakAbs > 0.032)) {
+      // Phase 2: Hard brake and snap spin-turn into the inside apex
+      godFootPhase = 'hairpin_spin_turn';
+      godFootHairpinSign = curAbs > 0.022 ? Math.sign(entryPt.curvature) : Math.sign(immediateAhead.signedPeak);
+      hardBrakingEntry = true;
+      targetSpeedKmh = curAbs > 0.028 ? 58 : 52;
+    } else if (in5HairpinZone && hairpinAhead.peakAbs > 0.032) {
+      // Phase 1: Sprint hard along the outside line approaching the hairpin
+      godFootPhase = 'hairpin_out_sprint';
+      godFootHairpinSign = Math.sign(hairpinAhead.signedPeak);
+      targetSpeedKmh = Math.min(ai.maxSpeedKmh, 122);
+    } else {
+      // Regular corners: aggressive late-brake & full-throttle grip
+      const inCornerNow = curAbs >= 0.0085;
+      const oppositeAhead =
+        immediateAhead.peakAbs > 0.011 &&
+        Math.sign(immediateAhead.signedPeak) !== Math.sign(entryPt.curvature);
+      if (inCornerNow && !oppositeAhead) {
+        targetSpeedKmh = ai.maxSpeedKmh;
+      } else if (immediateAhead.peakAbs > 0.009) {
+        hardBrakingEntry = true;
+        targetSpeedKmh = Math.max(54, ai.maxSpeedKmh / (1 + immediateAhead.peakAbs * 30));
+      } else {
+        targetSpeedKmh = ai.maxSpeedKmh;
+      }
+    }
   } else if (ai.lateBrakeApexFullThrottle) {
     // Grip-turbo style (e.g. Takeshi): hard brake on corner entry, then full throttle through the apex!
     const immediateAhead = track.getUpcomingCurvature(rival.s, 8, 52);
@@ -84,9 +122,14 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   // 3. Longitudinal acceleration / braking / lift-off coasting toward desired speed
   rival.isBraking = false;
   if (rival.speed < desiredSpeedMs) {
+    const curKmh = rival.speed * MS_TO_KMH;
     const ratio = Math.max(0, rival.speed / Math.max(1, desiredSpeedMs));
     const accelMult = turboActive ? turboCfg.boostAccelMult : 1.0;
-    const pull = ai.accel * accelMult * (1.12 - 0.45 * ratio * ratio);
+    let pull = ai.accel * accelMult * (1.12 - 0.45 * ratio * ratio);
+    // Optional high-speed power drop-off (e.g. Kozo Bongo 4WD: punchy to 115 km/h, very slow crawl to 140)
+    if (ai.highSpeedDropKmh && curKmh >= ai.highSpeedDropKmh) {
+      pull *= ai.highSpeedAccelScale ?? 0.14;
+    }
     rival.speed = Math.min(desiredSpeedMs, rival.speed + pull * dt);
   } else if (!ai.fullThrottleCorners) {
     const excess = rival.speed - desiredSpeedMs;
@@ -126,6 +169,14 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   if (activeGutterSide !== 0) {
     // Line up directly with the inside drainage gutter for gutter-run cornering
     targetLateral = activeGutterSide * gutterRailLat;
+  } else if (ai.godFootStyle && godFootPhase === 'hairpin_out_sprint' && godFootHairpinSign !== 0) {
+    // Swing wide to the OUTSIDE while sprinting into the 5-consecutive hairpin
+    const outsideDir = godFootHairpinSign > 0 ? 1 : -1;
+    targetLateral = outsideDir * (track.maxCarLateral * 0.80);
+  } else if (ai.godFootStyle && godFootPhase === 'hairpin_spin_turn' && godFootHairpinSign !== 0) {
+    // Snap sharply to the INSIDE apex for the spin-turn
+    const insideDir = godFootHairpinSign > 0 ? -1 : 1;
+    targetLateral = insideDir * (track.maxCarLateral * 0.84);
   } else if (ai.ffCorneringStyle) {
     // FF (Front-Wheel Drive) cornering line:
     // 1) Sharp lift-off tuck-in toward inside apex on corner entry
@@ -271,14 +322,19 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   // Expressive AI drift visual on corners (configurable per rival)
   const speedKmh = rival.speed * MS_TO_KMH;
   const driftThreshold = ai.driftCurvatureThreshold ?? 0.0085;
-  const driftSlip = ai.driftSlipRad ?? 0.34;
+  const isGodFootSpinTurn = ai.godFootStyle && godFootPhase === 'hairpin_spin_turn';
+  const driftSlip = isGodFootSpinTurn ? 0.56 : (ai.driftSlipRad ?? 0.34);
   const entryCurv = ai.fullThrottleCorners
     ? track.getUpcomingCurvature(rival.s, 0, 24).signedPeak
     : proj.curvature;
   const effectiveCurv = Math.abs(proj.curvature) >= Math.abs(entryCurv) ? proj.curvature : entryCurv;
-  const aiDrifting = !ai.noDrift && !rival.inGutter && Math.abs(effectiveCurv) > driftThreshold && speedKmh > 52;
+  const aiDrifting = ai.godFootStyle
+    ? isGodFootSpinTurn && speedKmh > 32
+    : !ai.noDrift && !rival.inGutter && Math.abs(effectiveCurv) > driftThreshold && speedKmh > 52;
   rival.isDrifting = aiDrifting;
-  rival.driftDir = aiDrifting ? Math.sign(effectiveCurv) : 0;
+  rival.driftDir = aiDrifting
+    ? (isGodFootSpinTurn && godFootHairpinSign !== 0 ? godFootHairpinSign : Math.sign(effectiveCurv))
+    : 0;
 
   const targetSlip = rival.inGutter
     ? 0

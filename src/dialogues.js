@@ -190,44 +190,44 @@ export const RIVAL_CUTSCENES = {
   },
 
   // ==========================================================================
-  // 5. CHALLENGER (상급 // EXPERT — 케이스케와 료스케 사이)
+  // 5. KOZO (상급 // EXPERT — 호시노 코죠 모티브, 기아 봉고 3 4WD)
   // ==========================================================================
-  expert1: {
+  kozo: {
     intro: {
       enabled: true,
-      title: 'VS CHALLENGER // EMPEROR',
-      characterImage: null, // 예: 'assets/cutscenes/expert1.png'
+      title: 'VS KOZO // PURPLE SHADOW',
+      characterImage: null, // 예: 'assets/cutscenes/kozo.png'
       lines: [
         {
-          speaker: 'CHALLENGER',
+          speaker: 'KOZO',
           color: '#fb923c',
           image: null,
-          text: '[CHALLENGER 시작 전 대사 1 — src/dialogues.js에서 수정하세요]',
+          text: '[KOZO 시작 전 대사 1 — src/dialogues.js에서 수정하세요]',
         },
         {
-          speaker: 'CHALLENGER',
+          speaker: 'KOZO',
           color: '#fb923c',
           image: null,
-          text: '[CHALLENGER 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
+          text: '[KOZO 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
         },
       ],
     },
     outro: {
       enabled: true,
-      title: 'AFTER BATTLE // CHALLENGER',
+      title: 'AFTER BATTLE // KOZO',
       characterImage: null,
       lines: [
         {
-          speaker: 'CHALLENGER',
+          speaker: 'KOZO',
           color: '#fb923c',
           image: null,
-          text: '[CHALLENGER 종료 후 대사 1 — src/dialogues.js에서 수정하세요]',
+          text: '[KOZO 종료 후 대사 1 — src/dialogues.js에서 수정하세요]',
         },
         {
-          speaker: 'CHALLENGER',
+          speaker: 'KOZO',
           color: '#fb923c',
           image: null,
-          text: '[CHALLENGER 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
+          text: '[KOZO 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
         },
       ],
     },
