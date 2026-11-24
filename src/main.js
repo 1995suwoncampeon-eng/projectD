@@ -19,8 +19,8 @@ import {
 import { updateRivalAI } from './ai.js?v=20';
 import { EffectsManager } from './effects.js?v=15';
 import { ArcadeAudio } from './audio.js?v=14';
-import { HudController } from './hud.js';
-import { UIController } from './ui.js?v=25';
+import { HudController } from './hud.js?v=2';
+import { UIController } from './ui.js?v=26';
 
 class ProjectDGame {
   constructor() {

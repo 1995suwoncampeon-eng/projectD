@@ -4,11 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>PROJECT D // TOUGE DOWNHILL STAGE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,600;1,700&family=Noto+Sans+KR:wght@500;700;900&family=Russo+One&display=swap"
+    rel="stylesheet"
+  />
   <link
     rel="icon"
-    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230b1020'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' fill='%2338bdf8' font-family='sans-serif' font-weight='900' font-style='italic' font-size='38'%3ED%3C/text%3E%3C/svg%3E"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230b0b0e'/%3E%3Cpath d='M0 54 L64 46 L64 64 L0 64 Z' fill='%23e6192e'/%3E%3Ctext x='50%25' y='48%25' dominant-baseline='middle' text-anchor='middle' fill='%23ffd000' font-family='sans-serif' font-weight='900' font-style='italic' font-size='40'%3ED%3C/text%3E%3C/svg%3E"
   />
-  <link rel="stylesheet" href="styles.css?v=20261123-6" />
+  <link rel="stylesheet" href="styles.css?v=20261124-1" />
   <script type="importmap">
     {
       "imports": {
@@ -27,29 +33,34 @@
     <div id="speed-vignette" aria-hidden="true"></div>
 
     <!-- ==========================================
-         1. TITLE SCREEN
+         1. TITLE SCREEN (Arcade Attract Layout)
          ========================================== -->
     <section id="screen-title" class="screen active" aria-label="Title Screen">
-      <div class="title-backdrop-glow"></div>
-      <div class="title-card">
-        <div class="arcade-badge">ARCADE DOWNHILL BATTLE // 1 VS 1</div>
-        <h1 class="game-logo">
-          <span class="logo-project">PROJECT</span>
-          <span class="logo-d">D</span>
-        </h1>
-        <p class="game-subtitle">MIDNIGHT TOUGE STAGE — MT. AKINA INSPIRED DOWNHILL</p>
+      <div class="title-top-bar">
+        <span class="arcade-corner-tag">ARCADE STAGE // VER.D</span>
+        <span class="arcade-corner-tag right">1 VS 1 TOUGE DOWNHILL</span>
+      </div>
 
-        <div class="title-meta-row">
-          <span class="meta-pill">3.6 KM DOWNHILL</span>
-          <span class="meta-pill">8 RIVALS</span>
-          <span class="meta-pill">ARCADE DRIFT</span>
+      <div class="title-stage">
+        <div class="title-emblem-block">
+          <div class="title-kicker">MT. AKINA INSPIRED // 3.6KM DOWNHILL</div>
+          <h1 class="game-logo">
+            <span class="logo-project">PROJECT</span>
+            <span class="logo-d">D</span>
+          </h1>
+          <div class="title-slash-bar" aria-hidden="true"></div>
+          <p class="game-subtitle">8 RIVALS &nbsp;/&nbsp; 5-SPEED TOUGE BATTLE &nbsp;/&nbsp; GUTTER HOOK</p>
         </div>
 
-        <button id="btn-start-game" class="btn-primary btn-pulse" type="button">
-          <span class="btn-main-label">START BATTLE</span>
-          <span class="btn-sub-label">PRESS ENTER OR CLICK</span>
-        </button>
+        <div class="title-cta-wrap">
+          <button id="btn-start-game" class="btn-primary btn-pulse" type="button">
+            <span class="btn-main-label">START BATTLE</span>
+            <span class="btn-sub-label">PRESS ENTER OR CLICK TO ENTRY</span>
+          </button>
+        </div>
+      </div>
 
+      <div class="title-bottom-ticker">
         <div class="controls-preview">
           <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 주행</span>
           <span><kbd>SPACE</kbd> 드리프트</span>
@@ -60,21 +71,21 @@
     </section>
 
     <!-- ==========================================
-         2. RIVAL SELECT SCREEN
+         2. RIVAL SELECT SCREEN (Arcade Stage Entry)
          ========================================== -->
     <section id="screen-select" class="screen" aria-label="Rival Select Screen">
       <div class="select-shell">
         <header class="select-header">
-          <div>
-            <div class="section-eyebrow">STEP 01 // SELECT YOUR OPPONENT</div>
+          <div class="select-title-wrap">
+            <div class="section-eyebrow">STAGE 01 // SELECT OPPONENT</div>
             <h2 class="section-title">라이벌 선택</h2>
           </div>
           <div class="select-header-actions">
             <div class="time-toggle-group" role="group" aria-label="시간대 설정">
-              <button id="btn-time-night" class="time-toggle-btn active" type="button" data-time="night">🌙 밤 // NIGHT</button>
-              <button id="btn-time-day" class="time-toggle-btn" type="button" data-time="day">☀️ 낮 // DAY</button>
+              <button id="btn-time-night" class="time-toggle-btn active" type="button" data-time="night">NIGHT</button>
+              <button id="btn-time-day" class="time-toggle-btn" type="button" data-time="day">DAY</button>
             </div>
-            <button id="btn-back-title" class="btn-ghost" type="button">← 타이틀로</button>
+            <button id="btn-back-title" class="btn-ghost" type="button">◀ TITLE</button>
           </div>
         </header>
 
@@ -84,12 +95,12 @@
 
         <footer class="select-footer">
           <div class="select-summary">
-            <span class="summary-label">SELECTED RIVAL</span>
+            <span class="summary-label">SELECTED OPPONENT</span>
             <strong id="selected-rival-name">—</strong>
             <span id="selected-rival-desc" class="summary-desc"></span>
           </div>
           <button id="btn-start-race" class="btn-primary" type="button">
-            <span class="btn-main-label">RACE START</span>
+            <span class="btn-main-label">RACE START ▶</span>
             <span class="btn-sub-label">다운힐 배틀 시작</span>
           </button>
         </footer>
@@ -97,12 +108,12 @@
     </section>
 
     <!-- ==========================================
-         2.5. CUTSCENE SCREEN (Visual Novel / Arcade Stage Style)
+         2.5. CUTSCENE SCREEN (Arcade Stage Story)
          ========================================== -->
     <section id="screen-cutscene" class="screen" aria-label="Cutscene Screen">
       <div class="cutscene-topbar">
         <div class="cutscene-topbar-left">
-          <span id="cutscene-phase-badge" class="cutscene-phase-badge">PRE-RACE CUTSCENE</span>
+          <span id="cutscene-phase-badge" class="cutscene-phase-badge">PRE-RACE</span>
           <span id="cutscene-title" class="cutscene-title">VS RIVAL</span>
           <span id="cutscene-rival-pill" class="difficulty-pill easy">초급 // EASY</span>
         </div>
@@ -113,7 +124,7 @@
       <div id="cutscene-portrait-stage" class="cutscene-portrait-stage">
         <img id="cutscene-character-img" class="cutscene-character-img hidden" alt="Character Portrait" />
         <div id="cutscene-portrait-placeholder" class="cutscene-portrait-placeholder">
-          <span id="cutscene-slot-tag" class="cutscene-slot-tag">PORTRAIT SLOT // TAKESHI</span>
+          <span id="cutscene-slot-tag" class="cutscene-slot-tag">PORTRAIT // TAKESHI</span>
           <div class="cutscene-silhouette" aria-hidden="true"></div>
           <p class="cutscene-slot-heading">캐릭터 이미지 영역</p>
           <p id="cutscene-slot-hint" class="cutscene-slot-hint">assets/cutscenes/takeshi.png</p>
@@ -142,28 +153,28 @@
     </div>
 
     <!-- ==========================================
-         4. IN-RACE HUD (Initial D Arcade Style)
+         4. IN-RACE HUD (Initial D Arcade Stage Style)
          ========================================== -->
     <div id="race-hud" class="race-hud hidden" data-time="night" aria-label="Race HUD">
-      <!-- Top Left: 2D Minimap -->
+      <!-- Top Left: Frameless Initial D Course Map -->
       <div class="hud-minimap-panel">
         <div class="panel-header-row">
-          <span class="panel-tag">COURSE MAP</span>
+          <span class="panel-tag">AKINA</span>
           <span class="panel-tag-accent">DOWNHILL</span>
         </div>
-        <canvas id="minimap-canvas" width="190" height="190"></canvas>
+        <canvas id="minimap-canvas" width="184" height="184"></canvas>
         <div class="minimap-legend">
           <span><i class="dot dot-player"></i>YOU</span>
           <span><i class="dot dot-rival" id="minimap-rival-dot"></i><em id="hud-rival-short">RIVAL</em></span>
         </div>
       </div>
 
-      <!-- Top Center: Gap, Position, Progress, Timer -->
+      <!-- Top Center: Arcade Battle Bar (Rank, Distance Gap, Timer, Progress) -->
       <div class="hud-top-center">
         <div class="battle-strip">
           <div id="hud-position" class="position-badge pos-1">1ST</div>
           <div class="gap-block">
-            <span class="gap-label">GAP TO RIVAL</span>
+            <span class="gap-label">DISTANCE</span>
             <span id="hud-gap" class="gap-value ahead">+0m</span>
           </div>
           <div class="timer-block">
@@ -176,7 +187,7 @@
           <div class="progress-meta">
             <span>START</span>
             <span id="hud-remaining" class="remaining-dist">2,200m LEFT</span>
-            <span>FINISH</span>
+            <span>GOAL</span>
           </div>
           <div class="progress-track">
             <div id="hud-progress-fill" class="progress-fill"></div>
@@ -188,26 +199,29 @@
         <div id="hud-banner" class="race-banner hidden"></div>
       </div>
 
-      <!-- Top Right: Audio & Quick Reset indicator -->
+      <!-- Top Right: Minimal Arcade Utility Switches -->
       <div class="hud-top-right">
         <button id="btn-toggle-mute" class="hud-chip-btn" type="button" title="Toggle Sound (M)">SFX: ON</button>
         <button id="btn-quick-reset" class="hud-chip-btn" type="button" title="Reset to Track (R)">RESET [R]</button>
       </div>
 
-      <!-- Bottom Left: Compact Control Hint -->
+      <!-- Bottom Left: Compact Key Strip -->
       <div class="hud-controls-hint">
         <span><kbd>WASD</kbd>/<kbd>↑↓←→</kbd> 주행</span>
         <span><kbd>SPACE</kbd> 드리프트</span>
         <span><kbd>R</kbd> 복귀</span>
       </div>
 
-      <!-- Bottom Right: Dual Analog Instrument Cluster (RPM + Speedometer) -->
+      <!-- Bottom Right: Frameless JDM Dual Analog Instrument Cluster -->
       <div class="hud-cluster analog-cluster">
-        <div id="hud-gutter-badge" class="gutter-badge hidden">도랑타기 // GUTTER!!</div>
-        <div id="hud-drift-badge" class="drift-badge hidden">DRIFT!!</div>
+        <div class="hud-status-stamps">
+          <div id="hud-gutter-badge" class="gutter-badge hidden">도랑타기 // GUTTER!!</div>
+          <div id="hud-drift-badge" class="drift-badge hidden">DRIFT!!</div>
+        </div>
         <div class="analog-gauges-row">
-          <!-- Analog RPM Tachometer -->
-          <div class="analog-gauge-wrap">
+          <!-- Analog RPM Tachometer + Shift LED + Gear Box -->
+          <div class="analog-gauge-wrap rpm-gauge-wrap">
+            <div id="hud-shift-light" class="shift-light-led" aria-hidden="true"></div>
             <svg id="gauge-rpm-svg" class="analog-gauge-svg" viewBox="0 0 200 200" aria-label="RPM Tachometer"></svg>
             <div class="gauge-center-readout rpm-center-readout">
               <span class="gauge-gear-caption">GEAR</span>
@@ -215,8 +229,8 @@
             </div>
           </div>
 
-          <!-- Analog Speedometer -->
-          <div class="analog-gauge-wrap">
+          <!-- Analog Speedometer + Digital km/h -->
+          <div class="analog-gauge-wrap speed-gauge-wrap">
             <svg id="gauge-speed-svg" class="analog-gauge-svg" viewBox="0 0 200 200" aria-label="Speedometer"></svg>
             <div class="gauge-center-readout speed-center-readout">
               <strong id="hud-speed" class="gauge-speed-digital">0</strong>
@@ -228,7 +242,6 @@
 
       <!-- Mobile & Tablet Touch Controls (Auto-shown on touch devices) -->
       <div id="touch-controls" class="touch-controls" aria-label="터치 조작 컨트롤">
-        <!-- Left Thumb: Steering Pad (supports press & smooth thumb slide) -->
         <div id="touch-steer-pad" class="touch-steer-pad">
           <button id="btn-touch-left" class="touch-btn touch-steer-btn" type="button" data-input="left" aria-label="좌회전">
             <span class="touch-arrow">◀</span>
@@ -240,7 +253,6 @@
           </button>
         </div>
 
-        <!-- Right Thumb: Drift + Brake + Accel Pedals -->
         <div class="touch-pedal-cluster">
           <div class="touch-pedal-left-col">
             <button id="btn-touch-drift" class="touch-btn touch-drift-btn" type="button" data-input="drift" aria-label="드리프트">
@@ -260,17 +272,18 @@
     </div>
 
     <!-- ==========================================
-         5. RESULT SCREEN
+         5. RESULT SCREEN (Arcade Battle Result)
          ========================================== -->
     <section id="screen-result" class="screen" aria-label="Race Result Screen">
       <div class="result-card">
         <div id="result-eyebrow" class="result-eyebrow">STAGE CLEAR // DOWNHILL BATTLE</div>
         <h2 id="result-outcome" class="result-outcome win">YOU WIN!</h2>
+        <div class="result-slash-bar" aria-hidden="true"></div>
         <p id="result-subtitle" class="result-subtitle">라이벌을 제치고 고갯길 정상에 올랐습니다.</p>
 
         <div class="result-stats-grid">
           <div class="stat-tile">
-            <span class="stat-label">RIVAL</span>
+            <span class="stat-label">OPPONENT</span>
             <strong id="result-rival">—</strong>
           </div>
           <div class="stat-tile">
@@ -306,6 +319,6 @@
     </section>
   </div>
 
-  <script type="module" src="src/main.js?v=40"></script>
+  <script type="module" src="src/main.js?v=41"></script>
 </body>
 </html>

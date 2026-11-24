@@ -1,5 +1,5 @@
 import { RIVALS } from './config.js?v=27';
-import { formatRaceTime } from './hud.js';
+import { formatRaceTime } from './hud.js?v=2';
 
 const STORAGE_KEY_PREFIX = 'projectD_bestTime_';
 
@@ -87,6 +87,7 @@ export class UIController {
       const card = document.createElement('button');
       card.type = 'button';
       card.className = `rival-card${rival.badgeClass === 'god' ? ' god-tier' : ''}`;
+      card.style.setProperty('--rival-color', rival.colorHex);
       card.dataset.rivalId = rival.id;
       card.setAttribute('role', 'option');
       card.setAttribute('aria-selected', 'false');
@@ -99,7 +100,7 @@ export class UIController {
         <div class="rival-card-top">
           <span class="difficulty-pill ${rival.badgeClass}">${rival.difficultyKr} // ${rival.difficulty}</span>
           <span class="car-swatch">
-            <i class="car-swatch-dot" style="background:${rival.colorHex}; color:${rival.colorHex};"></i>
+            <i class="car-swatch-dot" style="background:${rival.colorHex};"></i>
             ${rival.carLabel}
           </span>
         </div>
@@ -435,7 +436,7 @@ export class UIController {
     if (this.resultGap) {
       const sign = gapMeters >= 0 ? '+' : '';
       this.resultGap.textContent = `${sign}${Math.round(gapMeters)}m`;
-      this.resultGap.style.color = gapMeters >= 0 ? '#4ade80' : '#fb923c';
+      this.resultGap.style.color = gapMeters >= 0 ? '#ffd000' : '#ff4757';
     }
     if (this.resultTopSpeed) {
       this.resultTopSpeed.textContent = `${Math.round(topSpeedKmh)} km/h`;

@@ -44,6 +44,7 @@ export class HudController {
     this.gearEl = document.getElementById('hud-gear');
     this.rpmSvg = document.getElementById('gauge-rpm-svg');
     this.speedSvg = document.getElementById('gauge-speed-svg');
+    this.shiftLightEl = document.getElementById('hud-shift-light');
     this.driftBadgeEl = document.getElementById('hud-drift-badge');
     this.gutterBadgeEl = document.getElementById('hud-gutter-badge');
     this.vignetteEl = document.getElementById('speed-vignette');
@@ -70,7 +71,7 @@ export class HudController {
     this._displaySpeed = 0;
 
     this.bannerTimer = 0;
-    this.rivalColorHex = '#facc15';
+    this.rivalColorHex = '#ffd000';
 
     this._initAnalogGauges();
     this._prepareMinimapProjection();
@@ -80,9 +81,11 @@ export class HudController {
     if (!svg) return null;
     svg.innerHTML = '';
 
-    // Outer bezel & dial face
-    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 95, class: 'gauge-bezel' }));
-    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 88, class: 'gauge-face' }));
+    // Machined outer bezel, inner recessed lip & dial face
+    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 97, class: 'gauge-bezel-outer' }));
+    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 91, class: 'gauge-bezel' }));
+    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 87, class: 'gauge-face' }));
+    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 66, class: 'gauge-inner-ring' }));
 
     // Optional redline arc
     if (redlineStart !== null) {
@@ -90,7 +93,7 @@ export class HudController {
       const a1 = GAUGE_START_DEG + GAUGE_SWEEP_DEG;
       svg.appendChild(
         svgEl('path', {
-          d: describeArc(100, 100, 79, a0, a1),
+          d: describeArc(100, 100, 78, a0, a1),
           class: 'gauge-redline-arc',
         })
       );
@@ -235,11 +238,11 @@ export class HudController {
     this.rivalColorHex = rivalConfig.colorHex;
     if (this.rivalDotEl) {
       this.rivalDotEl.style.background = rivalConfig.colorHex;
-      this.rivalDotEl.style.boxShadow = `0 0 6px ${rivalConfig.colorHex}`;
+      this.rivalDotEl.style.boxShadow = 'none';
     }
     if (this.markerRivalEl) {
       this.markerRivalEl.style.background = rivalConfig.colorHex;
-      this.markerRivalEl.style.boxShadow = `0 0 10px ${rivalConfig.colorHex}`;
+      this.markerRivalEl.style.boxShadow = 'none';
     }
     if (this.rivalShortEl) {
       this.rivalShortEl.textContent = rivalConfig.name;
@@ -274,7 +277,7 @@ export class HudController {
       }
     }
 
-    // 1. Dual Analog Needles (RPM + Speedometer) + Gear / Digital Speed Readout
+    // 1. Dual Analog Needles (RPM + Speedometer) + Shift-Light LED + Gear / Digital Speed Readout
     const smooth = dt > 0 ? 1 - Math.exp(-dt * 16) : 1;
     this._displayRpm += (player.rpm - this._displayRpm) * smooth;
     this._displaySpeed += (player.speedKmh - this._displaySpeed) * smooth;
@@ -283,6 +286,10 @@ export class HudController {
     const rpmDeg = GAUGE_START_DEG + rpmRatio * GAUGE_SWEEP_DEG;
     if (this.rpmNeedleEl) {
       this.rpmNeedleEl.setAttribute('transform', `rotate(${rpmDeg.toFixed(2)} 100 100)`);
+    }
+
+    if (this.shiftLightEl) {
+      this.shiftLightEl.classList.toggle('active', this._displayRpm >= 7300);
     }
 
     const speedRatio = Math.max(0, Math.min(1, this._displaySpeed / SPEED_MAX));
@@ -356,73 +363,59 @@ export class HudController {
     const { w, h } = this.mapTransform;
     ctx.clearRect(0, 0, w, h);
 
-    // Subtle radar grid
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
-    ctx.lineWidth = 1;
-    for (let x = 38; x < w; x += 38) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
-    }
-    for (let y = 38; y < h; y += 38) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-    }
-
-    // Course outer shadow
+    // Authentic Initial D Arcade Stage frameless course trace:
+    // Thick obsidian casing + crisp bright-white touge ribbon
     ctx.beginPath();
     this.mapPolyline.forEach((p, i) => {
       if (i === 0) ctx.moveTo(p.x, p.y);
       else ctx.lineTo(p.x, p.y);
     });
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.28)';
-    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(8, 9, 12, 0.92)';
+    ctx.lineWidth = 8.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
 
-    // Course bright core
-    ctx.strokeStyle = '#64748b';
-    ctx.lineWidth = 2.6;
+    ctx.strokeStyle = '#e8ecf2';
+    ctx.lineWidth = 3.4;
     ctx.stroke();
 
-    // Finish marker
+    // Finish marker (racing yellow ring + red core)
     if (this.mapFinishPt) {
-      ctx.fillStyle = '#4ade80';
+      ctx.fillStyle = '#08090c';
       ctx.beginPath();
-      ctx.arc(this.mapFinishPt.x, this.mapFinishPt.y, 4.5, 0, Math.PI * 2);
+      ctx.arc(this.mapFinishPt.x, this.mapFinishPt.y, 6.2, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
+
+      ctx.fillStyle = '#ffd000';
+      ctx.beginPath();
+      ctx.arc(this.mapFinishPt.x, this.mapFinishPt.y, 4.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#e6192e';
+      ctx.beginPath();
+      ctx.arc(this.mapFinishPt.x, this.mapFinishPt.y, 2.0, 0, Math.PI * 2);
+      ctx.fill();
     }
 
-    // Rival dot
+    // Rival marker (solid rival color with crisp dark casing)
     const rPos = this._worldToMap(rival.x, rival.z);
     ctx.fillStyle = this.rivalColorHex;
     ctx.beginPath();
-    ctx.arc(rPos.x, rPos.y, 4.8, 0, Math.PI * 2);
+    ctx.arc(rPos.x, rPos.y, 5.2, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#090d16';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#08090c';
+    ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Player dot (bright cyan with glow ring)
+    // Player marker (1P motorsport blue + crisp white ring)
     const pPos = this._worldToMap(player.x, player.z);
-    ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+    ctx.fillStyle = '#2563eb';
     ctx.beginPath();
-    ctx.arc(pPos.x, pPos.y, 8.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#38bdf8';
-    ctx.beginPath();
-    ctx.arc(pPos.x, pPos.y, 4.8, 0, Math.PI * 2);
+    ctx.arc(pPos.x, pPos.y, 5.8, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.6;
+    ctx.lineWidth = 2;
     ctx.stroke();
   }
 }
