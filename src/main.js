@@ -8,7 +8,7 @@ import {
 } from './config.js?v=26';
 import { TougeTrack } from './track.js?v=13';
 import { buildTougeEnvironment } from './trackRenderer.js?v=19';
-import { loadCarModel } from './carModel.js?v=15';
+import { loadCarModel } from './carModel.js?v=16';
 import {
   createVehicleState,
   resetVehicleToSpawn,

@@ -224,6 +224,155 @@ export function createFallbackSportsCar({ isPlayer = true, bodyColor = 0xf8fafc,
 let _contactShadowTex = null;
 let _headlightBeamTex = null;
 let _softGlowTex = null;
+let _wheelBlurTex = null;
+
+function getWheelBlurTexture() {
+  if (_wheelBlurTex) return _wheelBlurTex;
+  const size = 128;
+  const c = document.createElement('canvas');
+  c.width = size;
+  c.height = size;
+  const ctx = c.getContext('2d');
+  const cx = size / 2;
+  const cy = size / 2;
+
+  // Soft outer spinning tire rubber blur ring
+  const tireGrad = ctx.createRadialGradient(cx, cy, 34, cx, cy, 62);
+  tireGrad.addColorStop(0.0, 'rgba(15, 18, 24, 0.0)');
+  tireGrad.addColorStop(0.15, 'rgba(20, 24, 32, 0.82)');
+  tireGrad.addColorStop(0.85, 'rgba(12, 15, 20, 0.88)');
+  tireGrad.addColorStop(1.0, 'rgba(10, 12, 16, 0.0)');
+  ctx.fillStyle = tireGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 62, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Inner dark metallic rim backing
+  const rimGrad = ctx.createRadialGradient(cx, cy, 4, cx, cy, 40);
+  rimGrad.addColorStop(0.0, 'rgba(30, 36, 46, 0.92)');
+  rimGrad.addColorStop(0.75, 'rgba(55, 64, 78, 0.72)');
+  rimGrad.addColorStop(0.95, 'rgba(180, 194, 212, 0.85)');
+  rimGrad.addColorStop(1.0, 'rgba(180, 194, 212, 0.0)');
+  ctx.fillStyle = rimGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 40, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Motion-blurred radial spoke arcs (clearly communicates high-speed rotation)
+  const spokes = 5;
+  for (let i = 0; i < spokes; i++) {
+    const startA = (i / spokes) * Math.PI * 2;
+    ctx.strokeStyle = 'rgba(226, 232, 240, 0.58)';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 24, startA, startA + 0.52);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.52)';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 24, startA + 0.58, startA + 1.05);
+    ctx.stroke();
+  }
+
+  // Subtle tire sidewall spinning highlight arcs
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+  ctx.lineWidth = 3;
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + 0.2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 50, a, a + 0.75);
+    ctx.stroke();
+  }
+
+  // Center hub nut
+  ctx.fillStyle = 'rgba(203, 213, 225, 0.85)';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+  ctx.fill();
+
+  _wheelBlurTex = new THREE.CanvasTexture(c);
+  _wheelBlurTex.colorSpace = THREE.SRGBColorSpace;
+  return _wheelBlurTex;
+}
+
+/**
+ * Automatically detects the 4 wheel positions from ground-contact vertices (y < 0.09)
+ * of a normalized merged GLB car and attaches lightweight spinning motion-blur discs.
+ */
+function attachWheelBlurDiscs(root, normalizedPivot, carSize) {
+  normalizedPivot.updateMatrixWorld(true);
+  const v = new THREE.Vector3();
+
+  let frontZSum = 0;
+  let frontCount = 0;
+  let rearZSum = 0;
+  let rearCount = 0;
+  let maxAbsX = 0;
+
+  normalizedPivot.traverse((obj) => {
+    if (!obj.isMesh || !obj.geometry?.attributes?.position) return;
+    const pos = obj.geometry.attributes.position;
+    const mat = obj.matrixWorld;
+    // Sample every 2nd vertex for fast load-time detection
+    const step = pos.count > 4000 ? 2 : 1;
+    for (let i = 0; i < pos.count; i += step) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(mat);
+      if (v.y < 0.09 && Math.abs(v.x) > 0.45) {
+        if (Math.abs(v.x) > maxAbsX) maxAbsX = Math.abs(v.x);
+        if (v.z > 0.25) {
+          frontZSum += v.z;
+          frontCount++;
+        } else if (v.z < -0.25) {
+          rearZSum += v.z;
+          rearCount++;
+        }
+      }
+    }
+  });
+
+  const frontZ = frontCount > 4 ? frontZSum / frontCount : carSize.z * 0.30;
+  const rearZ = rearCount > 4 ? rearZSum / rearCount : -carSize.z * 0.30;
+  const sideX = maxAbsX > 0.6 ? Math.min(carSize.x * 0.5, maxAbsX) + 0.025 : carSize.x * 0.47;
+  const radius = Math.max(0.30, Math.min(0.39, carSize.y * 0.21));
+
+  const discGeo = new THREE.PlaneGeometry(radius * 2.02, radius * 2.02);
+  const discMat = new THREE.MeshBasicMaterial({
+    map: getWheelBlurTexture(),
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+
+  const frontPivots = [];
+  const spinMeshes = [];
+
+  const defs = [
+    { x: -sideX, z: frontZ, isFront: true, rotY: -Math.PI / 2 },
+    { x: sideX, z: frontZ, isFront: true, rotY: Math.PI / 2 },
+    { x: -sideX, z: rearZ, isFront: false, rotY: -Math.PI / 2 },
+    { x: sideX, z: rearZ, isFront: false, rotY: Math.PI / 2 },
+  ];
+
+  for (const def of defs) {
+    const pivot = new THREE.Group();
+    pivot.position.set(def.x, radius, def.z);
+
+    const sideHolder = new THREE.Group();
+    sideHolder.rotation.y = def.rotY;
+
+    const disc = new THREE.Mesh(discGeo, discMat);
+    sideHolder.add(disc);
+    pivot.add(sideHolder);
+    root.add(pivot);
+
+    if (def.isFront) frontPivots.push(pivot);
+    spinMeshes.push({ mesh: disc, sign: def.x > 0 ? -1 : 1 });
+  }
+
+  return { discMat, frontPivots, spinMeshes, radius };
+}
 
 function getContactShadowTexture() {
   if (_contactShadowTex) return _contactShadowTex;
@@ -386,6 +535,7 @@ export async function loadCarModel({
 
   let isFallback = false;
   let fallbackRefs = null;
+  let wheelBlurRefs = null;
   let carSize = new THREE.Vector3(targetWidth, 1.35, 4.4);
 
   try {
@@ -398,6 +548,7 @@ export async function loadCarModel({
     const normalized = normalizeLoadedModel(gltf.scene, rotationY, targetWidth);
     visualBody.add(normalized.pivot);
     carSize = normalized.size;
+    wheelBlurRefs = attachWheelBlurDiscs(visualBody, normalized.pivot, carSize);
   } catch (_err) {
     // Graceful silent fallback when custom .glb is not yet placed in assets/models/
     isFallback = true;
@@ -445,13 +596,28 @@ export async function loadCarModel({
       }
     },
     updateWheelAnimation(steerRad, distanceMeters) {
-      if (!fallbackRefs) return;
-      for (const pivot of fallbackRefs.frontPivots) {
-        pivot.rotation.y = steerRad * 0.45;
+      if (fallbackRefs) {
+        for (const pivot of fallbackRefs.frontPivots) {
+          pivot.rotation.y = steerRad * 0.45;
+        }
+        const spinDelta = distanceMeters / 0.35;
+        for (const wheel of fallbackRefs.spinMeshes) {
+          wheel.rotation.x += spinDelta;
+        }
       }
-      const spinDelta = distanceMeters / 0.35;
-      for (const wheel of fallbackRefs.spinMeshes) {
-        wheel.rotation.x += spinDelta;
+      if (wheelBlurRefs) {
+        // Fade motion-blur disc in smoothly as speed builds (invisible when parked)
+        const speedApprox = Math.abs(distanceMeters) * 60;
+        const targetOpacity = Math.max(0, Math.min(0.86, (speedApprox - 2.5) / 14));
+        wheelBlurRefs.discMat.opacity += (targetOpacity - wheelBlurRefs.discMat.opacity) * 0.25;
+
+        for (const pivot of wheelBlurRefs.frontPivots) {
+          pivot.rotation.y = steerRad * 0.38;
+        }
+        const spinDelta = distanceMeters / wheelBlurRefs.radius;
+        for (const item of wheelBlurRefs.spinMeshes) {
+          item.mesh.rotation.z += spinDelta * item.sign;
+        }
       }
     },
   };
