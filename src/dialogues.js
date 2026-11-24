@@ -58,44 +58,44 @@ export const RIVAL_CUTSCENES = {
   },
 
   // ==========================================================================
-  // 2. ROOKIE 2 (초보 // BEGINNER — 타케시 하위 #2)
+  // 2. SHINGO (초보 // BEGINNER — 쇼지 신고 모티브, i30 FD)
   // ==========================================================================
-  rookie2: {
+  shingo: {
     intro: {
       enabled: true,
-      title: 'VS ROOKIE 2 // AKINA SPEED STARS',
-      characterImage: null, // 예: 'assets/cutscenes/rookie2.png'
+      title: 'VS SHINGO // NIGHT KIDS',
+      characterImage: null, // 예: 'assets/cutscenes/shingo.png'
       lines: [
         {
-          speaker: 'ROOKIE 2',
-          color: '#2dd4bf',
+          speaker: 'SHINGO',
+          color: '#ef4444',
           image: null,
-          text: '[ROOKIE 2 시작 전 대사 1 — src/dialogues.js에서 수정하세요]',
+          text: '[SHINGO 시작 전 대사 1 — src/dialogues.js에서 수정하세요]',
         },
         {
-          speaker: 'ROOKIE 2',
-          color: '#2dd4bf',
+          speaker: 'SHINGO',
+          color: '#ef4444',
           image: null,
-          text: '[ROOKIE 2 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
+          text: '[SHINGO 시작 전 대사 2 — 대화창을 클릭하면 레이스가 시작됩니다]',
         },
       ],
     },
     outro: {
       enabled: true,
-      title: 'AFTER BATTLE // ROOKIE 2',
+      title: 'AFTER BATTLE // SHINGO',
       characterImage: null,
       lines: [
         {
-          speaker: 'ROOKIE 2',
-          color: '#2dd4bf',
+          speaker: 'SHINGO',
+          color: '#ef4444',
           image: null,
-          text: '[ROOKIE 2 종료 후 대사 1 — src/dialogues.js에서 수정하세요]',
+          text: '[SHINGO 종료 후 대사 1 — src/dialogues.js에서 수정하세요]',
         },
         {
-          speaker: 'ROOKIE 2',
-          color: '#2dd4bf',
+          speaker: 'SHINGO',
+          color: '#ef4444',
           image: null,
-          text: '[ROOKIE 2 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
+          text: '[SHINGO 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
         },
       ],
     },

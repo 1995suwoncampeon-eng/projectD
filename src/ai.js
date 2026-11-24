@@ -126,6 +126,20 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   if (activeGutterSide !== 0) {
     // Line up directly with the inside drainage gutter for gutter-run cornering
     targetLateral = activeGutterSide * gutterRailLat;
+  } else if (ai.ffCorneringStyle) {
+    // FF (Front-Wheel Drive) cornering line:
+    // 1) Sharp lift-off tuck-in toward inside apex on corner entry
+    // 2) Power-on understeer pushing smoothly toward the outside on corner exit
+    const shortAhead = track.getUpcomingCurvature(rival.s, 6, 34);
+    const curAbs = Math.abs(curPt.curvature);
+    const exitingCorner = curAbs > 0.008 && shortAhead.peakAbs < curAbs * 0.82;
+    if (exitingCorner) {
+      const outsideDir = curPt.curvature > 0 ? 1 : -1;
+      targetLateral = outsideDir * (track.maxCarLateral * 0.68);
+    } else if (Math.abs(nearCurv.signedPeak) > curveThreshold) {
+      const insideDir = nearCurv.signedPeak > 0 ? -1 : 1;
+      targetLateral = insideDir * (track.maxCarLateral * apexRatio);
+    }
   } else if (Math.abs(nearCurv.signedPeak) > curveThreshold) {
     const insideDir = nearCurv.signedPeak > 0 ? -1 : 1;
     targetLateral = insideDir * (track.maxCarLateral * apexRatio);

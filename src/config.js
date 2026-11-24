@@ -9,7 +9,7 @@
  *  -Math.PI / 2 -> model front faces +X
  */
 
-import { RIVAL_CUTSCENES } from './dialogues.js?v=14';
+import { RIVAL_CUTSCENES } from './dialogues.js?v=15';
 
 // ============================================================================
 // 3D CAR MODEL SETTINGS (Edit here when dropping in custom .glb models)
@@ -95,35 +95,39 @@ export const RIVALS = [
     cutscenes: RIVAL_CUTSCENES.rookie1,
   },
   {
-    id: 'rookie2',
-    name: 'ROOKIE 2',
-    team: 'SPEED STARS',
+    id: 'shingo',
+    name: 'SHINGO',
+    team: 'NIGHT KIDS',
     difficulty: 'BEGINNER',
     difficultyKr: '초보',
     badgeClass: 'beginner',
-    carLabel: 'CUSTOM MODEL SLOT #2',
-    colorHex: '#14b8a6',
-    colorNum: 0x14b8a6,
-    accentHex: '#2dd4bf',
-    modelPath: null, // 추후 .glb 추가 시 'assets/models/<파일명>.glb' 지정
+    carLabel: 'HYUNDAI i30 (FD)',
+    colorHex: '#dc2626',
+    colorNum: 0xdc2626,
+    accentHex: '#ef4444',
+    modelPath: null, // 추후 빨간 11년식 i30(FD) .glb 추가 시 경로 지정
     modelRotationY: Math.PI / 2,
-    tagline: '기본기를 다진 초보 라이벌. 직선에서는 꾸준히 밀어붙이지만 코너 진입이 보수적입니다.',
+    tagline: '빨간 1세대 i30(FD)를 모는 FF 드라이버. 진입 턱인과 탈출 언더스티어가 뚜렷한 전륜구동 코너링을 구사합니다.',
     stats: {
       topSpeedKmh: 108,
-      corneringStability: 0.70,
-      accelFactor: 0.75,
-      aggression: 0.55,
+      corneringStability: 0.72,
+      accelFactor: 0.76,
+      aggression: 0.74,
     },
     ai: {
       maxSpeedKmh: 108,
-      accel: 3.75,
-      cornerSpeedFactor: 0.70,
+      accel: 3.85,
+      cornerSpeedFactor: 0.72,
+      ffCorneringStyle: true,
+      noDrift: true, // FF hatchback: front-wheel tuck-in & power understeer instead of FR drift
+      apexRatio: 0.72,
+      maxLateralRatio: 0.84,
       lookAheadBase: 16.5,
-      rubberBandCatchup: 0.07,
-      rubberBandEase: 0.15,
-      laneBias: 1.9,
+      rubberBandCatchup: 0.08,
+      rubberBandEase: 0.14,
+      laneBias: 1.7,
     },
-    cutscenes: RIVAL_CUTSCENES.rookie2,
+    cutscenes: RIVAL_CUTSCENES.shingo,
   },
   {
     id: 'takeshi',
