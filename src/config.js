@@ -105,8 +105,9 @@ export const RIVALS = [
     colorHex: '#dc2626',
     colorNum: 0xdc2626,
     accentHex: '#ef4444',
-    modelPath: null, // 추후 빨간 11년식 i30(FD) .glb 추가 시 경로 지정
+    modelPath: 'assets/models/i30_FD.glb',
     modelRotationY: Math.PI / 2,
+    taillights: { x: 0.72, y: 1.04, zOffset: 0.06, width: 0.42, height: 0.56 },
     tagline: '빨간 1세대 i30(FD)를 모는 FF 드라이버. 진입 턱인과 탈출 언더스티어가 뚜렷한 전륜구동 코너링을 구사합니다.',
     stats: {
       topSpeedKmh: 108,
@@ -220,8 +221,9 @@ export const RIVALS = [
     colorHex: '#d97706',
     colorNum: 0xd97706,
     accentHex: '#fb923c',
-    modelPath: null, // 추후 기아 봉고 3 4WD .glb 추가 시 경로 지정
+    modelPath: 'assets/models/Bongo3.glb',
     modelRotationY: Math.PI / 2,
+    taillights: { x: 0.62, y: 0.80, zOffset: 0.02, width: 0.46, height: 0.24 },
     tagline: '과감한 풀브레이킹·풀악셀 그립 주행과 5연속 헤어핀 아웃-인 스핀턴을 구사하는 상급 라이벌입니다.',
     stats: {
       topSpeedKmh: 140,
