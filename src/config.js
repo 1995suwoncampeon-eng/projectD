@@ -108,6 +108,7 @@ export const RIVALS = [
     modelPath: 'assets/models/i30_FD.glb',
     modelRotationY: Math.PI / 2,
     taillights: { x: 0.72, y: 1.04, zOffset: 0.06, width: 0.42, height: 0.56 },
+    wheelStyle: { rimColor: '#9ca3af', spokeColor: '#788292', hubColor: '#cbd5e1', spokes: 5 },
     tagline: '빨간 1세대 i30(FD)를 모는 FF 드라이버. 진입 턱인과 탈출 언더스티어가 뚜렷한 전륜구동 코너링을 구사합니다.',
     stats: {
       topSpeedKmh: 108,
@@ -144,6 +145,7 @@ export const RIVALS = [
     accentHex: '#60a5fa',
     modelPath: 'assets/models/Bongo.glb',
     modelRotationY: Math.PI / 2,
+    wheelStyle: { rimColor: '#64748b', spokeColor: '#3f4a5a', hubColor: '#94a3b8', spokes: 6, isSteel: true },
     tagline: '코너 진입 시 급감속 후 인코스를 파고들어 풀가속과 터보 부스트로 탈출하는 그립 주행 중급 라이벌입니다.',
     stats: {
       topSpeedKmh: 130,
@@ -186,6 +188,7 @@ export const RIVALS = [
     modelPath: 'assets/models/New_GenCup.glb',
     modelRotationY: Math.PI / 2,
     taillights: { x: 0.65, y: 1.01, zOffset: 0.04, width: 0.72, height: 0.36 },
+    wheelStyle: { rimColor: '#cbd5e1', spokeColor: '#94a3b8', hubColor: '#e2e8f0', spokes: 10, caliperColor: '#dc2626' },
     tagline: '강력한 탈출 가속과 과감한 드리프트로 압박하는 중급 라이벌입니다.',
     stats: {
       topSpeedKmh: 125,
@@ -225,6 +228,7 @@ export const RIVALS = [
     modelPath: 'assets/models/Bongo3.glb',
     modelRotationY: Math.PI / 2,
     taillights: { x: 0.62, y: 0.80, zOffset: 0.02, width: 0.46, height: 0.24 },
+    wheelStyle: { rimColor: '#4b5563', spokeColor: '#272e3a', hubColor: '#6b7280', spokes: 6, isSteel: true },
     tagline: '과감한 풀브레이킹·풀악셀 그립 주행과 5연속 헤어핀 아웃-인 스핀턴을 구사하는 상급 라이벌입니다.',
     stats: {
       topSpeedKmh: 140,
@@ -263,6 +267,7 @@ export const RIVALS = [
     modelPath: 'assets/models/Old_GenCup.glb',
     modelRotationY: Math.PI / 2,
     taillights: { x: 0.61, y: 0.97, zOffset: 0.04, width: 0.68, height: 0.34 },
+    wheelStyle: { rimColor: '#f1f5f9', spokeColor: '#cbd5e1', hubColor: '#ffffff', spokes: 10 },
     tagline: '정밀한 에이펙스 공략과 완벽한 코너링 안정성을 갖춘 고수 라이벌입니다.',
     stats: {
       topSpeedKmh: 110,
@@ -348,6 +353,7 @@ export const RIVALS = [
     modelPath: 'assets/models/Mohavi.glb',
     modelRotationY: Math.PI / 2,
     taillights: { x: 0.72, y: 1.14, zOffset: 0.02, width: 0.48, height: 0.46 },
+    wheelStyle: { rimColor: '#facc15', spokeColor: '#eab308', hubColor: '#fef08a', spokes: 5 },
     tagline: '아키나 최속의 전설. 도랑타기 라인으로 코너를 파고드는 최강 GOD 라이벌입니다.',
     stats: {
       topSpeedKmh: 110,

@@ -220,14 +220,24 @@ export function createFallbackSportsCar({ isPlayer = true, bodyColor = 0xf8fafc,
   };
 }
 
-// Cached procedural textures shared across all car instances (zero per-frame cost)
+// Cached procedural textures shared across car instances (zero per-frame cost)
 let _contactShadowTex = null;
 let _headlightBeamTex = null;
 let _softGlowTex = null;
-let _wheelBlurTex = null;
+const _wheelBlurTexCache = new Map();
 
-function getWheelBlurTexture() {
-  if (_wheelBlurTex) return _wheelBlurTex;
+function getWheelBlurTexture(wheelStyle = null) {
+  const style = {
+    rimColor: wheelStyle?.rimColor ?? '#cbd5e1',
+    spokeColor: wheelStyle?.spokeColor ?? '#e2e8f0',
+    hubColor: wheelStyle?.hubColor ?? '#94a3b8',
+    spokes: wheelStyle?.spokes ?? 5,
+    caliperColor: wheelStyle?.caliperColor ?? null,
+    isSteel: Boolean(wheelStyle?.isSteel),
+  };
+  const key = JSON.stringify(style);
+  if (_wheelBlurTexCache.has(key)) return _wheelBlurTexCache.get(key);
+
   const size = 128;
   const c = document.createElement('canvas');
   c.width = size;
@@ -239,68 +249,107 @@ function getWheelBlurTexture() {
   // Soft outer spinning tire rubber blur ring
   const tireGrad = ctx.createRadialGradient(cx, cy, 34, cx, cy, 62);
   tireGrad.addColorStop(0.0, 'rgba(15, 18, 24, 0.0)');
-  tireGrad.addColorStop(0.15, 'rgba(20, 24, 32, 0.82)');
-  tireGrad.addColorStop(0.85, 'rgba(12, 15, 20, 0.88)');
+  tireGrad.addColorStop(0.14, 'rgba(20, 24, 30, 0.88)');
+  tireGrad.addColorStop(0.86, 'rgba(12, 15, 20, 0.92)');
   tireGrad.addColorStop(1.0, 'rgba(10, 12, 16, 0.0)');
   ctx.fillStyle = tireGrad;
   ctx.beginPath();
   ctx.arc(cx, cy, 62, 0, Math.PI * 2);
   ctx.fill();
 
-  // Inner dark metallic rim backing
-  const rimGrad = ctx.createRadialGradient(cx, cy, 4, cx, cy, 40);
-  rimGrad.addColorStop(0.0, 'rgba(30, 36, 46, 0.92)');
-  rimGrad.addColorStop(0.75, 'rgba(55, 64, 78, 0.72)');
-  rimGrad.addColorStop(0.95, 'rgba(180, 194, 212, 0.85)');
-  rimGrad.addColorStop(1.0, 'rgba(180, 194, 212, 0.0)');
-  ctx.fillStyle = rimGrad;
+  // Inner dark brake/wheel barrel backing
+  ctx.fillStyle = style.isSteel ? 'rgba(24, 28, 34, 0.96)' : 'rgba(18, 22, 28, 0.92)';
   ctx.beginPath();
-  ctx.arc(cx, cy, 40, 0, Math.PI * 2);
+  ctx.arc(cx, cy, 39, 0, Math.PI * 2);
   ctx.fill();
 
-  // Motion-blurred radial spoke arcs (clearly communicates high-speed rotation)
-  const spokes = 5;
-  for (let i = 0; i < spokes; i++) {
-    const startA = (i / spokes) * Math.PI * 2;
-    ctx.strokeStyle = 'rgba(226, 232, 240, 0.58)';
-    ctx.lineWidth = 10;
+  // Optional subtle brake caliper glimpse behind spokes (e.g. New_GenCup red Brembo)
+  if (style.caliperColor) {
+    ctx.fillStyle = style.caliperColor;
+    ctx.globalAlpha = 0.55;
     ctx.beginPath();
-    ctx.arc(cx, cy, 24, startA, startA + 0.52);
-    ctx.stroke();
+    ctx.arc(cx + 12, cy - 6, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+  }
 
-    ctx.strokeStyle = 'rgba(15, 23, 42, 0.52)';
-    ctx.lineWidth = 8;
+  // Outer metallic rim lip ring in vehicle's own rim color
+  ctx.strokeStyle = style.rimColor;
+  ctx.lineWidth = style.isSteel ? 6 : 4.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 37, 0, Math.PI * 2);
+  ctx.stroke();
+
+  if (style.isSteel) {
+    // Commercial steel wheel face with lug-vent holes
+    ctx.fillStyle = style.spokeColor;
     ctx.beginPath();
-    ctx.arc(cx, cy, 24, startA + 0.58, startA + 1.05);
-    ctx.stroke();
+    ctx.arc(cx, cy, 34, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(10, 13, 18, 0.82)';
+    for (let i = 0; i < style.spokes; i++) {
+      const a = (i / style.spokes) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a) * 23, cy + Math.sin(a) * 23, 5.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else {
+    // Alloy wheel spokes + soft motion-blur trail arcs matching each car's spoke count & color
+    const spokes = style.spokes;
+    const spokeW = spokes >= 8 ? 4.2 : 7.5;
+    for (let i = 0; i < spokes; i++) {
+      const a = (i / spokes) * Math.PI * 2;
+      // Soft motion-blur trailing arc
+      ctx.strokeStyle = style.spokeColor;
+      ctx.globalAlpha = 0.34;
+      ctx.lineWidth = spokes >= 8 ? 7 : 10;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 23, a - 0.22, a + 0.36);
+      ctx.stroke();
+
+      // Crisp radial spoke bar
+      ctx.globalAlpha = 0.92;
+      ctx.strokeStyle = style.spokeColor;
+      ctx.lineWidth = spokeW;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * 8, cy + Math.sin(a) * 8);
+      ctx.lineTo(cx + Math.cos(a) * 35, cy + Math.sin(a) * 35);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1.0;
   }
 
   // Subtle tire sidewall spinning highlight arcs
-  ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.24)';
   ctx.lineWidth = 3;
   for (let i = 0; i < 4; i++) {
     const a = (i / 4) * Math.PI * 2 + 0.2;
     ctx.beginPath();
-    ctx.arc(cx, cy, 50, a, a + 0.75);
+    ctx.arc(cx, cy, 50, a, a + 0.72);
     ctx.stroke();
   }
 
-  // Center hub nut
-  ctx.fillStyle = 'rgba(203, 213, 225, 0.85)';
+  // Center hub cap
+  ctx.fillStyle = style.hubColor;
   ctx.beginPath();
-  ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+  ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 3.2, 0, Math.PI * 2);
   ctx.fill();
 
-  _wheelBlurTex = new THREE.CanvasTexture(c);
-  _wheelBlurTex.colorSpace = THREE.SRGBColorSpace;
-  return _wheelBlurTex;
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  _wheelBlurTexCache.set(key, tex);
+  return tex;
 }
 
 /**
  * Automatically detects the 4 wheel positions from ground-contact vertices (y < 0.09)
- * of a normalized merged GLB car and attaches lightweight spinning motion-blur discs.
+ * of a normalized merged GLB car and attaches per-vehicle spinning wheel discs.
  */
-function attachWheelBlurDiscs(root, normalizedPivot, carSize) {
+function attachWheelBlurDiscs(root, normalizedPivot, carSize, wheelStyle = null) {
   normalizedPivot.updateMatrixWorld(true);
   const v = new THREE.Vector3();
 
@@ -338,7 +387,7 @@ function attachWheelBlurDiscs(root, normalizedPivot, carSize) {
 
   const discGeo = new THREE.PlaneGeometry(radius * 2.02, radius * 2.02);
   const discMat = new THREE.MeshBasicMaterial({
-    map: getWheelBlurTexture(),
+    map: getWheelBlurTexture(wheelStyle),
     transparent: true,
     opacity: 0,
     depthWrite: false,
@@ -525,6 +574,7 @@ export async function loadCarModel({
   bodyColor = 0xf8fafc,
   accentColor = 0x38bdf8,
   taillights = null,
+  wheelStyle = null,
 }) {
   const root = new THREE.Group();
   root.name = isPlayer ? 'PlayerCarRoot' : 'RivalCarRoot';
@@ -548,7 +598,7 @@ export async function loadCarModel({
     const normalized = normalizeLoadedModel(gltf.scene, rotationY, targetWidth);
     visualBody.add(normalized.pivot);
     carSize = normalized.size;
-    wheelBlurRefs = attachWheelBlurDiscs(visualBody, normalized.pivot, carSize);
+    wheelBlurRefs = attachWheelBlurDiscs(visualBody, normalized.pivot, carSize, wheelStyle);
   } catch (_err) {
     // Graceful silent fallback when custom .glb is not yet placed in assets/models/
     isFallback = true;
