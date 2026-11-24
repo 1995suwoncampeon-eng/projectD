@@ -8,7 +8,7 @@ import {
 } from './config.js?v=26';
 import { TougeTrack } from './track.js?v=13';
 import { buildTougeEnvironment } from './trackRenderer.js?v=19';
-import { loadCarModel } from './carModel.js?v=16';
+import { loadCarModel } from './carModel.js?v=17';
 import {
   createVehicleState,
   resetVehicleToSpawn,
@@ -653,7 +653,7 @@ class ProjectDGame {
       this.playerCar.visualBody.rotation.y = this.player.visualSlip;
       this.playerCar.visualBody.rotation.z = this.player.bodyRoll;
       this.playerCar.setBrakeIntensity(this.player.isBraking ? 1 : 0);
-      this.playerCar.updateWheelAnimation(this.player.steerVisual, this.player.speed * dt);
+      this.playerCar.updateWheelAnimation(this.player.steerVisual, this.player.speed * dt, this.player.speedKmh);
     }
 
     if (this.rivalCar) {
@@ -666,7 +666,7 @@ class ProjectDGame {
       this.rivalCar.visualBody.rotation.y = this.rival.visualSlip;
       this.rivalCar.visualBody.rotation.z = this.rival.bodyRoll;
       this.rivalCar.setBrakeIntensity(this.rival.isBraking ? 1 : 0);
-      this.rivalCar.updateWheelAnimation(this.rival.steerVisual, this.rival.speed * dt);
+      this.rivalCar.updateWheelAnimation(this.rival.steerVisual, this.rival.speed * dt, this.rival.speedKmh);
     }
   }
 

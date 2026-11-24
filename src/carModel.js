@@ -595,7 +595,7 @@ export async function loadCarModel({
         fallbackRefs.taillightMat.emissiveIntensity = (isDayMode ? 0.45 : 1.2) + clamped * 2.4;
       }
     },
-    updateWheelAnimation(steerRad, distanceMeters) {
+    updateWheelAnimation(steerRad, distanceMeters, speedKmh = null) {
       if (fallbackRefs) {
         for (const pivot of fallbackRefs.frontPivots) {
           pivot.rotation.y = steerRad * 0.45;
@@ -606,10 +606,10 @@ export async function loadCarModel({
         }
       }
       if (wheelBlurRefs) {
-        // Fade motion-blur disc in smoothly as speed builds (invisible when parked)
-        const speedApprox = Math.abs(distanceMeters) * 60;
-        const targetOpacity = Math.max(0, Math.min(0.86, (speedApprox - 2.5) / 14));
-        wheelBlurRefs.discMat.opacity += (targetOpacity - wheelBlurRefs.discMat.opacity) * 0.25;
+        const kmh = speedKmh !== null ? Math.abs(speedKmh) : Math.abs(distanceMeters) * 60 * 3.6;
+        // Show wheel spin effect whenever moving (speed >= 1 km/h), hide cleanly when stopped
+        const targetOpacity = kmh >= 1 ? 0.9 : 0;
+        wheelBlurRefs.discMat.opacity += (targetOpacity - wheelBlurRefs.discMat.opacity) * 0.32;
 
         for (const pivot of wheelBlurRefs.frontPivots) {
           pivot.rotation.y = steerRad * 0.38;
