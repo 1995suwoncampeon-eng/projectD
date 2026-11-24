@@ -153,8 +153,7 @@ export const RIVALS = [
       hardBrakeDecel: 24.0,
       apexRatio: 0.78,
       maxLateralRatio: 0.86,
-      driftCurvatureThreshold: 0.024, // Grip-focused driving style
-      driftSlipRad: 0.14,
+      noDrift: true, // Strictly pure grip driving — never drifts
       twinTurboBoost: {
         boostKmh: 24,
         boostAccelMult: 1.95,

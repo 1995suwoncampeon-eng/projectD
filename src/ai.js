@@ -262,7 +262,7 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     ? track.getUpcomingCurvature(rival.s, 0, 24).signedPeak
     : proj.curvature;
   const effectiveCurv = Math.abs(proj.curvature) >= Math.abs(entryCurv) ? proj.curvature : entryCurv;
-  const aiDrifting = !rival.inGutter && Math.abs(effectiveCurv) > driftThreshold && speedKmh > 52;
+  const aiDrifting = !ai.noDrift && !rival.inGutter && Math.abs(effectiveCurv) > driftThreshold && speedKmh > 52;
   rival.isDrifting = aiDrifting;
   rival.driftDir = aiDrifting ? Math.sign(effectiveCurv) : 0;
 
