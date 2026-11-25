@@ -5,7 +5,7 @@ import {
   RIVAL_MODEL_PATH,
   PLAYER_THEME,
   RIVALS,
-} from './config.js?v=27';
+} from './config.js?v=28';
 import { TougeTrack } from './track.js?v=13';
 import { buildTougeEnvironment } from './trackRenderer.js?v=19';
 import { loadCarModel } from './carModel.js?v=18';
@@ -15,12 +15,12 @@ import {
   recoverVehicleToTrack,
   updatePlayerPhysics,
   resolveCarCollision,
-} from './physics.js?v=26';
+} from './physics.js?v=27';
 import { updateRivalAI } from './ai.js?v=20';
 import { EffectsManager } from './effects.js?v=15';
 import { ArcadeAudio } from './audio.js?v=14';
 import { HudController } from './hud.js?v=2';
-import { UIController } from './ui.js?v=26';
+import { UIController } from './ui.js?v=27';
 
 class ProjectDGame {
   constructor() {
@@ -711,9 +711,12 @@ class ProjectDGame {
       this.camera.fov += (56 - this.camera.fov) * smooth;
       this.camRoll += (0 - this.camRoll) * smooth;
     } else {
-      // COUNTDOWN & RACING: Natural chase cam following true visual downhill elevation y(s)
-      const fx = Math.sin(this.player.heading);
-      const fz = Math.cos(this.player.heading);
+      // COUNTDOWN & RACING: Natural chase cam following blended trajectory + nose heading
+      // so sideways drifts visibly kick the rear out like a real touge chase camera
+      const slipAngle = this.player.slipAngle || 0;
+      const camHeading = this.player.heading - slipAngle * 0.55;
+      const fx = Math.sin(camHeading);
+      const fz = Math.cos(camHeading);
       const rx = -fz;
       const rz = fx;
 
@@ -721,7 +724,7 @@ class ProjectDGame {
       const camDist = 7.9 + speedNorm * 1.0;
       const camHeightOffset = 3.15 + speedNorm * 0.22;
       const lookAhead = 14.0 + speedNorm * 2.5;
-      const driftSideSwing = this.player.visualSlip * 2.1;
+      const driftSideSwing = slipAngle * 1.65;
 
       const behindY = this.track.getElevationAtS(Math.max(0, this.player.s - camDist));
       const aheadY = this.track.getElevationAtS(Math.min(this.track.totalLength, this.player.s + lookAhead));
@@ -737,14 +740,14 @@ class ProjectDGame {
         this.player.z + fz * lookAhead
       );
 
-      this.camPos.lerp(desiredPos, 1 - Math.exp(-dt * 9.5));
-      this.camLook.lerp(desiredLook, 1 - Math.exp(-dt * 12.0));
+      this.camPos.lerp(desiredPos, 1 - Math.exp(-dt * 8.5));
+      this.camLook.lerp(desiredLook, 1 - Math.exp(-dt * 11.5));
 
       const targetFov = 60 + speedNorm * 8 + (this.player.driftBoostTimer > 0 ? 3 : 0);
       this.camera.fov += (targetFov - this.camera.fov) * smooth;
 
-      // Subtle downhill cornering camera bank (capped ~1.8 deg)
-      const targetRoll = Math.max(-0.032, Math.min(0.032, -this.player.visualSlip * 0.065));
+      // Subtle downhill cornering camera bank (capped ~2.0 deg)
+      const targetRoll = Math.max(-0.035, Math.min(0.035, -slipAngle * 0.055));
       this.camRoll += (targetRoll - this.camRoll) * smooth;
     }
 

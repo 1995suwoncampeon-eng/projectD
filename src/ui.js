@@ -1,4 +1,4 @@
-import { RIVALS } from './config.js?v=27';
+import { RIVALS } from './config.js?v=28';
 import { formatRaceTime } from './hud.js?v=2';
 
 const STORAGE_KEY_PREFIX = 'projectD_bestTime_';

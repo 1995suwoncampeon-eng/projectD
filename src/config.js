@@ -49,13 +49,22 @@ export const PLAYER_PHYSICS = {
     { gear: '4', minKmh: 48, maxKmh: 91,  upshiftKmh: 90,  downshiftKmh: 59, torqueMult: 0.38, minRpm: 4700, maxRpm: 8450 },
     { gear: '5', minKmh: 72, maxKmh: 108, upshiftKmh: 999, downshiftKmh: 82, torqueMult: 0.28, minRpm: 5200, maxRpm: 8550 },
   ],
-  steerRate: 2.25,         // rad/s base grip turn rate
-  driftSteerBoost: 1.45,   // extra yaw authority while drifting
-  driftMinSpeedKmh: 32,    // minimum speed to engage drift
-  driftDrag: 1.35,         // mild speed bleed during deep drift
-  driftBoostMaxKmh: 8,     // brief exit boost after clean drift
-  maxVisualSlipRad: 0.42,  // car body yaw slip angle during drift (~24 deg)
-  wallSpeedKeep: 0.84,     // speed retention on guardrail scrape
+  steerRate: 1.92,             // rad/s base grip turn rate (calmer, less twitchy than 2.25)
+  steerBuildRate: 5.2,         // steering wheel turn-in ramp speed (1/s)
+  steerCounterRate: 9.5,       // faster steering sweep when crossing center / counter-steering
+  steerReturnRate: 7.5,        // self-centering speed when releasing steering input
+  yawAccelGrip: 11.0,          // rotational inertia response in normal grip
+  yawAccelDrift: 7.5,          // rotational inertia response while sliding
+  gripAlignRate: 9.5,          // how fast velocity aligns with nose in grip
+  driftAlignRate: 2.35,        // lower lateral grip during drift -> genuine sideways slide
+  driftRecoveryAlignRate: 5.6, // smooth grip bite when exiting a drift
+  maxSlipAngleRad: 0.50,       // max real physical drift slip (~28.6 deg, dramatic yet controllable)
+  driftSteerBoost: 1.38,       // yaw authority while drifting
+  driftMinSpeedKmh: 30,        // minimum speed to engage drift
+  driftDrag: 1.15,             // mild speed bleed during deep drift
+  driftBoostMaxKmh: 8,         // brief exit boost after clean drift
+  maxVisualSlipRad: 0.46,      // max visual body slip readout cap
+  wallSpeedKeep: 0.84,         // speed retention on guardrail scrape
   carCollisionRadius: 1.32,
 };
 

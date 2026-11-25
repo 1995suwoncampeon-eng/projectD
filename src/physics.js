@@ -1,4 +1,4 @@
-import { PLAYER_PHYSICS } from './config.js?v=27';
+import { PLAYER_PHYSICS } from './config.js?v=28';
 import { wrapAngle } from './track.js';
 
 const KMH_TO_MS = 1 / 3.6;
@@ -10,8 +10,12 @@ export function createVehicleState(track, startS, lateralOffset = 0) {
     x: spawn.x,
     z: spawn.z,
     heading: spawn.heading,
-    speed: 0, // m/s (forward along heading)
+    travelHeading: spawn.heading, // actual 2D velocity direction (separates from heading during drift)
+    speed: 0, // m/s (along travelHeading)
     speedKmh: 0,
+    steerInput: 0,  // smoothed steering wheel angle (-1..+1)
+    yawRate: 0,     // current angular velocity (rad/s) for rotational inertia
+    slipAngle: 0,   // physical slip angle = wrapAngle(heading - travelHeading)
     steerVisual: 0,
     visualSlip: 0,
     bodyRoll: 0,
@@ -45,8 +49,12 @@ export function resetVehicleToSpawn(car, track, startS, lateralOffset = 0) {
   car.x = spawn.x;
   car.z = spawn.z;
   car.heading = spawn.heading;
+  car.travelHeading = spawn.heading;
   car.speed = 0;
   car.speedKmh = 0;
+  car.steerInput = 0;
+  car.yawRate = 0;
+  car.slipAngle = 0;
   car.steerVisual = 0;
   car.visualSlip = 0;
   car.bodyRoll = 0;
@@ -81,9 +89,13 @@ export function recoverVehicleToTrack(car, track) {
   car.x = pt.x;
   car.z = pt.z;
   car.heading = pt.heading;
+  car.travelHeading = pt.heading;
   car.trackIndex = pt.index;
   car.s = pt.s;
   car.lateral = 0;
+  car.steerInput = 0;
+  car.yawRate = 0;
+  car.slipAngle = 0;
   car.isDrifting = false;
   car.driftDir = 0;
   car.driftCharge = 0;
@@ -154,10 +166,15 @@ export function enforceTrackBounds(car, track, dt = 1 / 60, wallFriction = 1.65)
     car.lateral = clampedLat;
 
     if (!proj.noGuardrail) {
-      // Gently redirect heading back along road tangent (arcade wall-slide)
+      // Gently redirect heading & travel momentum back along road tangent (arcade wall-slide)
       const headingErr = wrapAngle(proj.heading - car.heading);
       const alignFactor = 1 - Math.exp(-dt * 14);
       car.heading = wrapAngle(car.heading + headingErr * Math.max(0.28, alignFactor));
+      if (car.travelHeading !== undefined) {
+        const travelErr = wrapAngle(proj.heading - car.travelHeading);
+        car.travelHeading = wrapAngle(car.travelHeading + travelErr * Math.max(0.35, alignFactor));
+      }
+      car.yawRate = (car.yawRate || 0) * 0.65;
 
       // Frame-rate independent arcade scrape drag (scales with impact angle)
       const impactSeverity = 0.45 + Math.min(1, Math.abs(Math.sin(headingErr)) * 2.2);
@@ -177,15 +194,37 @@ export function enforceTrackBounds(car, track, dt = 1 / 60, wallFriction = 1.65)
 }
 
 /**
- * Pure 2D (X, Z) arcade driving physics step for the Player vehicle.
+ * Pure 2D (X, Z) simcade driving physics step for the Player vehicle.
+ * Features progressive steering ramp, yaw rotational inertia, and
+ * true velocity-heading separation (slip angle) for tangible drifts.
  */
 export function updatePlayerPhysics(car, input, track, dt) {
   const cfg = PLAYER_PHYSICS;
   const throttle = input.up ? 1 : 0;
   const brake = input.down ? 1 : 0;
   // Positive steer = LEFT (+heading), Negative steer = RIGHT (-heading)
-  const steer = (input.left ? 1 : 0) - (input.right ? 1 : 0);
+  const rawSteer = (input.left ? 1 : 0) - (input.right ? 1 : 0);
   const wantDrift = Boolean(input.drift);
+
+  // Smooth steering wheel ramp (prevents snappy binary jerks on keyboard & touch)
+  const prevSteer = car.steerInput ?? 0;
+  let steerStepRate = cfg.steerBuildRate ?? 5.2;
+  if (rawSteer === 0) {
+    steerStepRate = cfg.steerReturnRate ?? 7.5;
+  } else if (prevSteer !== 0 && Math.sign(rawSteer) !== Math.sign(prevSteer)) {
+    steerStepRate = cfg.steerCounterRate ?? 9.5;
+  }
+  const steerDelta = rawSteer - prevSteer;
+  const maxSteerStep = steerStepRate * dt;
+  if (Math.abs(steerDelta) <= maxSteerStep) {
+    car.steerInput = rawSteer;
+  } else {
+    car.steerInput = prevSteer + Math.sign(steerDelta) * maxSteerStep;
+  }
+
+  // Non-linear progressive steering curve: fine control on quick taps, full authority when held
+  const sAbs = Math.abs(car.steerInput);
+  const steer = Math.sign(car.steerInput) * (0.42 * sAbs + 0.58 * sAbs * sAbs);
 
   // Decay drift exit boost & upshift cut timers
   if (car.driftBoostTimer > 0) {
@@ -231,22 +270,23 @@ export function updatePlayerPhysics(car, input, track, dt) {
     }
   }
 
-  // Arcade Drift State Machine
+  // Simcade Drift State Machine
   const speedKmh = car.speed * MS_TO_KMH;
   const canDrift = wantDrift && speedKmh >= cfg.driftMinSpeedKmh;
 
-  if (canDrift && (Math.abs(steer) > 0.05 || car.isDrifting)) {
+  if (canDrift && (Math.abs(rawSteer) > 0.05 || Math.abs(car.steerInput) > 0.12 || car.isDrifting)) {
     if (!car.isDrifting) {
       car.isDrifting = true;
-      car.driftDir = steer !== 0 ? Math.sign(steer) : 0;
-    } else if (car.driftDir === 0 && steer !== 0) {
-      car.driftDir = Math.sign(steer);
+      car.driftDir = rawSteer !== 0 ? Math.sign(rawSteer) : Math.sign(car.steerInput);
+    } else if (car.driftDir === 0 && rawSteer !== 0) {
+      car.driftDir = Math.sign(rawSteer);
     }
 
     // Drift builds charge for a crisp exit boost
     car.driftCharge = Math.min(1.0, car.driftCharge + dt * 0.68);
-    // Slight arcade speed bleed while sliding deep
-    car.speed = Math.max(cfg.driftMinSpeedKmh * 0.85 * KMH_TO_MS, car.speed - cfg.driftDrag * dt);
+    // Speed scrub scales slightly with real slip angle for natural feel
+    const slipScrub = 0.65 + 0.7 * Math.min(1, Math.abs(car.slipAngle || 0) / (cfg.maxSlipAngleRad ?? 0.5));
+    car.speed = Math.max(cfg.driftMinSpeedKmh * 0.82 * KMH_TO_MS, car.speed - cfg.driftDrag * slipScrub * dt);
   } else {
     if (car.isDrifting && car.driftCharge > 0.32 && throttle > 0) {
       car.driftBoostTimer = 0.85;
@@ -256,20 +296,25 @@ export function updatePlayerPhysics(car, input, track, dt) {
     car.driftCharge = Math.max(0, car.driftCharge - dt * 1.8);
   }
 
-  // Steering angular velocity (speed-responsive, extra authority when drifting)
+  // Steering angular velocity with yaw rotational inertia
   const speedFactor = Math.min(1, Math.abs(car.speed) / 9.5);
   const reverseSign = car.speed >= -0.1 ? 1 : -1;
 
-  let turnRate = 0;
+  let targetTurnRate = 0;
   if (car.isDrifting && car.driftDir !== 0) {
-    // Allow subtle counter-steering to widen or tighten the drift arc smoothly
-    const driftSteer = steer === 0 ? car.driftDir * 0.42 : steer * 0.78 + car.driftDir * 0.48;
-    turnRate = driftSteer * cfg.steerRate * cfg.driftSteerBoost * speedFactor;
+    // Counter-steering widens the arc smoothly; steering into the turn deepens the slide
+    const driftSteer = rawSteer === 0
+      ? car.driftDir * 0.36
+      : steer * 0.85 + car.driftDir * 0.42;
+    targetTurnRate = driftSteer * cfg.steerRate * cfg.driftSteerBoost * speedFactor;
   } else {
-    // Slight high-speed stability damping on straights
-    const highSpeedDamp = 1 - Math.min(0.28, (Math.max(0, speedKmh - 50) / 60) * 0.28);
-    turnRate = steer * cfg.steerRate * highSpeedDamp * speedFactor * reverseSign;
+    // Stronger high-speed stability damping on straights for calm, planted feel
+    const highSpeedDamp = 1 - Math.min(0.36, (Math.max(0, speedKmh - 42) / 62) * 0.36);
+    targetTurnRate = steer * cfg.steerRate * highSpeedDamp * speedFactor * reverseSign;
   }
+
+  const yawAccel = car.isDrifting ? (cfg.yawAccelDrift ?? 7.5) : (cfg.yawAccelGrip ?? 11.0);
+  car.yawRate = (car.yawRate ?? 0) + (targetTurnRate - (car.yawRate ?? 0)) * (1 - Math.exp(-dt * yawAccel));
 
   // Decay gutter exit cooldown so car never immediately re-hooks into the same gutter tail
   if (car.gutterCooldown > 0) {
@@ -314,6 +359,9 @@ export function updatePlayerPhysics(car, input, track, dt) {
     // Smoothly align directly to the road spline tangent (eliminates chord/jitter heading errors)
     const hDiff = wrapAngle(nextInfo.heading - car.heading);
     car.heading = wrapAngle(car.heading + hDiff * Math.min(1, dt * 20));
+    car.travelHeading = car.heading;
+    car.slipAngle = 0;
+    car.yawRate = 0;
 
     car.x = nextX;
     car.z = nextZ;
@@ -325,6 +373,7 @@ export function updatePlayerPhysics(car, input, track, dt) {
     // Release cleanly aligned with the exit tangent with cooldown to prevent re-hooking
     if (nextInfo.gutterSide !== car.gutterSide) {
       car.heading = nextInfo.heading;
+      car.travelHeading = nextInfo.heading;
       car.inGutter = false;
       car.gutterSide = 0;
       car.gutterCooldown = 0.45;
@@ -335,17 +384,45 @@ export function updatePlayerPhysics(car, input, track, dt) {
     fx = Math.sin(car.heading);
     fz = Math.cos(car.heading);
   } else {
-    car.heading = wrapAngle(car.heading + turnRate * dt);
+    car.heading = wrapAngle(car.heading + car.yawRate * dt);
 
-    // Move strictly on the 2D X-Z plane (Y = 0)
+    if (car.travelHeading === undefined) {
+      car.travelHeading = car.heading;
+    }
+
+    if (car.speed > 1.0) {
+      // True 2D velocity-heading separation:
+      // During drift, lateral grip softens so momentum slides wide while nose tucks inward
+      const prevSlip = Math.abs(car.slipAngle || 0);
+      const alignRate = car.isDrifting
+        ? (cfg.driftAlignRate ?? 2.35)
+        : prevSlip > 0.06
+          ? (cfg.driftRecoveryAlignRate ?? 5.6)
+          : (cfg.gripAlignRate ?? 9.5);
+
+      const headingGap = wrapAngle(car.heading - car.travelHeading);
+      car.travelHeading = wrapAngle(car.travelHeading + headingGap * (1 - Math.exp(-dt * alignRate)));
+
+      // Clamp maximum physical slip angle so slides feel dramatic yet stay controllable
+      const maxSlip = cfg.maxSlipAngleRad ?? 0.50;
+      let slip = wrapAngle(car.heading - car.travelHeading);
+      if (Math.abs(slip) > maxSlip) {
+        slip = Math.sign(slip) * maxSlip;
+        car.travelHeading = wrapAngle(car.heading - slip);
+      }
+      car.slipAngle = slip;
+
+      car.x += Math.sin(car.travelHeading) * car.speed * dt;
+      car.z += Math.cos(car.travelHeading) * car.speed * dt;
+    } else {
+      car.travelHeading = car.heading;
+      car.slipAngle = 0;
+      car.x += Math.sin(car.heading) * car.speed * dt;
+      car.z += Math.cos(car.heading) * car.speed * dt;
+    }
+
     fx = Math.sin(car.heading);
     fz = Math.cos(car.heading);
-
-    // Subtle lateral slide component during drift for authentic Initial D feel
-    const slideOffsetAngle = car.isDrifting ? -car.driftDir * 0.14 : 0;
-    const moveHeading = car.heading + slideOffsetAngle;
-    car.x += Math.sin(moveHeading) * car.speed * dt;
-    car.z += Math.cos(moveHeading) * car.speed * dt;
 
     // Enforce guardrail collision bounds
     const proj = enforceTrackBounds(car, track, dt, 1.55);
@@ -363,20 +440,25 @@ export function updatePlayerPhysics(car, input, track, dt) {
     }
   }
 
-  // Smooth visual feedback (body slip angle, front wheel steering, subtle roll)
+  // Smooth visual feedback driven by real physical slip & lateral G-force
+  const slipNow = car.slipAngle || 0;
   const targetSlip = car.inGutter
     ? -car.gutterSide * 0.18
-    : car.isDrifting
-      ? car.driftDir * cfg.maxVisualSlipRad * (0.7 + 0.3 * Math.min(1, speedKmh / 85))
-      : steer * 0.05 * speedFactor;
-  car.visualSlip += (targetSlip - car.visualSlip) * Math.min(1, dt * 9.5);
+    : Math.max(-0.18, Math.min(0.18, slipNow * 0.25));
+  car.visualSlip += (targetSlip - car.visualSlip) * Math.min(1, dt * 10);
 
-  // Subtle inward dip/roll when inside wheel is dropped into the gutter
+  // Suspension body roll driven by actual lateral acceleration (yawRate * speed)
+  const lateralG = Math.max(-1.4, Math.min(1.4, (car.yawRate || 0) * Math.abs(car.speed) / 22));
   const targetRoll = car.inGutter
     ? -car.gutterSide * 0.095
-    : (car.isDrifting ? car.driftDir * 0.075 : steer * 0.04) * speedFactor;
-  car.bodyRoll += (targetRoll - car.bodyRoll) * Math.min(1, dt * 10);
-  car.steerVisual += (steer - car.steerVisual) * Math.min(1, dt * 14);
+    : lateralG * 0.068;
+  car.bodyRoll += (targetRoll - car.bodyRoll) * Math.min(1, dt * 9.0);
+
+  // Front wheels show natural counter-steer angle when tail slides out
+  const counterSteerVisual = Math.abs(slipNow) > 0.08
+    ? Math.max(-1, Math.min(1, -slipNow * 1.6 + car.steerInput * 0.45))
+    : car.steerInput;
+  car.steerVisual += (counterSteerVisual - car.steerVisual) * Math.min(1, dt * 13);
 
   updateDrivetrain(car);
 
