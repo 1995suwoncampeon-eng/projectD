@@ -6,7 +6,7 @@ import {
   PLAYER_THEME,
   PLAYER_CARS,
   RIVALS,
-} from './config.js?v=33';
+} from './config.js?v=34';
 import { TougeTrack } from './track.js?v=14';
 import { buildTougeEnvironment } from './trackRenderer.js?v=19';
 import { loadCarModel } from './carModel.js?v=18';
@@ -16,12 +16,12 @@ import {
   recoverVehicleToTrack,
   updatePlayerPhysics,
   resolveCarCollision,
-} from './physics.js?v=32';
+} from './physics.js?v=33';
 import { updateRivalAI } from './ai.js?v=20';
 import { EffectsManager } from './effects.js?v=15';
 import { ArcadeAudio } from './audio.js?v=14';
 import { HudController } from './hud.js?v=4';
-import { UIController } from './ui.js?v=32';
+import { UIController } from './ui.js?v=33';
 
 class ProjectDGame {
   constructor() {
@@ -841,7 +841,7 @@ class ProjectDGame {
       }
 
       // 1. Update 2D physics for Player & Rival AI
-      updatePlayerPhysics(this.player, this.input, this.track, dt);
+      updatePlayerPhysics(this.player, this.input, this.track, dt, this.selectedPlayerCar?.physics ?? null);
       updateRivalAI(this.rival, this.player, this.selectedRival, this.track, dt);
 
       // 2. Resolve 2D car-to-car contact

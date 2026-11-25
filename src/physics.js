@@ -1,4 +1,4 @@
-import { PLAYER_PHYSICS } from './config.js?v=33';
+import { PLAYER_PHYSICS } from './config.js?v=34';
 import { wrapAngle } from './track.js';
 
 const KMH_TO_MS = 1 / 3.6;
@@ -222,8 +222,8 @@ export function enforceTrackBounds(car, track, dt = 1 / 60, wallFriction = 1.65)
  * Features progressive steering ramp, yaw rotational inertia, and
  * true velocity-heading separation (slip angle) for tangible drifts.
  */
-export function updatePlayerPhysics(car, input, track, dt) {
-  const cfg = PLAYER_PHYSICS;
+export function updatePlayerPhysics(car, input, track, dt, physicsOverride = null) {
+  const cfg = physicsOverride ? { ...PLAYER_PHYSICS, ...physicsOverride } : PLAYER_PHYSICS;
   const throttle = input.up ? 1 : 0;
   const brake = input.down ? 1 : 0;
   // Positive steer = LEFT (+heading), Negative steer = RIGHT (-heading)
@@ -276,8 +276,16 @@ export function updatePlayerPhysics(car, input, track, dt) {
     const powerband = 0.78 + 0.36 * Math.sin(rpmNorm * Math.PI * 0.86);
     const shiftMult = car.shiftCutTimer > 0 ? 0.15 : 1.0;
     const boostMult = car.driftBoostTimer > 0 ? (car.kanseiBoostActive ? 1.32 : 1.25) : 1.0;
+    const curKmh = car.speed * MS_TO_KMH;
+    const highSpeedMult =
+      cfg.highSpeedDropKmh && curKmh >= cfg.highSpeedDropKmh
+        ? (cfg.highSpeedAccelScale ?? 0.18)
+        : 1.0;
     const aeroDrag = 0.52 * speedRatio * speedRatio;
-    const accelNet = Math.max(0.18, cfg.accel * activeGear.torqueMult * powerband * shiftMult * boostMult - aeroDrag);
+    const accelNet = Math.max(
+      0.12,
+      (cfg.accel * activeGear.torqueMult * powerband * shiftMult * boostMult - aeroDrag) * highSpeedMult
+    );
     car.speed += accelNet * dt;
     if (car.speed > maxSpeedMs) {
       car.speed += (maxSpeedMs - car.speed) * Math.min(1, dt * 4.5);

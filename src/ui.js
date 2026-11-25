@@ -1,4 +1,4 @@
-import { RIVALS, PLAYER_CARS } from './config.js?v=33';
+import { RIVALS, PLAYER_CARS } from './config.js?v=34';
 import { formatRaceTime } from './hud.js?v=4';
 
 const STORAGE_KEY_PREFIX = 'projectD_bestTime_';
@@ -100,9 +100,10 @@ export class UIController {
       chip.dataset.carId = carCfg.id;
       chip.setAttribute('role', 'option');
       chip.setAttribute('aria-selected', 'false');
+      const topSpeedLabel = carCfg.physics?.maxSpeedKmh ? `${carCfg.physics.maxSpeedKmh}km/h` : '';
       chip.innerHTML = `
         <span class="player-car-chip-name">${carCfg.name}</span>
-        <span class="player-car-chip-owner">${carCfg.owner}</span>
+        <span class="player-car-chip-owner">${carCfg.owner}${topSpeedLabel ? ` · ${topSpeedLabel}` : ''}</span>
       `;
       chip.addEventListener('click', () => {
         this.selectPlayerCar(idx, true);
@@ -140,7 +141,8 @@ export class UIController {
       this.selectedNameEl.textContent = `${myCar.name}  VS  ${rival.name} (${rival.difficultyKr})`;
     }
     if (this.selectedDescEl && rival) {
-      this.selectedDescEl.textContent = `상대: ${rival.team} · 최고속도 ${rival.stats.topSpeedKmh} km/h · 코너링 ${Math.round(rival.stats.corneringStability * 100)}%`;
+      const mySpec = myCar.specTag ? `내 차: ${myCar.specTag}  |  ` : '';
+      this.selectedDescEl.textContent = `${mySpec}상대: ${rival.stats.topSpeedKmh} km/h · 코너링 ${Math.round(rival.stats.corneringStability * 100)}%`;
     }
   }
 

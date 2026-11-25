@@ -416,8 +416,113 @@ export const PLAYER_THEME = {
 };
 
 // ============================================================================
-// SELECTABLE PLAYER VEHICLES (Default AE86 + all NPC .glb vehicles)
+// SELECTABLE PLAYER VEHICLES (Default AE86 + all NPC .glb vehicles with distinct specs)
 // ============================================================================
+const PLAYER_CAR_SPECS = {
+  ae86: {
+    specTag: 'FR · 102km/h · 경량 드리프트 밸런스',
+    physics: {
+      maxSpeedKmh: 102,
+      accel: 3.95,
+      brakeDecel: 19.0,
+      steerRate: 2.02,
+      driftSteerBoost: 1.44,
+      driftDrag: 1.0,
+      gripAlignRate: 9.2,
+      driftAlignRate: 2.25,
+      driftBoostMaxKmh: 9,
+    },
+  },
+  shingo: {
+    specTag: 'FF · 106km/h · 민첩 코너링 / 높은 그립',
+    physics: {
+      maxSpeedKmh: 106,
+      accel: 4.55,
+      brakeDecel: 19.5,
+      steerRate: 2.16,
+      driftSteerBoost: 1.24,
+      driftDrag: 1.35,
+      gripAlignRate: 11.2,
+      driftAlignRate: 3.1,
+      driftBoostMaxKmh: 7,
+    },
+  },
+  takeshi: {
+    specTag: '그립 · 118km/h · 고속 / 강력 브레이크',
+    physics: {
+      maxSpeedKmh: 118,
+      accel: 4.35,
+      brakeDecel: 22.5,
+      steerRate: 1.78,
+      driftSteerBoost: 1.25,
+      driftDrag: 1.38,
+      gripAlignRate: 10.6,
+      driftAlignRate: 2.85,
+      driftBoostMaxKmh: 8,
+    },
+  },
+  keisuke: {
+    specTag: 'FR · 116km/h · 파워 드리프트 / 탈출 가속',
+    physics: {
+      maxSpeedKmh: 116,
+      accel: 4.6,
+      brakeDecel: 19.5,
+      steerRate: 1.94,
+      driftSteerBoost: 1.46,
+      driftDrag: 1.05,
+      gripAlignRate: 8.8,
+      driftAlignRate: 2.15,
+      driftBoostMaxKmh: 10,
+    },
+  },
+  kozo: {
+    specTag: '4WD · 132km/h · 폭발적 초반 / 110+ 둔화',
+    physics: {
+      maxSpeedKmh: 132,
+      accel: 5.2,
+      highSpeedDropKmh: 110,
+      highSpeedAccelScale: 0.16,
+      brakeDecel: 23.0,
+      steerRate: 1.82,
+      driftSteerBoost: 1.28,
+      driftDrag: 1.28,
+      gripAlignRate: 11.4,
+      driftAlignRate: 2.9,
+      driftBoostMaxKmh: 8,
+    },
+  },
+  ryosuke: {
+    specTag: 'FR · 112km/h · 정밀 밸런스 / 관성 특화',
+    physics: {
+      maxSpeedKmh: 112,
+      accel: 4.35,
+      brakeDecel: 20.5,
+      steerRate: 2.04,
+      driftSteerBoost: 1.4,
+      driftDrag: 1.02,
+      gripAlignRate: 10.0,
+      driftAlignRate: 2.4,
+      kanseiDragMult: 0.58,
+      driftBoostMaxKmh: 9,
+    },
+  },
+  bunta: {
+    specTag: '4WD · 114km/h · 최강 트랙션 / 올라운더',
+    physics: {
+      maxSpeedKmh: 114,
+      accel: 4.75,
+      brakeDecel: 21.5,
+      steerRate: 1.98,
+      driftSteerBoost: 1.38,
+      driftDrag: 1.08,
+      gripAlignRate: 11.0,
+      driftAlignRate: 2.45,
+      kanseiBoostMaxKmh: 12,
+      driftBoostMaxKmh: 10,
+    },
+  },
+};
+
 export const PLAYER_CARS = [
   {
     id: 'ae86',
@@ -430,6 +535,8 @@ export const PLAYER_CARS = [
     modelRotationY: MODEL_ROTATION_Y,
     taillights: null,
     wheelStyle: null,
+    specTag: PLAYER_CAR_SPECS.ae86.specTag,
+    physics: PLAYER_CAR_SPECS.ae86.physics,
   },
   ...RIVALS.filter((r) => Boolean(r.modelPath)).map((r) => ({
     id: r.id,
@@ -442,5 +549,7 @@ export const PLAYER_CARS = [
     modelRotationY: r.modelRotationY ?? MODEL_ROTATION_Y,
     taillights: r.taillights ?? null,
     wheelStyle: r.wheelStyle ?? null,
+    specTag: PLAYER_CAR_SPECS[r.id]?.specTag ?? `${r.stats.topSpeedKmh}km/h`,
+    physics: PLAYER_CAR_SPECS[r.id]?.physics ?? null,
   })),
 ];
