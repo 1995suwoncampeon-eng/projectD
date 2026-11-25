@@ -138,7 +138,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 108,
-      accel: 4.55,
+      accel: 5.15,
       cornerSpeedFactor: 0.88,
       turnRateMult: 1.32, // 경량 FF 해치백 특유의 빠르고 민첩한 코너 선회
       ffCorneringStyle: true,
@@ -175,7 +175,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 124,
-      accel: 4.45,
+      accel: 5.05,
       cornerSpeedFactor: 0.86,
       lateBrakeApexFullThrottle: true,
       hardBrakeDecel: 22.5,
@@ -218,7 +218,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 122,
-      accel: 4.7,
+      accel: 5.35,
       cornerSpeedFactor: 0.89,
       apexRatio: 0.68,
       maxLateralRatio: 0.84,
@@ -258,7 +258,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 140,
-      accel: 5.75,
+      accel: 6.45,
       highSpeedDropKmh: 115,     // 115 km/h 이후 가속 급감 (초반 폭발, 후반 극저가속)
       highSpeedAccelScale: 0.14,
       cornerSpeedFactor: 0.93,
@@ -297,7 +297,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 112,
-      accel: 4.5,
+      accel: 5.20,
       cornerSpeedFactor: 0.97,
       coastOnlyCorners: true,
       cornerDecelScale: 0.28,
@@ -339,7 +339,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 114,
-      accel: 5.1,
+      accel: 5.70,
       cornerSpeedFactor: 0.98,
       coastOnlyCorners: true,
       cornerDecelScale: 0.24,
@@ -374,31 +374,35 @@ export const RIVALS = [
     modelRotationY: Math.PI / 2,
     taillights: { x: 0.72, y: 1.14, zOffset: 0.02, width: 0.48, height: 0.46 },
     wheelStyle: { rimColor: '#facc15', spokeColor: '#eab308', hubColor: '#fef08a', spokes: 5 },
-    tagline: '아키나 최속의 전설. 도랑타기 라인으로 코너를 파고드는 최강 GOD 라이벌입니다.',
+    tagline: '아키나 최속의 전설. 중고속 코너는 초고속 인코스 드리프트, 중저속 급코너는 도랑타기로 돌파하는 최강 GOD 라이벌입니다.',
     stats: {
       topSpeedKmh: 112,
-      corneringStability: 0.97,
-      accelFactor: 0.96,
-      aggression: 0.95,
+      corneringStability: 0.99,
+      accelFactor: 0.99,
+      aggression: 0.98,
     },
     ai: {
       maxSpeedKmh: 112,
-      accel: 4.75,
-      cornerSpeedFactor: 0.97,
+      accel: 5.85,
+      cornerSpeedFactor: 0.99,
+      buntaGodStyle: true,          // 중고속 코너: 도랑타기보다 빠른 인코스 드리프트 / 중저속 급코너: 도랑타기
+      gutterMinCurvature: 0.024,    // 급코너·헤어핀에서만 도랑타기 발동
+      highSpeedDriftBonusKmh: 8,    // 중고속 코너 드리프트 통과 시 도랑타기보다 빠른 속도 유지
+      driftSlipRad: 0.36,
       coastOnlyCorners: true,
-      cornerDecelScale: 0.28,
-      minCornerSpeedRatio: 0.82,
-      coastDecel: 3.4,
-      apexRatio: 0.82,
-      maxLateralRatio: 0.88,
+      cornerDecelScale: 0.22,
+      minCornerSpeedRatio: 0.86,
+      coastDecel: 2.8,
+      apexRatio: 0.90,
+      maxLateralRatio: 0.92,
       twinTurboBoost: {
-        boostKmh: 12,
-        boostAccelMult: 1.55,
-        boostDuration: 1.3,
+        boostKmh: 16,
+        boostAccelMult: 1.75,
+        boostDuration: 1.55,
       },
-      lookAheadBase: 16,
-      rubberBandCatchup: 0.12,
-      rubberBandEase: 0.04,
+      lookAheadBase: 15,
+      rubberBandCatchup: 0.16,
+      rubberBandEase: 0.0,          // GOD 라이벌: 앞서나가도 봐주지 않음
       laneBias: 0.9,
       useGutterRun: true,
     },
