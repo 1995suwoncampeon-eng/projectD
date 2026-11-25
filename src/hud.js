@@ -306,9 +306,12 @@ export class HudController {
     }
 
     // Drift & Gutter Hook indicators + screen edge glow
-    const showDrift = player.isDrifting && player.speedKmh > 30;
+    const showDrift = player.isDrifting && player.speedKmh > 24;
     if (this.driftBadgeEl) {
       this.driftBadgeEl.classList.toggle('hidden', !showDrift);
+      const isKansei = showDrift && Boolean(player.isKanseiDrift);
+      this.driftBadgeEl.classList.toggle('kansei', isKansei);
+      this.driftBadgeEl.textContent = isKansei ? '관성 드리프트!!' : 'DRIFT!!';
     }
     if (this.gutterBadgeEl) {
       this.gutterBadgeEl.classList.toggle('hidden', !player.inGutter);
