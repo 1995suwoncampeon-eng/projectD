@@ -337,57 +337,298 @@ function createLampPoolTexture() {
 }
 
 /**
- * Generates a lightweight gradient sky dome texture with distant mountain ridge silhouettes.
+ * Generates a realistic equirectangular sky dome texture.
+ * Day mode renders physically-inspired atmospheric gradients, sun Mie scattering,
+ * layered cirrus & shaded cumulus clouds, and multi-octave mountain ridges with valley haze.
  */
 function createSkyDomeTexture(isDay) {
   const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 256;
+  const W = isDay ? 2048 : 512;
+  const H = isDay ? 1024 : 256;
+  canvas.width = W;
+  canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  const grad = ctx.createLinearGradient(0, 0, 0, 256);
-  if (isDay) {
-    grad.addColorStop(0.0, '#1d6fb8');
-    grad.addColorStop(0.35, '#58aee6');
-    grad.addColorStop(0.52, '#bae6fd');
-    grad.addColorStop(0.62, '#a7d8f0');
-    grad.addColorStop(1.0, '#466957');
-  } else {
+  if (!isDay) {
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
     grad.addColorStop(0.0, '#02040a');
     grad.addColorStop(0.32, '#070f24');
     grad.addColorStop(0.49, '#13203d');
     grad.addColorStop(0.56, '#1c2438');
     grad.addColorStop(1.0, '#050812');
-  }
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 512, 256);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
 
-  // Distant layered mountain ridge silhouettes along the horizon (y ≈ 134)
-  const layers = isDay
-    ? [
-        { baseY: 136, amp: 18, freq: 0.025, phase: 0.4, color: 'rgba(56, 102, 130, 0.55)' },
-        { baseY: 142, amp: 13, freq: 0.042, phase: 2.1, color: 'rgba(38, 76, 86, 0.78)' },
-      ]
-    : [
-        { baseY: 136, amp: 18, freq: 0.025, phase: 0.4, color: 'rgba(11, 18, 36, 0.72)' },
-        { baseY: 143, amp: 13, freq: 0.042, phase: 2.1, color: 'rgba(6, 10, 22, 0.92)' },
-      ];
-
-  for (const layer of layers) {
-    ctx.fillStyle = layer.color;
-    ctx.beginPath();
-    ctx.moveTo(0, 256);
-    for (let x = 0; x <= 512; x += 4) {
-      const h =
-        Math.sin(x * layer.freq + layer.phase) * layer.amp +
-        Math.sin(x * layer.freq * 2.3 + layer.phase * 1.7) * (layer.amp * 0.45);
-      ctx.lineTo(x, layer.baseY - Math.abs(h));
+    const nightLayers = [
+      { baseY: 136, amp: 18, freq: 0.025, phase: 0.4, color: 'rgba(11, 18, 36, 0.72)' },
+      { baseY: 143, amp: 13, freq: 0.042, phase: 2.1, color: 'rgba(6, 10, 22, 0.92)' },
+    ];
+    for (const layer of nightLayers) {
+      ctx.fillStyle = layer.color;
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 4) {
+        const h =
+          Math.sin(x * layer.freq + layer.phase) * layer.amp +
+          Math.sin(x * layer.freq * 2.3 + layer.phase * 1.7) * (layer.amp * 0.45);
+        ctx.lineTo(x, layer.baseY - Math.abs(h));
+      }
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fill();
     }
-    ctx.lineTo(512, 256);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  // Deterministic PRNG for repeatable realistic cloud & ridge placement
+  let seed = 1995086;
+  const rand = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+
+  // 1. Realistic Rayleigh + Horizon Haze sky gradient (natural desaturated mountain daylight)
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+  skyGrad.addColorStop(0.0, '#1f4e8c');   // Deep zenith cerulean
+  skyGrad.addColorStop(0.18, '#3871b2');  // Upper sky blue
+  skyGrad.addColorStop(0.34, '#659ad0');  // Mid sky
+  skyGrad.addColorStop(0.45, '#a4c7e2');  // Lower sky atmospheric scatter
+  skyGrad.addColorStop(0.505, '#dce8f0'); // Pale misty horizon band
+  skyGrad.addColorStop(0.54, '#c7d8e4');  // Below-horizon valley haze
+  skyGrad.addColorStop(0.66, '#7a9088');  // Distant forest basin
+  skyGrad.addColorStop(1.0, '#3e4d45');   // Deep ground tone
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // 2. Soft Mie sun-side atmospheric scattering glow aligned with sun azimuth
+  // SphereGeometry UV mapping puts sun at (360, 410, -1120) near u ≈ 0.30, v ≈ 0.38
+  const sunU = 0.295 * W;
+  const sunV = 0.375 * H;
+  const mieGlow = ctx.createRadialGradient(sunU, sunV, 12, sunU, sunV, W * 0.32);
+  mieGlow.addColorStop(0.0, 'rgba(255, 250, 232, 0.55)');
+  mieGlow.addColorStop(0.16, 'rgba(255, 244, 214, 0.24)');
+  mieGlow.addColorStop(0.45, 'rgba(232, 240, 248, 0.10)');
+  mieGlow.addColorStop(1.0, 'rgba(232, 240, 248, 0.0)');
+  ctx.fillStyle = mieGlow;
+  ctx.fillRect(0, 0, W, H * 0.56);
+
+  // Helper to draw horizontally seamless wrapped elements across equirectangular seam
+  const drawWrapped = (cx, fn) => {
+    fn(cx);
+    if (cx < W * 0.22) fn(cx + W);
+    if (cx > W * 0.78) fn(cx - W);
+  };
+
+  // 3. High-altitude wispy cirrus cloud streaks
+  ctx.save();
+  for (let i = 0; i < 38; i++) {
+    const cx = rand() * W;
+    const cy = H * (0.12 + rand() * 0.25);
+    const len = 110 + rand() * 240;
+    const thick = 6 + rand() * 14;
+    const tilt = (rand() - 0.5) * 0.14;
+    const alpha = 0.06 + rand() * 0.11;
+
+    drawWrapped(cx, (xPos) => {
+      ctx.save();
+      ctx.translate(xPos, cy);
+      ctx.rotate(tilt);
+      const cg = ctx.createRadialGradient(0, 0, thick * 0.15, 0, 0, len * 0.5);
+      cg.addColorStop(0.0, `rgba(255, 255, 255, ${alpha.toFixed(3)})`);
+      cg.addColorStop(0.55, `rgba(240, 247, 255, ${(alpha * 0.45).toFixed(3)})`);
+      cg.addColorStop(1.0, 'rgba(240, 247, 255, 0)');
+      ctx.scale(1, thick / (len * 0.5));
+      ctx.fillStyle = cg;
+      ctx.beginPath();
+      ctx.arc(0, 0, len * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+  ctx.restore();
+
+  // 4. Layered realistic cumulus cloud banks (sunlit tops + cool atmospheric undersides)
+  const cloudBands = [
+    { count: 22, yMin: 0.24, yMax: 0.36, scaleMin: 0.85, scaleMax: 1.45, alpha: 0.82 },
+    { count: 34, yMin: 0.36, yMax: 0.46, scaleMin: 0.55, scaleMax: 1.05, alpha: 0.72 },
+    { count: 44, yMin: 0.44, yMax: 0.495, scaleMin: 0.32, scaleMax: 0.62, alpha: 0.52 },
+  ];
+
+  for (const band of cloudBands) {
+    for (let i = 0; i < band.count; i++) {
+      const cx = rand() * W;
+      const cy = H * (band.yMin + rand() * (band.yMax - band.yMin));
+      const sc = band.scaleMin + rand() * (band.scaleMax - band.scaleMin);
+      const puffCount = 5 + Math.floor(rand() * 6);
+      const puffs = [];
+      for (let p = 0; p < puffCount; p++) {
+        const px = (p / (puffCount - 1) - 0.5) * 140 * sc + (rand() - 0.5) * 24 * sc;
+        const arch = Math.sin((p / (puffCount - 1)) * Math.PI);
+        const py = -arch * (18 + rand() * 14) * sc + (rand() - 0.5) * 7 * sc;
+        const rx = (28 + rand() * 34) * sc;
+        const ry = (13 + rand() * 14) * sc;
+        puffs.push({ px, py, rx, ry });
+      }
+
+      // Slightly warmer highlight when closer to the sun
+      const sunDist = Math.min(Math.abs(cx - sunU), W - Math.abs(cx - sunU)) / (W * 0.5);
+      const warmMix = Math.max(0, 1 - sunDist * 1.4);
+      const topR = 255;
+      const topG = Math.round(252 + warmMix * 3);
+      const topB = Math.round(255 - warmMix * 10);
+
+      drawWrapped(cx, (xPos) => {
+        // Underside atmospheric shadow first
+        for (const pf of puffs) {
+          const sg = ctx.createRadialGradient(
+            xPos + pf.px,
+            cy + pf.py + pf.ry * 0.38,
+            pf.rx * 0.1,
+            xPos + pf.px,
+            cy + pf.py + pf.ry * 0.38,
+            pf.rx
+          );
+          sg.addColorStop(0.0, `rgba(148, 172, 196, ${(band.alpha * 0.42).toFixed(3)})`);
+          sg.addColorStop(0.7, `rgba(164, 186, 208, ${(band.alpha * 0.18).toFixed(3)})`);
+          sg.addColorStop(1.0, 'rgba(164, 186, 208, 0)');
+          ctx.save();
+          ctx.translate(xPos + pf.px, cy + pf.py + pf.ry * 0.38);
+          ctx.scale(1, pf.ry / pf.rx);
+          ctx.fillStyle = sg;
+          ctx.beginPath();
+          ctx.arc(0, 0, pf.rx, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+        // Sunlit cloud body on top
+        for (const pf of puffs) {
+          const lg = ctx.createRadialGradient(
+            xPos + pf.px - pf.rx * 0.12,
+            cy + pf.py - pf.ry * 0.25,
+            pf.rx * 0.08,
+            xPos + pf.px,
+            cy + pf.py,
+            pf.rx
+          );
+          lg.addColorStop(0.0, `rgba(${topR}, ${topG}, ${topB}, ${(band.alpha * 0.85).toFixed(3)})`);
+          lg.addColorStop(0.55, `rgba(242, 248, 253, ${(band.alpha * 0.48).toFixed(3)})`);
+          lg.addColorStop(1.0, 'rgba(235, 244, 252, 0)');
+          ctx.save();
+          ctx.translate(xPos + pf.px, cy + pf.py);
+          ctx.scale(1, pf.ry / pf.rx);
+          ctx.fillStyle = lg;
+          ctx.beginPath();
+          ctx.arc(0, 0, pf.rx, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      });
+    }
+  }
+
+  // 5. Multi-octave periodic FBM mountain ridges (seamless 360° Japanese mountain ranges + aerial perspective)
+  const periodicFbm = (uNorm, freqs, phases, amps) => {
+    let val = 0;
+    const tau = Math.PI * 2;
+    for (let k = 0; k < freqs.length; k++) {
+      val += Math.sin(uNorm * tau * freqs[k] + phases[k]) * amps[k];
+    }
+    return val;
+  };
+
+  const mountainLayers = [
+    {
+      // Far pale alpine silhouettes almost dissolved into horizon haze
+      baseY: H * 0.506,
+      freqs: [2, 5, 9, 17, 31],
+      phases: [0.6, 1.9, 3.4, 0.8, 2.2],
+      amps: [26, 17, 10, 5.5, 2.5],
+      topColor: 'rgba(150, 176, 198, 0.56)',
+      botColor: 'rgba(186, 206, 220, 0.72)',
+    },
+    {
+      // Mid-far misty blue-grey ridge
+      baseY: H * 0.516,
+      freqs: [3, 7, 13, 23, 41],
+      phases: [2.4, 0.7, 4.1, 1.5, 3.6],
+      amps: [22, 14, 8.5, 4.5, 2.0],
+      topColor: 'rgba(104, 134, 152, 0.74)',
+      botColor: 'rgba(142, 168, 180, 0.85)',
+    },
+    {
+      // Mid-near Gunma/Akina forested range
+      baseY: H * 0.530,
+      freqs: [4, 8, 15, 29, 53],
+      phases: [1.1, 3.8, 0.5, 2.9, 4.7],
+      amps: [16, 11, 6.5, 3.5, 1.8],
+      topColor: 'rgba(67, 94, 94, 0.88)',
+      botColor: 'rgba(84, 110, 102, 0.96)',
+    },
+    {
+      // Closest dark cedar ridge base
+      baseY: H * 0.548,
+      freqs: [5, 11, 19, 37],
+      phases: [3.2, 1.4, 5.0, 2.1],
+      amps: [10, 6.5, 3.8, 2.0],
+      topColor: 'rgba(48, 69, 60, 0.96)',
+      botColor: 'rgba(42, 56, 49, 1.0)',
+    },
+  ];
+
+  for (const layer of mountainLayers) {
+    const ridgeGrad = ctx.createLinearGradient(0, layer.baseY - 58, 0, layer.baseY + 80);
+    ridgeGrad.addColorStop(0.0, layer.topColor);
+    ridgeGrad.addColorStop(1.0, layer.botColor);
+    ctx.fillStyle = ridgeGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 4) {
+      const u = x / W;
+      const n = periodicFbm(u, layer.freqs, layer.phases, layer.amps);
+      // Smooth undulating mountain profile (no harsh V-shaped Math.abs spikes)
+      const elev = Math.max(0, n + 26);
+      ctx.lineTo(x, layer.baseY - elev);
+    }
+    ctx.lineTo(W, H);
     ctx.closePath();
     ctx.fill();
   }
 
+  // 6. Subtle horizon atmospheric mist veil blending distant ridges seamlessly into fog
+  const mistGrad = ctx.createLinearGradient(0, H * 0.47, 0, H * 0.56);
+  mistGrad.addColorStop(0.0, 'rgba(218, 232, 242, 0.0)');
+  mistGrad.addColorStop(0.55, 'rgba(208, 224, 236, 0.28)');
+  mistGrad.addColorStop(1.0, 'rgba(186, 206, 218, 0.0)');
+  ctx.fillStyle = mistGrad;
+  ctx.fillRect(0, H * 0.47, W, H * 0.09);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
+}
+
+/**
+ * Generates a soft realistic additive sun bloom texture (replaces flat cartoon sun sphere).
+ */
+function createSunGlowTexture() {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const c = size * 0.5;
+  const grad = ctx.createRadialGradient(c, c, 0, c, c, c);
+  grad.addColorStop(0.0, 'rgba(255, 255, 248, 1.0)');
+  grad.addColorStop(0.09, 'rgba(255, 252, 232, 0.92)');
+  grad.addColorStop(0.22, 'rgba(255, 242, 204, 0.42)');
+  grad.addColorStop(0.52, 'rgba(255, 232, 185, 0.12)');
+  grad.addColorStop(1.0, 'rgba(255, 230, 180, 0.0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
@@ -1147,8 +1388,8 @@ function createSkyBackdrop() {
   const dayGroup = new THREE.Group();
   dayGroup.visible = false;
 
-  // Lightweight gradient sky domes with distant mountain ridge silhouettes (1 draw call, fog disabled)
-  const domeGeo = new THREE.SphereGeometry(1550, 20, 12);
+  // Smooth gradient sky domes with distant mountain ridge silhouettes (1 draw call, fog disabled)
+  const domeGeo = new THREE.SphereGeometry(1550, 40, 24);
   const nightDome = new THREE.Mesh(
     domeGeo,
     new THREE.MeshBasicMaterial({
@@ -1201,26 +1442,21 @@ function createSkyBackdrop() {
   moon.position.set(-360, 290, -1150);
   nightGroup.add(moon);
 
-  // Day: Bright warm sun disc high over the mountain valley
-  const sun = new THREE.Mesh(
-    new THREE.SphereGeometry(34, 14, 14),
-    new THREE.MeshBasicMaterial({ color: 0xfff7cc, fog: false })
-  );
-  sun.position.set(320, 360, -1180);
-  dayGroup.add(sun);
-
-  const sunHalo = new THREE.Mesh(
-    new THREE.SphereGeometry(58, 14, 14),
-    new THREE.MeshBasicMaterial({
-      color: 0xfef08a,
+  // Day: Realistic soft atmospheric sun bloom sprite (no hard cartoon sphere edge)
+  const sunSprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: createSunGlowTexture(),
+      color: 0xfffdf2,
       transparent: true,
-      opacity: 0.24,
+      opacity: 0.92,
+      blending: THREE.AdditiveBlending,
       fog: false,
       depthWrite: false,
     })
   );
-  sunHalo.position.copy(sun.position);
-  dayGroup.add(sunHalo);
+  sunSprite.position.set(360, 410, -1120);
+  sunSprite.scale.set(340, 340, 1);
+  dayGroup.add(sunSprite);
 
   group.add(nightGroup, dayGroup);
   return { group, nightGroup, dayGroup };

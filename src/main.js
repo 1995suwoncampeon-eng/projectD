@@ -8,7 +8,7 @@ import {
   RIVALS,
 } from './config.js?v=37';
 import { TougeTrack } from './track.js?v=14';
-import { buildTougeEnvironment } from './trackRenderer.js?v=19';
+import { buildTougeEnvironment } from './trackRenderer.js?v=20';
 import { loadCarModel } from './carModel.js?v=18';
 import {
   createVehicleState,
@@ -197,18 +197,18 @@ class ProjectDGame {
     this.timeOfDay = isDay ? 'day' : 'night';
 
     if (isDay) {
-      this.scene.background.setHex(0x7ec8f2);
-      this.scene.fog.color.setHex(0xa7d8f0);
-      this.scene.fog.density = 0.0012;
-      this.renderer.toneMappingExposure = 1.05;
+      this.scene.background.setHex(0xc8dce8);
+      this.scene.fog.color.setHex(0xcfe0ec);
+      this.scene.fog.density = 0.00105;
+      this.renderer.toneMappingExposure = 1.02;
 
-      this.hemiLight.color.setHex(0xe0f2fe);
-      this.hemiLight.groundColor.setHex(0x4b6355);
-      this.hemiLight.intensity = 1.95;
+      this.hemiLight.color.setHex(0xdcebf7);
+      this.hemiLight.groundColor.setHex(0x4f5d52);
+      this.hemiLight.intensity = 1.85;
 
-      this.mainDirLight.color.setHex(0xfffbeb);
-      this.mainDirLight.intensity = 1.95;
-      this.mainDirLight.position.set(220, 340, -260);
+      this.mainDirLight.color.setHex(0xfff6e5);
+      this.mainDirLight.intensity = 2.05;
+      this.mainDirLight.position.set(260, 350, -320);
     } else {
       this.scene.background.setHex(0x050814);
       this.scene.fog.color.setHex(0x0a1124);
