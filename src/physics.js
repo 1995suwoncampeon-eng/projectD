@@ -1,4 +1,4 @@
-import { PLAYER_PHYSICS } from './config.js?v=29';
+import { PLAYER_PHYSICS } from './config.js?v=31';
 import { wrapAngle } from './track.js';
 
 const KMH_TO_MS = 1 / 3.6;
@@ -20,10 +20,17 @@ export function createVehicleState(track, startS, lateralOffset = 0) {
     visualSlip: 0,
     bodyRoll: 0,
     isDrifting: false,
+    isKanseiDrift: false, // true during continuous pendulum swing-transition drift
     driftDir: 0, // -1 right, +1 left
     driftInitTimer: 0,
+    oppositeHoldTimer: 0, // how long opposite steer is held during an active drift (distinguishes swing vs dab)
     driftCharge: 0,
     driftBoostTimer: 0,
+    kanseiBoostActive: false,
+    lateralLoad: 0,       // sustained high-speed cornering lateral load (-1..+1)
+    cornerLoadDir: 0,     // direction of sustained high-speed corner before whip
+    cornerLoadTimer: 0,   // freshness window for corner-to-corner swing transition
+    gripWhipTimer: 0,     // how long opposite steer is held after high-speed corner
     cornerExitCharge: 0,
     turboBoostTimer: 0,
     inGutter: false,
@@ -60,10 +67,17 @@ export function resetVehicleToSpawn(car, track, startS, lateralOffset = 0) {
   car.visualSlip = 0;
   car.bodyRoll = 0;
   car.isDrifting = false;
+  car.isKanseiDrift = false;
   car.driftDir = 0;
   car.driftInitTimer = 0;
+  car.oppositeHoldTimer = 0;
   car.driftCharge = 0;
   car.driftBoostTimer = 0;
+  car.kanseiBoostActive = false;
+  car.lateralLoad = 0;
+  car.cornerLoadDir = 0;
+  car.cornerLoadTimer = 0;
+  car.gripWhipTimer = 0;
   car.cornerExitCharge = 0;
   car.turboBoostTimer = 0;
   car.inGutter = false;
@@ -99,9 +113,16 @@ export function recoverVehicleToTrack(car, track) {
   car.yawRate = 0;
   car.slipAngle = 0;
   car.isDrifting = false;
+  car.isKanseiDrift = false;
   car.driftDir = 0;
   car.driftInitTimer = 0;
+  car.oppositeHoldTimer = 0;
   car.driftCharge = 0;
+  car.kanseiBoostActive = false;
+  car.lateralLoad = 0;
+  car.cornerLoadDir = 0;
+  car.cornerLoadTimer = 0;
+  car.gripWhipTimer = 0;
   car.inGutter = false;
   car.gutterSide = 0;
   car.visualSlip = 0;
@@ -232,12 +253,16 @@ export function updatePlayerPhysics(car, input, track, dt) {
   // Decay drift exit boost & upshift cut timers
   if (car.driftBoostTimer > 0) {
     car.driftBoostTimer = Math.max(0, car.driftBoostTimer - dt);
+    if (car.driftBoostTimer <= 0) {
+      car.kanseiBoostActive = false;
+    }
   }
   if (car.shiftCutTimer > 0) {
     car.shiftCutTimer = Math.max(0, car.shiftCutTimer - dt);
   }
 
-  const boostBonusMs = car.driftBoostTimer > 0 ? cfg.driftBoostMaxKmh * KMH_TO_MS : 0;
+  const activeBoostKmh = car.kanseiBoostActive ? (cfg.kanseiBoostMaxKmh ?? 10) : cfg.driftBoostMaxKmh;
+  const boostBonusMs = car.driftBoostTimer > 0 ? activeBoostKmh * KMH_TO_MS : 0;
   const maxSpeedMs = cfg.maxSpeedKmh * KMH_TO_MS + boostBonusMs;
   const reverseMaxMs = cfg.reverseMaxKmh * KMH_TO_MS;
 
@@ -250,7 +275,7 @@ export function updatePlayerPhysics(car, input, track, dt) {
     // High-revving NA powerband: builds pull strongly above 5000 RPM, tapers slightly at redline
     const powerband = 0.78 + 0.36 * Math.sin(rpmNorm * Math.PI * 0.86);
     const shiftMult = car.shiftCutTimer > 0 ? 0.15 : 1.0;
-    const boostMult = car.driftBoostTimer > 0 ? 1.25 : 1.0;
+    const boostMult = car.driftBoostTimer > 0 ? (car.kanseiBoostActive ? 1.32 : 1.25) : 1.0;
     const aeroDrag = 0.52 * speedRatio * speedRatio;
     const accelNet = Math.max(0.18, cfg.accel * activeGear.torqueMult * powerband * shiftMult * boostMult - aeroDrag);
     car.speed += accelNet * dt;
@@ -273,15 +298,34 @@ export function updatePlayerPhysics(car, input, track, dt) {
     }
   }
 
-  // Tap-to-Initiate Simcade Drift State Machine
-  // Press & release DRIFT once to kick the rear out; slide persists naturally while
-  // heading differs from travelHeading (inertia), and auto-returns to grip once aligned.
+  // Tap-to-Initiate + Continuous Pendulum Swing-Transition (Kansei Drift) State Machine
   const speedKmh = car.speed * MS_TO_KMH;
+  const speedFactor = Math.min(1, Math.abs(car.speed) / 9.5);
+  const reverseSign = car.speed >= -0.1 ? 1 : -1;
   const exitSlipRad = cfg.driftExitSlipRad ?? 0.10;
   const minSustainKmh = cfg.driftMinSpeedKmh * 0.72;
 
   if (car.driftInitTimer > 0) {
     car.driftInitTimer = Math.max(0, car.driftInitTimer - dt);
+  }
+
+  // Track sustained lateral cornering load while in high-speed grip (for gentle-turn -> tight-turn Kansei swing)
+  const targetLatLoad = car.steerInput * Math.min(1, speedKmh / 65);
+  const loadRate = Math.abs(targetLatLoad) > Math.abs(car.lateralLoad || 0) ? 3.8 : 2.5;
+  car.lateralLoad = (car.lateralLoad || 0) + (targetLatLoad - (car.lateralLoad || 0)) * (1 - Math.exp(-dt * loadRate));
+
+  if (!car.isDrifting && Math.abs(car.lateralLoad) >= (cfg.kanseiGripMinLoad ?? 0.50) && speedKmh >= (cfg.kanseiGripMinSpeedKmh ?? 62)) {
+    car.cornerLoadDir = Math.sign(car.lateralLoad);
+    car.cornerLoadTimer = 0.55;
+  } else if (car.cornerLoadTimer > 0) {
+    car.cornerLoadTimer = Math.max(0, car.cornerLoadTimer - dt);
+    if (car.cornerLoadTimer <= 0) car.cornerLoadDir = 0;
+  }
+
+  if (!car.isDrifting && car.cornerLoadTimer > 0 && rawSteer !== 0 && Math.sign(rawSteer) === -car.cornerLoadDir) {
+    car.gripWhipTimer = (car.gripWhipTimer || 0) + dt;
+  } else {
+    car.gripWhipTimer = 0;
   }
 
   const steerDir = rawSteer !== 0
@@ -290,66 +334,130 @@ export function updatePlayerPhysics(car, input, track, dt) {
       ? Math.sign(car.steerInput)
       : 0;
 
-  // 1) Initiate drift on a single tap (or hold) when steering at speed
-  if (!car.isDrifting && wantDrift && speedKmh >= cfg.driftMinSpeedKmh && steerDir !== 0) {
+  // 1A) High-speed grip corner -> immediate opposite whip into Kansei Drift (Episode 1 gentle right -> tight left)
+  const gripCornerSwingTrigger =
+    !car.isDrifting &&
+    !car.inGutter &&
+    speedKmh >= (cfg.kanseiGripMinSpeedKmh ?? 62) &&
+    car.cornerLoadTimer > 0 &&
+    car.cornerLoadDir !== 0 &&
+    rawSteer !== 0 &&
+    Math.sign(rawSteer) === -car.cornerLoadDir &&
+    car.gripWhipTimer >= (cfg.kanseiGripWhipHoldSec ?? 0.14);
+
+  if (gripCornerSwingTrigger) {
+    const dir = Math.sign(rawSteer);
     car.isDrifting = true;
+    car.isKanseiDrift = true;
+    car.driftDir = dir;
+    car.driftInitTimer = 0.34;
+    car.oppositeHoldTimer = 0;
+    car.cornerLoadTimer = 0;
+    car.cornerLoadDir = 0;
+    car.gripWhipTimer = 0;
+    car.yawRate = (car.yawRate ?? 0) + dir * 1.15;
+    if (car.travelHeading === undefined) car.travelHeading = car.heading;
+    car.travelHeading = wrapAngle(car.heading - dir * 0.13);
+    car.slipAngle = wrapAngle(car.heading - car.travelHeading);
+  } else if (!car.isDrifting && wantDrift && speedKmh >= cfg.driftMinSpeedKmh && steerDir !== 0) {
+    // 1B) Standard Tap-to-Initiate Drift (DRIFT key)
+    car.isDrifting = true;
+    car.isKanseiDrift = false;
     car.driftDir = steerDir;
     car.driftInitTimer = cfg.driftInitGraceSec ?? 0.28;
-    // Crisp rear-end breakaway kick so even a quick tap immediately starts sliding
+    car.oppositeHoldTimer = 0;
     car.yawRate = (car.yawRate ?? 0) + steerDir * 1.05;
     if (car.travelHeading === undefined) car.travelHeading = car.heading;
     car.travelHeading = wrapAngle(car.heading - steerDir * 0.11);
     car.slipAngle = wrapAngle(car.heading - car.travelHeading);
   }
 
-  // 2) Sustain drift while inertia & heading still differ, or auto-return to grip when aligned
+  // 2) Sustain drift, execute continuous pendulum swing-transition, or auto-return to grip when aligned
+  let swingingAcross = false;
   if (car.isDrifting) {
     if (car.driftDir === 0 && steerDir !== 0) {
       car.driftDir = steerDir;
     }
 
+    // Track sustained opposite steer during an active drift (distinguishes swing transition from a quick counter-steer dab)
+    if (rawSteer !== 0 && car.driftDir !== 0 && Math.sign(rawSteer) === -car.driftDir) {
+      car.oppositeHoldTimer = (car.oppositeHoldTimer || 0) + dt;
+    } else {
+      car.oppositeHoldTimer = 0;
+    }
+
+    const wantsSwing =
+      !car.inGutter &&
+      car.driftDir !== 0 &&
+      speedKmh >= (cfg.kanseiSwingMinSpeedKmh ?? 46) &&
+      rawSteer !== 0 &&
+      Math.sign(rawSteer) === -car.driftDir &&
+      car.oppositeHoldTimer >= (cfg.kanseiSwingHoldSec ?? 0.11);
+
+    swingingAcross = wantsSwing;
+
+    // Continuous Pendulum Swing Transition (되치기 관성 드리프트):
+    // When holding opposite steer all the way through zero-slip, flip driftDir directly
+    // into the opposite drift WITHOUT regaining grip!
+    if (wantsSwing && (car.slipAngle || 0) * car.driftDir <= exitSlipRad) {
+      const newDir = -car.driftDir;
+      car.driftDir = newDir;
+      car.isKanseiDrift = true;
+      car.driftInitTimer = 0.34;
+      car.oppositeHoldTimer = 0;
+      car.yawRate = newDir * Math.max(Math.abs(car.yawRate || 0), 1.65) + newDir * 1.05;
+      car.travelHeading = wrapAngle(car.heading - newDir * 0.12);
+      car.slipAngle = wrapAngle(car.heading - car.travelHeading);
+      swingingAcross = false;
+    }
+
     const alignedEnough =
       car.driftInitTimer <= 0 &&
       !wantDrift &&
+      !wantsSwing &&
       Math.abs(car.slipAngle || 0) < exitSlipRad;
 
     if (speedKmh < minSustainKmh || alignedEnough) {
-      if (car.driftCharge > 0.32 && throttle > 0) {
-        car.driftBoostTimer = 0.85;
+      if (car.driftCharge > 0.30 && throttle > 0) {
+        car.kanseiBoostActive = Boolean(car.isKanseiDrift);
+        car.driftBoostTimer = car.isKanseiDrift ? (cfg.kanseiBoostDuration ?? 1.0) : 0.85;
       }
       car.isDrifting = false;
+      car.isKanseiDrift = false;
       car.driftDir = 0;
       car.driftInitTimer = 0;
+      car.oppositeHoldTimer = 0;
       car.driftCharge = Math.max(0, car.driftCharge - dt * 1.8);
     } else {
       // Drift builds charge for a crisp exit boost
-      car.driftCharge = Math.min(1.0, car.driftCharge + dt * 0.68);
-      // Speed scrub scales slightly with real slip angle for natural feel
+      car.driftCharge = Math.min(1.0, car.driftCharge + dt * (car.isKanseiDrift ? 0.78 : 0.68));
+      // Kansei swing-transition preserves more speed through linked corners
       const slipScrub = 0.65 + 0.7 * Math.min(1, Math.abs(car.slipAngle || 0) / (cfg.maxSlipAngleRad ?? 0.5));
-      car.speed = Math.max(minSustainKmh * KMH_TO_MS, car.speed - cfg.driftDrag * slipScrub * dt);
+      const kanseiDragMult = car.isKanseiDrift ? (cfg.kanseiDragMult ?? 0.65) : 1.0;
+      car.speed = Math.max(minSustainKmh * KMH_TO_MS, car.speed - cfg.driftDrag * slipScrub * kanseiDragMult * dt);
     }
   } else {
+    car.isKanseiDrift = false;
+    car.oppositeHoldTimer = 0;
     car.driftCharge = Math.max(0, car.driftCharge - dt * 1.8);
   }
 
   // Steering angular velocity with yaw rotational inertia
-  const speedFactor = Math.min(1, Math.abs(car.speed) / 9.5);
-  const reverseSign = car.speed >= -0.1 ? 1 : -1;
-
   let targetTurnRate = 0;
   if (car.isDrifting && car.driftDir !== 0) {
-    // Steering into the turn sustains the slide; releasing steering or counter-steering
-    // lets heading realign with travelHeading to exit drift cleanly
+    // Steering into the turn sustains the slide; releasing steering straightens out;
+    // holding opposite steer swings the nose back across into an opposite Kansei Drift
     let driftSteer = 0;
     if (rawSteer === 0) {
       driftSteer = wantDrift ? car.driftDir * 0.32 : 0;
     } else if (Math.sign(rawSteer) === car.driftDir) {
       driftSteer = steer * 0.92 + car.driftDir * 0.28;
     } else {
-      // Counter-steering: actively pulls nose back toward inertia direction
-      driftSteer = steer * 0.95;
+      // Counter-steer / swing whip
+      driftSteer = steer * (swingingAcross ? 1.45 : 0.95);
     }
-    targetTurnRate = driftSteer * cfg.steerRate * cfg.driftSteerBoost * speedFactor;
+    const kanseiYawBonus = car.isKanseiDrift ? 1.08 : 1.0;
+    targetTurnRate = driftSteer * cfg.steerRate * cfg.driftSteerBoost * kanseiYawBonus * speedFactor;
   } else {
     // Stronger high-speed stability damping on straights for calm, planted feel
     const highSpeedDamp = 1 - Math.min(0.36, (Math.max(0, speedKmh - 42) / 62) * 0.36);
@@ -421,8 +529,10 @@ export function updatePlayerPhysics(car, input, track, dt) {
       car.gutterSide = 0;
       car.gutterCooldown = 0.45;
       car.isDrifting = false;
+      car.isKanseiDrift = false;
       car.driftDir = 0;
       car.driftInitTimer = 0;
+      car.oppositeHoldTimer = 0;
     }
 
     fx = Math.sin(car.heading);
@@ -436,10 +546,14 @@ export function updatePlayerPhysics(car, input, track, dt) {
 
     if (car.speed > 1.0) {
       // True 2D velocity-heading separation:
-      // During drift, lateral grip softens so momentum slides wide while nose tucks inward.
-      // Releasing steering (or counter-steering) lets inertia catch back up smoothly.
+      // During drift (and while swinging across into an opposite Kansei Drift),
+      // lateral grip stays soft so the tail whips smoothly across without snapping to grip.
       const prevSlip = Math.abs(car.slipAngle || 0);
-      const settlingDrift = car.isDrifting && !wantDrift && (rawSteer === 0 || Math.sign(rawSteer) !== car.driftDir);
+      const settlingDrift =
+        car.isDrifting &&
+        !wantDrift &&
+        !swingingAcross &&
+        (rawSteer === 0 || Math.sign(rawSteer) !== car.driftDir);
       const alignRate = car.isDrifting
         ? (settlingDrift ? (cfg.driftSettleAlignRate ?? 4.1) : (cfg.driftAlignRate ?? 2.35))
         : prevSlip > 0.06
