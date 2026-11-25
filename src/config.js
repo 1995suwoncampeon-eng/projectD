@@ -414,3 +414,33 @@ export const PLAYER_THEME = {
   lowerTrimColor: 0x111827,
   accentColor: 0x38bdf8,
 };
+
+// ============================================================================
+// SELECTABLE PLAYER VEHICLES (Default AE86 + all NPC .glb vehicles)
+// ============================================================================
+export const PLAYER_CARS = [
+  {
+    id: 'ae86',
+    name: 'AE86 TRUENO',
+    owner: 'DEFAULT',
+    colorHex: '#f8fafc',
+    colorNum: PLAYER_THEME.bodyColor,
+    accentNum: PLAYER_THEME.accentColor,
+    modelPath: PLAYER_MODEL_PATH,
+    modelRotationY: MODEL_ROTATION_Y,
+    taillights: null,
+    wheelStyle: null,
+  },
+  ...RIVALS.filter((r) => Boolean(r.modelPath)).map((r) => ({
+    id: r.id,
+    name: r.carLabel,
+    owner: r.name,
+    colorHex: r.colorHex,
+    colorNum: r.colorNum,
+    accentNum: r.colorNum,
+    modelPath: r.modelPath,
+    modelRotationY: r.modelRotationY ?? MODEL_ROTATION_Y,
+    taillights: r.taillights ?? null,
+    wheelStyle: r.wheelStyle ?? null,
+  })),
+];

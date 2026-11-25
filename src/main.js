@@ -4,8 +4,9 @@ import {
   PLAYER_MODEL_PATH,
   RIVAL_MODEL_PATH,
   PLAYER_THEME,
+  PLAYER_CARS,
   RIVALS,
-} from './config.js?v=32';
+} from './config.js?v=33';
 import { TougeTrack } from './track.js?v=14';
 import { buildTougeEnvironment } from './trackRenderer.js?v=19';
 import { loadCarModel } from './carModel.js?v=18';
@@ -15,17 +16,18 @@ import {
   recoverVehicleToTrack,
   updatePlayerPhysics,
   resolveCarCollision,
-} from './physics.js?v=31';
+} from './physics.js?v=32';
 import { updateRivalAI } from './ai.js?v=20';
 import { EffectsManager } from './effects.js?v=15';
 import { ArcadeAudio } from './audio.js?v=14';
 import { HudController } from './hud.js?v=4';
-import { UIController } from './ui.js?v=31';
+import { UIController } from './ui.js?v=32';
 
 class ProjectDGame {
   constructor() {
     this.state = 'TITLE'; // TITLE | SELECT | CUTSCENE_INTRO | COUNTDOWN | RACING | CUTSCENE_OUTRO | RESULT
     this.selectedRival = RIVALS[0];
+    this.selectedPlayerCar = PLAYER_CARS[0];
     this.timeOfDay = 'night'; // 'night' | 'day'
 
     this.canvas = document.getElementById('game-canvas');
@@ -68,6 +70,8 @@ class ProjectDGame {
 
     // 3D car visual controllers (loaded asynchronously)
     this.playerCar = null;
+    this.playerCarCache = new Map();
+    this._playerSwapSeq = 0;
     this.rivalCar = null;
     this.rivalCarCache = new Map();
     this._rivalSwapSeq = 0;
@@ -102,6 +106,7 @@ class ProjectDGame {
     this.ui = new UIController({
       onOpenTitle: () => this.enterTitle(),
       onOpenSelect: () => this.enterSelect(),
+      onPlayerCarPreview: (carCfg) => this.applyPlayerCarSelection(carCfg),
       onRivalPreview: (rival) => this.applyRivalSelection(rival),
       onTimeOfDayChange: (mode) => this.setTimeOfDay(mode),
       onStartRace: (rival) => this.enterIntroCutscene(rival),
@@ -225,9 +230,31 @@ class ProjectDGame {
     if (this.playerCar) {
       this.playerCar.setTimeOfDay(this.timeOfDay);
     }
+    for (const promise of this.playerCarCache.values()) {
+      promise.then((car) => car.setTimeOfDay(this.timeOfDay));
+    }
     for (const promise of this.rivalCarCache.values()) {
       promise.then((car) => car.setTimeOfDay(this.timeOfDay));
     }
+  }
+
+  _getOrLoadPlayerCar(carCfg) {
+    if (!this.playerCarCache.has(carCfg.id)) {
+      const promise = loadCarModel({
+        path: carCfg.modelPath ?? PLAYER_MODEL_PATH,
+        rotationY: carCfg.modelRotationY ?? MODEL_ROTATION_Y,
+        isPlayer: true,
+        bodyColor: carCfg.colorNum ?? PLAYER_THEME.bodyColor,
+        accentColor: carCfg.accentNum ?? PLAYER_THEME.accentColor,
+        taillights: carCfg.taillights ?? null,
+        wheelStyle: carCfg.wheelStyle ?? null,
+      }).then((car) => {
+        car.setTimeOfDay(this.timeOfDay);
+        return car;
+      });
+      this.playerCarCache.set(carCfg.id, promise);
+    }
+    return this.playerCarCache.get(carCfg.id);
   }
 
   _getOrLoadRivalCar(rival) {
@@ -250,20 +277,18 @@ class ProjectDGame {
   }
 
   async _loadVehicleModels() {
+    const initialPlayerCar = this.selectedPlayerCar;
     const initialRival = this.selectedRival;
     const [playerCar, rivalCar] = await Promise.all([
-      loadCarModel({
-        path: PLAYER_MODEL_PATH,
-        isPlayer: true,
-        bodyColor: PLAYER_THEME.bodyColor,
-        accentColor: PLAYER_THEME.accentColor,
-      }),
+      this._getOrLoadPlayerCar(initialPlayerCar),
       this._getOrLoadRivalCar(initialRival),
     ]);
 
-    this.playerCar = playerCar;
-    this.playerCar.setTimeOfDay(this.timeOfDay);
-    this.scene.add(this.playerCar.root);
+    if (this.selectedPlayerCar.id === initialPlayerCar.id && !this.playerCar) {
+      this.playerCar = playerCar;
+      this.playerCar.setTimeOfDay(this.timeOfDay);
+      this.scene.add(this.playerCar.root);
+    }
 
     // Attach initial rival car only if user has not already switched to another rival
     if (this.selectedRival.id === initialRival.id && !this.rivalCar) {
@@ -273,6 +298,7 @@ class ProjectDGame {
     }
 
     this.modelsReady = true;
+    this.applyPlayerCarSelection(this.selectedPlayerCar);
     this.applyRivalSelection(this.selectedRival);
     this._syncCarMeshes(0);
 
@@ -510,6 +536,28 @@ class ProjectDGame {
     this.hud.showBanner('TRACK RECOVERED', 1.4);
   }
 
+  applyPlayerCarSelection(carCfg) {
+    if (!carCfg) return;
+    this.selectedPlayerCar = carCfg;
+
+    const swapSeq = ++this._playerSwapSeq;
+    this._getOrLoadPlayerCar(carCfg).then((nextPlayerCar) => {
+      if (swapSeq !== this._playerSwapSeq) return;
+      if (this.playerCar && this.playerCar !== nextPlayerCar) {
+        this.scene.remove(this.playerCar.root);
+      }
+      this.playerCar = nextPlayerCar;
+      if (this.playerCar.root.parent !== this.scene) {
+        this.scene.add(this.playerCar.root);
+      }
+      this.playerCar.setColors(
+        carCfg.colorNum ?? PLAYER_THEME.bodyColor,
+        carCfg.accentNum ?? PLAYER_THEME.accentColor
+      );
+      this._syncCarMeshes(0);
+    });
+  }
+
   applyRivalSelection(rival) {
     this.selectedRival = rival;
     this.hud.setRivalAppearance(rival);
@@ -549,6 +597,7 @@ class ProjectDGame {
     this.effects.clear();
     resetVehicleToSpawn(this.player, this.track, this.track.startS, -2.6);
     resetVehicleToSpawn(this.rival, this.track, this.track.startS, 2.6);
+    this.applyPlayerCarSelection(this.ui.getSelectedPlayerCar());
     this.applyRivalSelection(this.ui.getSelectedRival());
     this.hud.setVisible(false);
     this.ui.showScreen('SELECT');

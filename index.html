@@ -21,7 +21,7 @@
     rel="icon"
     href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230b0b0e'/%3E%3Cpath d='M0 54 L64 46 L64 64 L0 64 Z' fill='%23e6192e'/%3E%3Ctext x='50%25' y='48%25' dominant-baseline='middle' text-anchor='middle' fill='%23ffd000' font-family='sans-serif' font-weight='900' font-style='italic' font-size='40'%3ED%3C/text%3E%3C/svg%3E"
   />
-  <link rel="stylesheet" href="styles.css?v=20261124-4" />
+  <link rel="stylesheet" href="styles.css?v=20261124-5" />
   <script type="importmap">
     {
       "imports": {
@@ -87,8 +87,8 @@
       <div class="select-shell">
         <header class="select-header">
           <div class="select-title-wrap">
-            <div class="section-eyebrow">STAGE 01 // SELECT OPPONENT</div>
-            <h2 class="section-title">라이벌 선택</h2>
+            <div class="section-eyebrow">STAGE 01 // SELECT MACHINE &amp; OPPONENT</div>
+            <h2 class="section-title">차량 &amp; 라이벌 선택</h2>
           </div>
           <div class="select-header-actions">
             <div class="time-toggle-group" role="group" aria-label="시간대 설정">
@@ -98,6 +98,16 @@
             <button id="btn-back-title" class="btn-ghost" type="button">◀ TITLE</button>
           </div>
         </header>
+
+        <div class="player-car-bar" aria-label="내 차량 선택">
+          <div class="player-car-bar-head">
+            <span class="player-car-bar-tag">MY CAR</span>
+            <span class="player-car-bar-sub">내 차량 선택</span>
+          </div>
+          <div id="player-car-list" class="player-car-list" role="listbox" aria-label="Player Cars">
+            <!-- Populated dynamically by src/ui.js from PLAYER_CARS -->
+          </div>
+        </div>
 
         <div id="rival-grid" class="rival-grid" role="listbox" aria-label="Rivals">
           <!-- Populated dynamically by src/ui.js from src/config.js -->
@@ -329,6 +339,6 @@
     </section>
   </div>
 
-  <script type="module" src="src/main.js?v=49"></script>
+  <script type="module" src="src/main.js?v=50"></script>
 </body>
 </html>

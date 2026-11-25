@@ -1,4 +1,4 @@
-import { RIVALS } from './config.js?v=32';
+import { RIVALS, PLAYER_CARS } from './config.js?v=33';
 import { formatRaceTime } from './hud.js?v=4';
 
 const STORAGE_KEY_PREFIX = 'projectD_bestTime_';
@@ -25,6 +25,7 @@ export class UIController {
   constructor(callbacks) {
     this.callbacks = callbacks;
     this.selectedRivalIndex = 0;
+    this.selectedPlayerCarIndex = 0;
 
     this.screens = {
       TITLE: document.getElementById('screen-title'),
@@ -53,6 +54,7 @@ export class UIController {
     this._cutsceneState = null;
     this._typewriterTimer = null;
 
+    this.playerCarList = document.getElementById('player-car-list');
     this.rivalGrid = document.getElementById('rival-grid');
     this.selectedNameEl = document.getElementById('selected-rival-name');
     this.selectedDescEl = document.getElementById('selected-rival-desc');
@@ -67,15 +69,79 @@ export class UIController {
     this.resultBestRow = document.getElementById('result-best-row');
     this.resultBestTime = document.getElementById('result-best-time');
 
+    this.playerCarChips = [];
     this.rivalCards = [];
 
+    this._renderPlayerCarChips();
     this._renderRivalCards();
     this._bindButtons();
+    this.selectPlayerCar(0, false);
     this.selectRival(0, false);
   }
 
   getSelectedRival() {
     return RIVALS[this.selectedRivalIndex];
+  }
+
+  getSelectedPlayerCar() {
+    return PLAYER_CARS[this.selectedPlayerCarIndex] || PLAYER_CARS[0];
+  }
+
+  _renderPlayerCarChips() {
+    if (!this.playerCarList) return;
+    this.playerCarList.innerHTML = '';
+    this.playerCarChips = [];
+
+    PLAYER_CARS.forEach((carCfg, idx) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'player-car-chip';
+      chip.style.setProperty('--car-color', carCfg.colorHex);
+      chip.dataset.carId = carCfg.id;
+      chip.setAttribute('role', 'option');
+      chip.setAttribute('aria-selected', 'false');
+      chip.innerHTML = `
+        <span class="player-car-chip-name">${carCfg.name}</span>
+        <span class="player-car-chip-owner">${carCfg.owner}</span>
+      `;
+      chip.addEventListener('click', () => {
+        this.selectPlayerCar(idx, true);
+      });
+      this.playerCarList.appendChild(chip);
+      this.playerCarChips.push(chip);
+    });
+  }
+
+  selectPlayerCar(index, notify = true) {
+    const safeIdx = ((index % PLAYER_CARS.length) + PLAYER_CARS.length) % PLAYER_CARS.length;
+    this.selectedPlayerCarIndex = safeIdx;
+    const carCfg = PLAYER_CARS[safeIdx];
+
+    this.playerCarChips.forEach((chip, i) => {
+      const active = i === safeIdx;
+      chip.classList.toggle('selected', active);
+      chip.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    if (notify) {
+      this.playerCarChips[safeIdx]?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+    }
+
+    this._updateSelectSummary();
+
+    if (notify && this.callbacks.onPlayerCarPreview) {
+      this.callbacks.onPlayerCarPreview(carCfg);
+    }
+  }
+
+  _updateSelectSummary() {
+    const rival = this.getSelectedRival();
+    const myCar = this.getSelectedPlayerCar();
+    if (this.selectedNameEl && rival) {
+      this.selectedNameEl.textContent = `${myCar.name}  VS  ${rival.name} (${rival.difficultyKr})`;
+    }
+    if (this.selectedDescEl && rival) {
+      this.selectedDescEl.textContent = `상대: ${rival.team} · 최고속도 ${rival.stats.topSpeedKmh} km/h · 코너링 ${Math.round(rival.stats.corneringStability * 100)}%`;
+    }
   }
 
   _renderRivalCards() {
@@ -148,12 +214,7 @@ export class UIController {
       this.rivalCards[safeIdx]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
 
-    if (this.selectedNameEl) {
-      this.selectedNameEl.textContent = `${rival.name} (${rival.difficultyKr} · ${rival.team})`;
-    }
-    if (this.selectedDescEl) {
-      this.selectedDescEl.textContent = `최고속도 ${rival.stats.topSpeedKmh} km/h · 코너링 안정성 ${Math.round(rival.stats.corneringStability * 100)}%`;
-    }
+    this._updateSelectSummary();
 
     if (notify && this.callbacks.onRivalPreview) {
       this.callbacks.onRivalPreview(rival);
