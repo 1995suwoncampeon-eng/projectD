@@ -67,10 +67,10 @@ export const PLAYER_PHYSICS = {
   driftDrag: 1.15,             // mild speed bleed during deep drift
   driftBoostMaxKmh: 8,         // brief exit boost after clean drift
   kanseiSwingMinSpeedKmh: 46,  // min speed to swing-transition an active drift to the opposite direction
-  kanseiSwingHoldSec: 0.11,    // opposite-direction hold needed to swing through zero (vs brief counter-steer dab)
-  kanseiGripMinSpeedKmh: 62,   // min speed for high-speed corner-to-corner swing without DRIFT key
-  kanseiGripMinLoad: 0.50,     // sustained cornering lateral load needed before opposite whip
-  kanseiGripWhipHoldSec: 0.14, // opposite hold time to break rear loose from high-speed cornering
+  kanseiOvershootRad: 0.115,   // must turn ~6.6 deg PAST 0 into the opposite side to trigger Kansei flip
+  kanseiGripMinSpeedKmh: 64,   // min speed for high-speed corner-to-corner swing without DRIFT key
+  kanseiGripMinLoad: 0.55,     // sustained cornering lateral load needed before opposite whip
+  kanseiGripWhipHoldSec: 0.18, // opposite hold time to break rear loose from high-speed cornering
   kanseiDragMult: 0.65,        // preserves more momentum through the linked corner
   kanseiBoostMaxKmh: 10,       // exit surge after a clean Kansei transition
   kanseiBoostDuration: 1.0,    // exit boost duration

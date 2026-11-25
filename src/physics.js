@@ -1,4 +1,4 @@
-import { PLAYER_PHYSICS } from './config.js?v=31';
+import { PLAYER_PHYSICS } from './config.js?v=32';
 import { wrapAngle } from './track.js';
 
 const KMH_TO_MS = 1 / 3.6;
@@ -372,49 +372,39 @@ export function updatePlayerPhysics(car, input, track, dt) {
     car.slipAngle = wrapAngle(car.heading - car.travelHeading);
   }
 
-  // 2) Sustain drift, execute continuous pendulum swing-transition, or auto-return to grip when aligned
-  let swingingAcross = false;
+  // 2) Sustain drift, allow smooth counter-steering, and trigger Kansei flip ONLY when
+  // the car actually overshoots past 0 deg into the opposite side by kanseiOvershootRad!
+  let holdingOpposite = false;
   if (car.isDrifting) {
     if (car.driftDir === 0 && steerDir !== 0) {
       car.driftDir = steerDir;
     }
 
-    // Track sustained opposite steer during an active drift (distinguishes swing transition from a quick counter-steer dab)
-    if (rawSteer !== 0 && car.driftDir !== 0 && Math.sign(rawSteer) === -car.driftDir) {
-      car.oppositeHoldTimer = (car.oppositeHoldTimer || 0) + dt;
-    } else {
-      car.oppositeHoldTimer = 0;
-    }
-
-    const wantsSwing =
+    holdingOpposite =
       !car.inGutter &&
       car.driftDir !== 0 &&
       speedKmh >= (cfg.kanseiSwingMinSpeedKmh ?? 46) &&
       rawSteer !== 0 &&
-      Math.sign(rawSteer) === -car.driftDir &&
-      car.oppositeHoldTimer >= (cfg.kanseiSwingHoldSec ?? 0.11);
+      Math.sign(rawSteer) === -car.driftDir;
 
-    swingingAcross = wantsSwing;
+    // Positive once the nose has swung past 0 deg (travelHeading) into the opposite side
+    const oppositeOvershoot = -(car.slipAngle || 0) * car.driftDir;
+    const overshootThreshold = cfg.kanseiOvershootRad ?? 0.115;
 
-    // Continuous Pendulum Swing Transition (되치기 관성 드리프트):
-    // When holding opposite steer all the way through zero-slip, flip driftDir directly
-    // into the opposite drift WITHOUT regaining grip!
-    if (wantsSwing && (car.slipAngle || 0) * car.driftDir <= exitSlipRad) {
+    if (holdingOpposite && oppositeOvershoot >= overshootThreshold) {
       const newDir = -car.driftDir;
       car.driftDir = newDir;
       car.isKanseiDrift = true;
       car.driftInitTimer = 0.34;
       car.oppositeHoldTimer = 0;
-      car.yawRate = newDir * Math.max(Math.abs(car.yawRate || 0), 1.65) + newDir * 1.05;
-      car.travelHeading = wrapAngle(car.heading - newDir * 0.12);
-      car.slipAngle = wrapAngle(car.heading - car.travelHeading);
-      swingingAcross = false;
+      car.yawRate = newDir * Math.max(Math.abs(car.yawRate || 0), 1.55) + newDir * 0.85;
+      holdingOpposite = false;
     }
 
     const alignedEnough =
       car.driftInitTimer <= 0 &&
       !wantDrift &&
-      !wantsSwing &&
+      !holdingOpposite &&
       Math.abs(car.slipAngle || 0) < exitSlipRad;
 
     if (speedKmh < minSustainKmh || alignedEnough) {
@@ -445,16 +435,16 @@ export function updatePlayerPhysics(car, input, track, dt) {
   // Steering angular velocity with yaw rotational inertia
   let targetTurnRate = 0;
   if (car.isDrifting && car.driftDir !== 0) {
-    // Steering into the turn sustains the slide; releasing steering straightens out;
-    // holding opposite steer swings the nose back across into an opposite Kansei Drift
+    // Steering into the turn deepens the slide; gentle counter-steering holds a shallow long drift;
+    // holding opposite steer all the way past 0 deg overshoots into an opposite Kansei Drift
     let driftSteer = 0;
     if (rawSteer === 0) {
       driftSteer = wantDrift ? car.driftDir * 0.32 : 0;
     } else if (Math.sign(rawSteer) === car.driftDir) {
       driftSteer = steer * 0.92 + car.driftDir * 0.28;
     } else {
-      // Counter-steer / swing whip
-      driftSteer = steer * (swingingAcross ? 1.45 : 0.95);
+      // Smooth, controllable counter-steering (no forced snap!)
+      driftSteer = steer * 0.82;
     }
     const kanseiYawBonus = car.isKanseiDrift ? 1.08 : 1.0;
     targetTurnRate = driftSteer * cfg.steerRate * cfg.driftSteerBoost * kanseiYawBonus * speedFactor;
@@ -552,7 +542,7 @@ export function updatePlayerPhysics(car, input, track, dt) {
       const settlingDrift =
         car.isDrifting &&
         !wantDrift &&
-        !swingingAcross &&
+        !holdingOpposite &&
         (rawSteer === 0 || Math.sign(rawSteer) !== car.driftDir);
       const alignRate = car.isDrifting
         ? (settlingDrift ? (cfg.driftSettleAlignRate ?? 4.1) : (cfg.driftAlignRate ?? 2.35))
