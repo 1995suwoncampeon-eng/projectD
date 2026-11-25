@@ -66,13 +66,6 @@ export const PLAYER_PHYSICS = {
   driftMinSpeedKmh: 30,        // minimum speed to engage drift
   driftDrag: 1.15,             // mild speed bleed during deep drift
   driftBoostMaxKmh: 8,         // brief exit boost after clean drift
-  kanseiMinSpeedKmh: 60,       // minimum speed for feint/pendulum Kansei Drift (no DRIFT key)
-  kanseiLiftMinSpeedKmh: 74,   // minimum speed for high-speed lift-off / trail-brake Kansei Drift
-  kanseiFeintWindowSec: 0.55,  // window after opposite feint to whip into corner
-  kanseiFeintMinLoad: 0.42,    // lateral suspension load threshold to arm pendulum recoil
-  kanseiDragMult: 0.52,        // Kansei Drift keeps much higher mid-corner speed than handbrake drift
-  kanseiBoostMaxKmh: 11,       // stronger exit surge on clean Kansei Drift
-  kanseiBoostDuration: 1.05,   // exit boost duration for Kansei Drift
   maxVisualSlipRad: 0.46,      // max visual body slip readout cap
   wallSpeedKeep: 0.84,         // speed retention on guardrail scrape
   carCollisionRadius: 1.32,

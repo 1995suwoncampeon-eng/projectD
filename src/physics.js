@@ -1,4 +1,4 @@
-import { PLAYER_PHYSICS } from './config.js?v=30';
+import { PLAYER_PHYSICS } from './config.js?v=29';
 import { wrapAngle } from './track.js';
 
 const KMH_TO_MS = 1 / 3.6;
@@ -20,17 +20,10 @@ export function createVehicleState(track, startS, lateralOffset = 0) {
     visualSlip: 0,
     bodyRoll: 0,
     isDrifting: false,
-    isKanseiDrift: false, // true when initiated via weight transfer / Scandinavian flick (no DRIFT key)
     driftDir: 0, // -1 right, +1 left
     driftInitTimer: 0,
     driftCharge: 0,
     driftBoostTimer: 0,
-    kanseiBoostActive: false,
-    lateralLoad: 0,   // simulated suspension lateral spring load (-1..+1) for pendulum recoil
-    feintDir: 0,      // direction of last loaded lateral swing
-    feintTimer: 0,    // window to whip opposite into a Kansei Drift
-    prevThrottle: 0,
-    liftOffTimer: 0,  // forward weight transfer window after throttle lift-off / brake dab
     cornerExitCharge: 0,
     turboBoostTimer: 0,
     inGutter: false,
@@ -67,17 +60,10 @@ export function resetVehicleToSpawn(car, track, startS, lateralOffset = 0) {
   car.visualSlip = 0;
   car.bodyRoll = 0;
   car.isDrifting = false;
-  car.isKanseiDrift = false;
   car.driftDir = 0;
   car.driftInitTimer = 0;
   car.driftCharge = 0;
   car.driftBoostTimer = 0;
-  car.kanseiBoostActive = false;
-  car.lateralLoad = 0;
-  car.feintDir = 0;
-  car.feintTimer = 0;
-  car.prevThrottle = 0;
-  car.liftOffTimer = 0;
   car.cornerExitCharge = 0;
   car.turboBoostTimer = 0;
   car.inGutter = false;
@@ -113,15 +99,9 @@ export function recoverVehicleToTrack(car, track) {
   car.yawRate = 0;
   car.slipAngle = 0;
   car.isDrifting = false;
-  car.isKanseiDrift = false;
   car.driftDir = 0;
   car.driftInitTimer = 0;
   car.driftCharge = 0;
-  car.kanseiBoostActive = false;
-  car.lateralLoad = 0;
-  car.feintDir = 0;
-  car.feintTimer = 0;
-  car.liftOffTimer = 0;
   car.inGutter = false;
   car.gutterSide = 0;
   car.visualSlip = 0;
@@ -252,16 +232,12 @@ export function updatePlayerPhysics(car, input, track, dt) {
   // Decay drift exit boost & upshift cut timers
   if (car.driftBoostTimer > 0) {
     car.driftBoostTimer = Math.max(0, car.driftBoostTimer - dt);
-    if (car.driftBoostTimer <= 0) {
-      car.kanseiBoostActive = false;
-    }
   }
   if (car.shiftCutTimer > 0) {
     car.shiftCutTimer = Math.max(0, car.shiftCutTimer - dt);
   }
 
-  const activeBoostKmh = car.kanseiBoostActive ? (cfg.kanseiBoostMaxKmh ?? 11) : cfg.driftBoostMaxKmh;
-  const boostBonusMs = car.driftBoostTimer > 0 ? activeBoostKmh * KMH_TO_MS : 0;
+  const boostBonusMs = car.driftBoostTimer > 0 ? cfg.driftBoostMaxKmh * KMH_TO_MS : 0;
   const maxSpeedMs = cfg.maxSpeedKmh * KMH_TO_MS + boostBonusMs;
   const reverseMaxMs = cfg.reverseMaxKmh * KMH_TO_MS;
 
@@ -274,7 +250,7 @@ export function updatePlayerPhysics(car, input, track, dt) {
     // High-revving NA powerband: builds pull strongly above 5000 RPM, tapers slightly at redline
     const powerband = 0.78 + 0.36 * Math.sin(rpmNorm * Math.PI * 0.86);
     const shiftMult = car.shiftCutTimer > 0 ? 0.15 : 1.0;
-    const boostMult = car.driftBoostTimer > 0 ? (car.kanseiBoostActive ? 1.35 : 1.25) : 1.0;
+    const boostMult = car.driftBoostTimer > 0 ? 1.25 : 1.0;
     const aeroDrag = 0.52 * speedRatio * speedRatio;
     const accelNet = Math.max(0.18, cfg.accel * activeGear.torqueMult * powerband * shiftMult * boostMult - aeroDrag);
     car.speed += accelNet * dt;
@@ -297,35 +273,10 @@ export function updatePlayerPhysics(car, input, track, dt) {
     }
   }
 
-  // Weight-Transfer & Pendulum Recoil Tracking for Kansei (Inertia) Drift
+  // Tap-to-Initiate Simcade Drift State Machine
+  // Press & release DRIFT once to kick the rear out; slide persists naturally while
+  // heading differs from travelHeading (inertia), and auto-returns to grip once aligned.
   const speedKmh = car.speed * MS_TO_KMH;
-  const speedFactor = Math.min(1, Math.abs(car.speed) / 9.5);
-  const reverseSign = car.speed >= -0.1 ? 1 : -1;
-
-  // Simulated lateral suspension load: builds while cornering/feinting, decays like spring recoil
-  const targetLatLoad = car.steerInput * Math.min(1, speedKmh / 65);
-  const loadRate = Math.abs(targetLatLoad) > Math.abs(car.lateralLoad || 0) ? 4.4 : 2.3;
-  car.lateralLoad = (car.lateralLoad || 0) + (targetLatLoad - (car.lateralLoad || 0)) * (1 - Math.exp(-dt * loadRate));
-
-  const feintMinLoad = cfg.kanseiFeintMinLoad ?? 0.42;
-  if (!car.isDrifting && Math.abs(car.lateralLoad) >= feintMinLoad && speedKmh >= (cfg.kanseiMinSpeedKmh ?? 60)) {
-    car.feintDir = Math.sign(car.lateralLoad);
-    car.feintTimer = cfg.kanseiFeintWindowSec ?? 0.55;
-  } else if (car.feintTimer > 0) {
-    car.feintTimer = Math.max(0, car.feintTimer - dt);
-    if (car.feintTimer <= 0) car.feintDir = 0;
-  }
-
-  // Forward weight transfer window (lifting off throttle or dabbing brake at high speed lightens rear)
-  const liftedThrottle = (car.prevThrottle || 0) > 0 && throttle === 0;
-  if ((liftedThrottle || brake > 0) && speedKmh >= (cfg.kanseiLiftMinSpeedKmh ?? 74)) {
-    car.liftOffTimer = 0.36;
-  } else if (car.liftOffTimer > 0) {
-    car.liftOffTimer = Math.max(0, car.liftOffTimer - dt);
-  }
-  car.prevThrottle = throttle;
-
-  // Tap-to-Initiate + Kansei (Inertia) Drift State Machine
   const exitSlipRad = cfg.driftExitSlipRad ?? 0.10;
   const minSustainKmh = cfg.driftMinSpeedKmh * 0.72;
 
@@ -339,46 +290,12 @@ export function updatePlayerPhysics(car, input, track, dt) {
       ? Math.sign(car.steerInput)
       : 0;
 
-  // 1A) Kansei Drift via Scandinavian Flick / Feint / S-Curve Pendulum Recoil (NO DRIFT key needed!)
-  const feintKanseiTrigger =
-    !car.isDrifting &&
-    !car.inGutter &&
-    speedKmh >= (cfg.kanseiMinSpeedKmh ?? 60) &&
-    rawSteer !== 0 &&
-    car.feintTimer > 0 &&
-    car.feintDir !== 0 &&
-    Math.sign(rawSteer) === -car.feintDir;
-
-  // 1B) Kansei Drift via High-Speed Lift-Off / Trail-Brake Weight Transfer (NO DRIFT key needed!)
-  const liftOffKanseiTrigger =
-    !car.isDrifting &&
-    !car.inGutter &&
-    speedKmh >= (cfg.kanseiLiftMinSpeedKmh ?? 74) &&
-    car.liftOffTimer > 0 &&
-    rawSteer !== 0 &&
-    Math.abs(car.steerInput) >= 0.72 &&
-    Math.sign(car.steerInput) === Math.sign(rawSteer);
-
-  if (feintKanseiTrigger || liftOffKanseiTrigger) {
-    const dir = Math.sign(rawSteer);
+  // 1) Initiate drift on a single tap (or hold) when steering at speed
+  if (!car.isDrifting && wantDrift && speedKmh >= cfg.driftMinSpeedKmh && steerDir !== 0) {
     car.isDrifting = true;
-    car.isKanseiDrift = true;
-    car.driftDir = dir;
-    car.driftInitTimer = 0.34;
-    car.feintTimer = 0;
-    car.feintDir = 0;
-    car.liftOffTimer = 0;
-    // Pendulum weight snap kicks the rear out crisply while preserving corner entry speed
-    car.yawRate = (car.yawRate ?? 0) + dir * 1.25;
-    if (car.travelHeading === undefined) car.travelHeading = car.heading;
-    car.travelHeading = wrapAngle(car.heading - dir * 0.14);
-    car.slipAngle = wrapAngle(car.heading - car.travelHeading);
-  } else if (!car.isDrifting && wantDrift && speedKmh >= cfg.driftMinSpeedKmh && steerDir !== 0) {
-    // 1C) Standard Tap-to-Initiate Drift (DRIFT key)
-    car.isDrifting = true;
-    car.isKanseiDrift = false;
     car.driftDir = steerDir;
     car.driftInitTimer = cfg.driftInitGraceSec ?? 0.28;
+    // Crisp rear-end breakaway kick so even a quick tap immediately starts sliding
     car.yawRate = (car.yawRate ?? 0) + steerDir * 1.05;
     if (car.travelHeading === undefined) car.travelHeading = car.heading;
     car.travelHeading = wrapAngle(car.heading - steerDir * 0.11);
@@ -397,29 +314,28 @@ export function updatePlayerPhysics(car, input, track, dt) {
       Math.abs(car.slipAngle || 0) < exitSlipRad;
 
     if (speedKmh < minSustainKmh || alignedEnough) {
-      if (car.driftCharge > 0.30 && throttle > 0) {
-        car.kanseiBoostActive = Boolean(car.isKanseiDrift);
-        car.driftBoostTimer = car.isKanseiDrift ? (cfg.kanseiBoostDuration ?? 1.05) : 0.85;
+      if (car.driftCharge > 0.32 && throttle > 0) {
+        car.driftBoostTimer = 0.85;
       }
       car.isDrifting = false;
-      car.isKanseiDrift = false;
       car.driftDir = 0;
       car.driftInitTimer = 0;
       car.driftCharge = Math.max(0, car.driftCharge - dt * 1.8);
     } else {
       // Drift builds charge for a crisp exit boost
-      car.driftCharge = Math.min(1.0, car.driftCharge + dt * (car.isKanseiDrift ? 0.78 : 0.68));
-      // Kansei Drift carries significantly more speed through the corner than handbrake drift
+      car.driftCharge = Math.min(1.0, car.driftCharge + dt * 0.68);
+      // Speed scrub scales slightly with real slip angle for natural feel
       const slipScrub = 0.65 + 0.7 * Math.min(1, Math.abs(car.slipAngle || 0) / (cfg.maxSlipAngleRad ?? 0.5));
-      const kanseiDragMult = car.isKanseiDrift ? (cfg.kanseiDragMult ?? 0.52) : 1.0;
-      car.speed = Math.max(minSustainKmh * KMH_TO_MS, car.speed - cfg.driftDrag * slipScrub * kanseiDragMult * dt);
+      car.speed = Math.max(minSustainKmh * KMH_TO_MS, car.speed - cfg.driftDrag * slipScrub * dt);
     }
   } else {
-    car.isKanseiDrift = false;
     car.driftCharge = Math.max(0, car.driftCharge - dt * 1.8);
   }
 
   // Steering angular velocity with yaw rotational inertia
+  const speedFactor = Math.min(1, Math.abs(car.speed) / 9.5);
+  const reverseSign = car.speed >= -0.1 ? 1 : -1;
+
   let targetTurnRate = 0;
   if (car.isDrifting && car.driftDir !== 0) {
     // Steering into the turn sustains the slide; releasing steering or counter-steering
@@ -433,8 +349,7 @@ export function updatePlayerPhysics(car, input, track, dt) {
       // Counter-steering: actively pulls nose back toward inertia direction
       driftSteer = steer * 0.95;
     }
-    const kanseiYawBonus = car.isKanseiDrift ? 1.08 : 1.0;
-    targetTurnRate = driftSteer * cfg.steerRate * cfg.driftSteerBoost * kanseiYawBonus * speedFactor;
+    targetTurnRate = driftSteer * cfg.steerRate * cfg.driftSteerBoost * speedFactor;
   } else {
     // Stronger high-speed stability damping on straights for calm, planted feel
     const highSpeedDamp = 1 - Math.min(0.36, (Math.max(0, speedKmh - 42) / 62) * 0.36);
