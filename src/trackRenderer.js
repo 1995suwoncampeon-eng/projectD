@@ -390,16 +390,15 @@ function createSkyDomeTexture(isDay) {
     return seed / 4294967296;
   };
 
-  // 1. Realistic Rayleigh + Horizon Haze sky gradient (natural desaturated mountain daylight)
+  // 1. Clean clear-day Rayleigh blue sky gradient blending smoothly into horizon haze
   const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
-  skyGrad.addColorStop(0.0, '#1f4e8c');   // Deep zenith cerulean
-  skyGrad.addColorStop(0.18, '#3871b2');  // Upper sky blue
-  skyGrad.addColorStop(0.34, '#659ad0');  // Mid sky
-  skyGrad.addColorStop(0.45, '#a4c7e2');  // Lower sky atmospheric scatter
-  skyGrad.addColorStop(0.505, '#dce8f0'); // Pale misty horizon band
-  skyGrad.addColorStop(0.54, '#c7d8e4');  // Below-horizon valley haze
-  skyGrad.addColorStop(0.66, '#7a9088');  // Distant forest basin
-  skyGrad.addColorStop(1.0, '#3e4d45');   // Deep ground tone
+  skyGrad.addColorStop(0.0, '#1a56a8');   // Crisp deep zenith blue
+  skyGrad.addColorStop(0.18, '#2f74c6');  // Clear upper sky
+  skyGrad.addColorStop(0.35, '#5da0df');  // Bright mid sky
+  skyGrad.addColorStop(0.46, '#a8d0ee');  // Soft lower sky
+  skyGrad.addColorStop(0.515, '#dcebf5'); // Clean bright horizon haze
+  skyGrad.addColorStop(0.58, '#cfe0ec');  // Matches daytime scene fog seamlessly
+  skyGrad.addColorStop(1.0, '#bfd4e3');   // Clean lower sky bounce below terrain
   ctx.fillStyle = skyGrad;
   ctx.fillRect(0, 0, W, H);
 
@@ -529,81 +528,13 @@ function createSkyDomeTexture(isDay) {
     }
   }
 
-  // 5. Multi-octave periodic FBM mountain ridges (seamless 360° Japanese mountain ranges + aerial perspective)
-  const periodicFbm = (uNorm, freqs, phases, amps) => {
-    let val = 0;
-    const tau = Math.PI * 2;
-    for (let k = 0; k < freqs.length; k++) {
-      val += Math.sin(uNorm * tau * freqs[k] + phases[k]) * amps[k];
-    }
-    return val;
-  };
-
-  const mountainLayers = [
-    {
-      // Far pale alpine silhouettes almost dissolved into horizon haze
-      baseY: H * 0.506,
-      freqs: [2, 5, 9, 17, 31],
-      phases: [0.6, 1.9, 3.4, 0.8, 2.2],
-      amps: [26, 17, 10, 5.5, 2.5],
-      topColor: 'rgba(150, 176, 198, 0.56)',
-      botColor: 'rgba(186, 206, 220, 0.72)',
-    },
-    {
-      // Mid-far misty blue-grey ridge
-      baseY: H * 0.516,
-      freqs: [3, 7, 13, 23, 41],
-      phases: [2.4, 0.7, 4.1, 1.5, 3.6],
-      amps: [22, 14, 8.5, 4.5, 2.0],
-      topColor: 'rgba(104, 134, 152, 0.74)',
-      botColor: 'rgba(142, 168, 180, 0.85)',
-    },
-    {
-      // Mid-near Gunma/Akina forested range
-      baseY: H * 0.530,
-      freqs: [4, 8, 15, 29, 53],
-      phases: [1.1, 3.8, 0.5, 2.9, 4.7],
-      amps: [16, 11, 6.5, 3.5, 1.8],
-      topColor: 'rgba(67, 94, 94, 0.88)',
-      botColor: 'rgba(84, 110, 102, 0.96)',
-    },
-    {
-      // Closest dark cedar ridge base
-      baseY: H * 0.548,
-      freqs: [5, 11, 19, 37],
-      phases: [3.2, 1.4, 5.0, 2.1],
-      amps: [10, 6.5, 3.8, 2.0],
-      topColor: 'rgba(48, 69, 60, 0.96)',
-      botColor: 'rgba(42, 56, 49, 1.0)',
-    },
-  ];
-
-  for (const layer of mountainLayers) {
-    const ridgeGrad = ctx.createLinearGradient(0, layer.baseY - 58, 0, layer.baseY + 80);
-    ridgeGrad.addColorStop(0.0, layer.topColor);
-    ridgeGrad.addColorStop(1.0, layer.botColor);
-    ctx.fillStyle = ridgeGrad;
-    ctx.beginPath();
-    ctx.moveTo(0, H);
-    for (let x = 0; x <= W; x += 4) {
-      const u = x / W;
-      const n = periodicFbm(u, layer.freqs, layer.phases, layer.amps);
-      // Smooth undulating mountain profile (no harsh V-shaped Math.abs spikes)
-      const elev = Math.max(0, n + 26);
-      ctx.lineTo(x, layer.baseY - elev);
-    }
-    ctx.lineTo(W, H);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  // 6. Subtle horizon atmospheric mist veil blending distant ridges seamlessly into fog
-  const mistGrad = ctx.createLinearGradient(0, H * 0.47, 0, H * 0.56);
-  mistGrad.addColorStop(0.0, 'rgba(218, 232, 242, 0.0)');
-  mistGrad.addColorStop(0.55, 'rgba(208, 224, 236, 0.28)');
-  mistGrad.addColorStop(1.0, 'rgba(186, 206, 218, 0.0)');
+  // 5. Subtle horizon atmospheric haze veil blending sky seamlessly into daytime fog
+  const mistGrad = ctx.createLinearGradient(0, H * 0.46, 0, H * 0.56);
+  mistGrad.addColorStop(0.0, 'rgba(220, 235, 245, 0.0)');
+  mistGrad.addColorStop(0.55, 'rgba(214, 231, 243, 0.34)');
+  mistGrad.addColorStop(1.0, 'rgba(207, 224, 236, 0.0)');
   ctx.fillStyle = mistGrad;
-  ctx.fillRect(0, H * 0.47, W, H * 0.09);
+  ctx.fillRect(0, H * 0.46, W, H * 0.10);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
