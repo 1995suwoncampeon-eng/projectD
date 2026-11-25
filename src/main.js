@@ -16,7 +16,7 @@ import {
   recoverVehicleToTrack,
   updatePlayerPhysics,
   resolveCarCollision,
-} from './physics.js?v=37';
+} from './physics.js?v=38';
 import { updateRivalAI } from './ai.js?v=22';
 import { EffectsManager } from './effects.js?v=15';
 import { ArcadeAudio } from './audio.js?v=14';
@@ -384,7 +384,7 @@ class ProjectDGame {
       if (code === 'KeyA' || code === 'ArrowLeft') this.input.left = true;
       if (code === 'KeyD' || code === 'ArrowRight') this.input.right = true;
       if (code === 'ShiftLeft' || code === 'ShiftRight') this.input.drift = true;
-      if (code === 'ControlLeft') {
+      if (code === 'ControlLeft' || (e.key === 'Control' && e.location === 1)) {
         e.preventDefault();
         this.input.interact = true;
       }
@@ -404,7 +404,9 @@ class ProjectDGame {
       if (code === 'KeyA' || code === 'ArrowLeft') this.input.left = false;
       if (code === 'KeyD' || code === 'ArrowRight') this.input.right = false;
       if (code === 'ShiftLeft' || code === 'ShiftRight') this.input.drift = false;
-      if (code === 'ControlLeft') this.input.interact = false;
+      if (code === 'ControlLeft' || (e.key === 'Control' && e.location === 1) || (!e.ctrlKey && this.input.interact)) {
+        this.input.interact = false;
+      }
     });
 
     window.addEventListener('blur', () => {
