@@ -16,7 +16,7 @@ import {
   recoverVehicleToTrack,
   updatePlayerPhysics,
   resolveCarCollision,
-} from './physics.js?v=38';
+} from './physics.js?v=39';
 import { updateRivalAI } from './ai.js?v=22';
 import { EffectsManager } from './effects.js?v=15';
 import { ArcadeAudio } from './audio.js?v=14';

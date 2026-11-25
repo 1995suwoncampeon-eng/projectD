@@ -324,58 +324,14 @@ export function updatePlayerPhysics(car, input, track, dt, physicsOverride = nul
     car.driftInitTimer = Math.max(0, car.driftInitTimer - dt);
   }
 
-  // Track sustained lateral cornering load while in high-speed grip (for gentle-turn -> tight-turn Kansei swing)
-  const targetLatLoad = car.steerInput * Math.min(1, speedKmh / 65);
-  const loadRate = Math.abs(targetLatLoad) > Math.abs(car.lateralLoad || 0) ? 3.8 : 2.5;
-  car.lateralLoad = (car.lateralLoad || 0) + (targetLatLoad - (car.lateralLoad || 0)) * (1 - Math.exp(-dt * loadRate));
-
-  if (!car.isDrifting && Math.abs(car.lateralLoad) >= (cfg.kanseiGripMinLoad ?? 0.50) && speedKmh >= (cfg.kanseiGripMinSpeedKmh ?? 62)) {
-    car.cornerLoadDir = Math.sign(car.lateralLoad);
-    car.cornerLoadTimer = 0.55;
-  } else if (car.cornerLoadTimer > 0) {
-    car.cornerLoadTimer = Math.max(0, car.cornerLoadTimer - dt);
-    if (car.cornerLoadTimer <= 0) car.cornerLoadDir = 0;
-  }
-
-  if (!car.isDrifting && car.cornerLoadTimer > 0 && rawSteer !== 0 && Math.sign(rawSteer) === -car.cornerLoadDir) {
-    car.gripWhipTimer = (car.gripWhipTimer || 0) + dt;
-  } else {
-    car.gripWhipTimer = 0;
-  }
-
   const steerDir = rawSteer !== 0
     ? Math.sign(rawSteer)
     : Math.abs(car.steerInput) > 0.10
       ? Math.sign(car.steerInput)
       : 0;
 
-  // 1A) High-speed grip corner -> immediate opposite whip into Kansei Drift (Episode 1 gentle right -> tight left)
-  const gripCornerSwingTrigger =
-    !car.isDrifting &&
-    !car.inGutter &&
-    speedKmh >= (cfg.kanseiGripMinSpeedKmh ?? 62) &&
-    car.cornerLoadTimer > 0 &&
-    car.cornerLoadDir !== 0 &&
-    rawSteer !== 0 &&
-    Math.sign(rawSteer) === -car.cornerLoadDir &&
-    car.gripWhipTimer >= (cfg.kanseiGripWhipHoldSec ?? 0.14);
-
-  if (gripCornerSwingTrigger) {
-    const dir = Math.sign(rawSteer);
-    car.isDrifting = true;
-    car.isKanseiDrift = true;
-    car.driftDir = dir;
-    car.driftInitTimer = 0.34;
-    car.oppositeHoldTimer = 0;
-    car.cornerLoadTimer = 0;
-    car.cornerLoadDir = 0;
-    car.gripWhipTimer = 0;
-    car.yawRate = (car.yawRate ?? 0) + dir * 1.15;
-    if (car.travelHeading === undefined) car.travelHeading = car.heading;
-    car.travelHeading = wrapAngle(car.heading - dir * 0.13);
-    car.slipAngle = wrapAngle(car.heading - car.travelHeading);
-  } else if (!car.isDrifting && wantDrift && speedKmh >= cfg.driftMinSpeedKmh && steerDir !== 0) {
-    // 1B) Standard Tap-to-Initiate Drift (DRIFT key)
+  // 1) Standard Tap-to-Initiate Drift (SHIFT key only; Kansei Drift only triggers during an active drift)
+  if (!car.isDrifting && wantDrift && speedKmh >= cfg.driftMinSpeedKmh && steerDir !== 0) {
     car.isDrifting = true;
     car.isKanseiDrift = false;
     car.driftDir = steerDir;
