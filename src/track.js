@@ -13,38 +13,40 @@ const RAW_CONTROL_POINTS = [
   [0, -70],
   [0, -135],
 
-  // 1. Gentle Right Sweeper -> Sudden Sharp Opposite Left (완만한 커브 -> 급좌커브 #1)
+  // 1. Gentle Right Sweeper -> Sudden Sharp Right -> Kansei Combo #1 (Zero-Straight Left <-> Right Flip)
   [36, -210],
   [88, -270],
   [124, -315],
   [112, -354],
-  [52, -372],
-  [-35, -384],
+  [62, -372],
+  // Kansei Combo #1: Immediate Left -> ZERO straight -> Immediate Opposite Right
+  [12, -392],
+  [4, -424],
+  [46, -446],
+  [50, -478],
+  [-12, -492],
 
-  // 2. Sharp Mid-High Speed S-Bends (기존 후반 헤어핀급 각도의 연속 S자 코너)
-  [-118, -408],
-  [-148, -448],
-  [-110, -486],
-  [-10, -504],
-  [98, -522],
-  [146, -560],
-  [112, -598],
+  // 2. Mid-High Speed S-Bends leading into Kansei Combo #2
+  [-108, -506],
+  [-142, -542],
+  [-104, -578],
+  [-6, -592],
+  [92, -606],
+  [136, -638],
+  [104, -670],
 
-  // 3. Low-Speed Technical Chicane & Mid-Course Instant Hairpin (저속 코너 + 중반 급헤어핀)
-  [18, -616],
-  [-72, -630],
-  [-110, -642],
-  [-112, -666],
-  [-74, -678],
-  [35, -692],
-  [78, -714],
-  [48, -748],
+  // 3. Kansei Combo #2 (Zero-Straight Left <-> Right Flip in Mid-Course)
+  [44, -682],
+  [8, -706],
+  [22, -738],
+  [66, -758],
+  [56, -790],
+  [-14, -808],
 
-  // 4. Gentle Left Sweeper -> Sudden Sharp Opposite Right (완만한 커브 -> 급우커브 #2)
-  [-32, -792],
-  [-105, -848],
-  [-142, -884],
-  [-128, -914],
+  // 4. Sweeping Left Entry -> Sharp Opposite Right into 5-Consecutive Hairpins
+  [-86, -834],
+  [-134, -876],
+  [-126, -912],
   [-65, -926],
   [35, -938],
 
