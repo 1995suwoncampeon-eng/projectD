@@ -321,7 +321,7 @@ export class HudController {
       this.gutterBadgeEl.classList.toggle('ready', nearGutter);
       this.gutterBadgeEl.textContent = inGutter
         ? '도랑타기 // GUTTER!!'
-        : '[E / SPACE] 도랑타기';
+        : '[L CTRL] 도랑타기';
     }
     if (this.touchInteractBtn) {
       const inGutter = Boolean(player.inGutter);

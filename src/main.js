@@ -20,7 +20,7 @@ import {
 import { updateRivalAI } from './ai.js?v=22';
 import { EffectsManager } from './effects.js?v=15';
 import { ArcadeAudio } from './audio.js?v=14';
-import { HudController } from './hud.js?v=5';
+import { HudController } from './hud.js?v=6';
 import { UIController } from './ui.js?v=36';
 
 class ProjectDGame {
@@ -329,7 +329,10 @@ class ProjectDGame {
         code === 'ArrowDown' ||
         code === 'ArrowLeft' ||
         code === 'ArrowRight' ||
-        code === 'Space'
+        code === 'Space' ||
+        (e.ctrlKey &&
+          (this.state === 'RACING' || this.state === 'COUNTDOWN') &&
+          (code === 'KeyA' || code === 'KeyS' || code === 'KeyD' || code === 'KeyW' || code === 'KeyR'))
       ) {
         e.preventDefault();
       }
@@ -381,7 +384,10 @@ class ProjectDGame {
       if (code === 'KeyA' || code === 'ArrowLeft') this.input.left = true;
       if (code === 'KeyD' || code === 'ArrowRight') this.input.right = true;
       if (code === 'ShiftLeft' || code === 'ShiftRight') this.input.drift = true;
-      if (code === 'KeyE' || code === 'Space') this.input.interact = true;
+      if (code === 'ControlLeft') {
+        e.preventDefault();
+        this.input.interact = true;
+      }
 
       if (!e.repeat && code === 'KeyR' && this.state === 'RACING') {
         this.triggerTrackRecovery();
@@ -398,7 +404,7 @@ class ProjectDGame {
       if (code === 'KeyA' || code === 'ArrowLeft') this.input.left = false;
       if (code === 'KeyD' || code === 'ArrowRight') this.input.right = false;
       if (code === 'ShiftLeft' || code === 'ShiftRight') this.input.drift = false;
-      if (code === 'KeyE' || code === 'Space') this.input.interact = false;
+      if (code === 'ControlLeft') this.input.interact = false;
     });
 
     window.addEventListener('blur', () => {
