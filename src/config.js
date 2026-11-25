@@ -138,7 +138,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 108,
-      accel: 2.25,
+      accel: 4.55,
       cornerSpeedFactor: 0.88,
       turnRateMult: 1.32, // 경량 FF 해치백 특유의 빠르고 민첩한 코너 선회
       ffCorneringStyle: true,
@@ -175,7 +175,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 124,
-      accel: 2.20,
+      accel: 4.45,
       cornerSpeedFactor: 0.86,
       lateBrakeApexFullThrottle: true,
       hardBrakeDecel: 22.5,
@@ -218,7 +218,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 122,
-      accel: 2.34,
+      accel: 4.7,
       cornerSpeedFactor: 0.89,
       apexRatio: 0.68,
       maxLateralRatio: 0.84,
@@ -258,7 +258,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 140,
-      accel: 2.88,
+      accel: 5.75,
       highSpeedDropKmh: 115,     // 115 km/h 이후 가속 급감 (초반 폭발, 후반 극저가속)
       highSpeedAccelScale: 0.14,
       cornerSpeedFactor: 0.93,
@@ -297,7 +297,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 112,
-      accel: 2.22,
+      accel: 4.5,
       cornerSpeedFactor: 0.97,
       coastOnlyCorners: true,
       cornerDecelScale: 0.28,
@@ -339,7 +339,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 114,
-      accel: 2.75,
+      accel: 5.1,
       cornerSpeedFactor: 0.98,
       coastOnlyCorners: true,
       cornerDecelScale: 0.24,
@@ -383,7 +383,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 112,
-      accel: 2.37,
+      accel: 4.75,
       cornerSpeedFactor: 0.97,
       coastOnlyCorners: true,
       cornerDecelScale: 0.28,

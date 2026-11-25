@@ -1,3 +1,4 @@
+import { PLAYER_PHYSICS } from './config.js?v=36';
 import { wrapAngle } from './track.js';
 import { enforceTrackBounds, updateDrivetrain } from './physics.js';
 
@@ -120,16 +121,30 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   const desiredSpeedMs = targetSpeedKmh * rubberMultiplier * KMH_TO_MS;
 
   // 3. Longitudinal acceleration / braking / lift-off coasting toward desired speed
+  // Uses the exact same 5-speed gear torque & NA powerband curve as updatePlayerPhysics
+  // so NPCs launch immediately off the line at full throttle with true vehicle parity.
+  if (rival.shiftCutTimer > 0) {
+    rival.shiftCutTimer = Math.max(0, rival.shiftCutTimer - dt);
+  }
   rival.isBraking = false;
   if (rival.speed < desiredSpeedMs) {
     const curKmh = rival.speed * MS_TO_KMH;
-    const ratio = Math.max(0, rival.speed / Math.max(1, desiredSpeedMs));
+    const speedRatio = Math.max(0, rival.speed / Math.max(1, desiredSpeedMs));
+    const gears = PLAYER_PHYSICS.gears;
+    const activeGear = gears[Math.max(0, Math.min(gears.length - 1, rival.gearIndex ?? 0))];
+    const rpmNorm = Math.max(0, Math.min(1, ((rival.rpm ?? 1200) - 1200) / 7300));
+    const powerband = 0.78 + 0.36 * Math.sin(rpmNorm * Math.PI * 0.86);
+    const shiftMult = rival.shiftCutTimer > 0 ? 0.15 : 1.0;
     const accelMult = turboActive ? turboCfg.boostAccelMult : 1.0;
-    let pull = ai.accel * accelMult * (1.12 - 0.45 * ratio * ratio);
-    // Optional high-speed power drop-off (e.g. Kozo Bongo 4WD: punchy to 115 km/h, very slow crawl to 140)
-    if (ai.highSpeedDropKmh && curKmh >= ai.highSpeedDropKmh) {
-      pull *= ai.highSpeedAccelScale ?? 0.14;
-    }
+    const highSpeedMult =
+      ai.highSpeedDropKmh && curKmh >= ai.highSpeedDropKmh
+        ? (ai.highSpeedAccelScale ?? 0.14)
+        : 1.0;
+    const aeroDrag = 0.52 * speedRatio * speedRatio;
+    const pull = Math.max(
+      0.12,
+      (ai.accel * activeGear.torqueMult * powerband * shiftMult * accelMult - aeroDrag) * highSpeedMult
+    );
     rival.speed = Math.min(desiredSpeedMs, rival.speed + pull * dt);
   } else if (!ai.fullThrottleCorners) {
     const excess = rival.speed - desiredSpeedMs;
