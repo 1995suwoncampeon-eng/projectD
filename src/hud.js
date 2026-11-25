@@ -47,6 +47,7 @@ export class HudController {
     this.shiftLightEl = document.getElementById('hud-shift-light');
     this.driftBadgeEl = document.getElementById('hud-drift-badge');
     this.gutterBadgeEl = document.getElementById('hud-gutter-badge');
+    this.touchInteractBtn = document.getElementById('btn-touch-interact');
     this.vignetteEl = document.getElementById('speed-vignette');
 
     this.positionEl = document.getElementById('hud-position');
@@ -314,7 +315,19 @@ export class HudController {
       this.driftBadgeEl.textContent = isKansei ? '관성 드리프트!!' : 'DRIFT!!';
     }
     if (this.gutterBadgeEl) {
-      this.gutterBadgeEl.classList.toggle('hidden', !player.inGutter);
+      const inGutter = Boolean(player.inGutter);
+      const nearGutter = !inGutter && Boolean(player.nearGutter);
+      this.gutterBadgeEl.classList.toggle('hidden', !inGutter && !nearGutter);
+      this.gutterBadgeEl.classList.toggle('ready', nearGutter);
+      this.gutterBadgeEl.textContent = inGutter
+        ? '도랑타기 // GUTTER!!'
+        : '[E / SPACE] 도랑타기';
+    }
+    if (this.touchInteractBtn) {
+      const inGutter = Boolean(player.inGutter);
+      const nearGutter = !inGutter && Boolean(player.nearGutter);
+      this.touchInteractBtn.classList.toggle('ready', nearGutter);
+      this.touchInteractBtn.classList.toggle('active', inGutter);
     }
     if (this.vignetteEl) {
       this.vignetteEl.classList.toggle('drifting', showDrift || Boolean(player.inGutter));

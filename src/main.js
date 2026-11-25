@@ -16,11 +16,11 @@ import {
   recoverVehicleToTrack,
   updatePlayerPhysics,
   resolveCarCollision,
-} from './physics.js?v=36';
+} from './physics.js?v=37';
 import { updateRivalAI } from './ai.js?v=22';
 import { EffectsManager } from './effects.js?v=15';
 import { ArcadeAudio } from './audio.js?v=14';
-import { HudController } from './hud.js?v=4';
+import { HudController } from './hud.js?v=5';
 import { UIController } from './ui.js?v=36';
 
 class ProjectDGame {
@@ -84,6 +84,7 @@ class ProjectDGame {
       left: false,
       right: false,
       drift: false,
+      interact: false,
     };
 
     // Race timing & countdown state
@@ -380,6 +381,7 @@ class ProjectDGame {
       if (code === 'KeyA' || code === 'ArrowLeft') this.input.left = true;
       if (code === 'KeyD' || code === 'ArrowRight') this.input.right = true;
       if (code === 'ShiftLeft' || code === 'ShiftRight') this.input.drift = true;
+      if (code === 'KeyE' || code === 'Space') this.input.interact = true;
 
       if (!e.repeat && code === 'KeyR' && this.state === 'RACING') {
         this.triggerTrackRecovery();
@@ -396,6 +398,7 @@ class ProjectDGame {
       if (code === 'KeyA' || code === 'ArrowLeft') this.input.left = false;
       if (code === 'KeyD' || code === 'ArrowRight') this.input.right = false;
       if (code === 'ShiftLeft' || code === 'ShiftRight') this.input.drift = false;
+      if (code === 'KeyE' || code === 'Space') this.input.interact = false;
     });
 
     window.addEventListener('blur', () => {
@@ -475,11 +478,12 @@ class ProjectDGame {
       });
     }
 
-    // Independent multi-touch pointer tracking for ACCEL, BRAKE, and DRIFT buttons
+    // Independent multi-touch pointer tracking for ACCEL, BRAKE, DRIFT, and GUTTER INTERACT buttons
     const pedalDefs = [
       { id: 'btn-touch-accel', key: 'up' },
       { id: 'btn-touch-brake', key: 'down' },
       { id: 'btn-touch-drift', key: 'drift' },
+      { id: 'btn-touch-interact', key: 'interact' },
     ];
 
     for (const def of pedalDefs) {
@@ -519,6 +523,7 @@ class ProjectDGame {
     this.input.left = false;
     this.input.right = false;
     this.input.drift = false;
+    this.input.interact = false;
     document.querySelectorAll('.touch-btn.pressed').forEach((el) => {
       el.classList.remove('pressed');
     });

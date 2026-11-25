@@ -1544,6 +1544,13 @@ kbd {
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.75);
 }
 
+.gutter-badge.ready {
+  background: rgba(11, 12, 15, 0.9);
+  border-left: 4px solid var(--arcade-yellow);
+  color: var(--arcade-yellow);
+  outline: 1px solid rgba(255, 208, 0, 0.75);
+}
+
 .analog-gauges-row {
   display: flex;
   align-items: flex-end;
@@ -2194,6 +2201,35 @@ body.touch-device .gauge-center-readout {
   font-weight: 700;
   letter-spacing: 0.08em;
   color: #b8beca;
+}
+
+.touch-interact-btn {
+  width: 78px;
+  height: 46px;
+  background-color: rgba(18, 22, 30, 0.84);
+  border-color: #5b6475;
+  border-top: 3px solid #9ba1ae;
+  color: #cbd5e1;
+}
+
+.touch-interact-btn.ready {
+  background-color: rgba(66, 50, 8, 0.92);
+  border-color: var(--arcade-yellow);
+  border-top: 3px solid #ffffff;
+  color: var(--arcade-yellow);
+  box-shadow: 0 0 14px rgba(255, 208, 0, 0.6);
+}
+
+.touch-interact-btn.active,
+.touch-interact-btn.pressed {
+  background-color: rgba(255, 208, 0, 0.92);
+  border-color: #ffffff;
+  color: #0b0c0f;
+}
+
+.touch-interact-btn.active .touch-sub,
+.touch-interact-btn.pressed .touch-sub {
+  color: #1f2229;
 }
 
 .touch-drift-btn {

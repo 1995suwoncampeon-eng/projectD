@@ -34,6 +34,7 @@ export function createVehicleState(track, startS, lateralOffset = 0) {
     cornerExitCharge: 0,
     turboBoostTimer: 0,
     inGutter: false,
+    nearGutter: false,
     gutterSide: 0,
     isBraking: false,
     scrapedWall: false,
@@ -81,6 +82,7 @@ export function resetVehicleToSpawn(car, track, startS, lateralOffset = 0) {
   car.cornerExitCharge = 0;
   car.turboBoostTimer = 0;
   car.inGutter = false;
+  car.nearGutter = false;
   car.gutterSide = 0;
   car.isBraking = false;
   car.scrapedWall = false;
@@ -124,6 +126,7 @@ export function recoverVehicleToTrack(car, track) {
   car.cornerLoadTimer = 0;
   car.gripWhipTimer = 0;
   car.inGutter = false;
+  car.nearGutter = false;
   car.gutterSide = 0;
   car.visualSlip = 0;
   car.bodyRoll = 0;
@@ -229,6 +232,7 @@ export function updatePlayerPhysics(car, input, track, dt, physicsOverride = nul
   // Positive steer = LEFT (+heading), Negative steer = RIGHT (-heading)
   const rawSteer = (input.left ? 1 : 0) - (input.right ? 1 : 0);
   const wantDrift = Boolean(input.drift);
+  const wantInteract = Boolean(input.interact);
 
   // Smooth steering wheel ramp (prevents snappy binary jerks on keyboard & touch)
   const prevSteer = car.steerInput ?? 0;
@@ -474,6 +478,7 @@ export function updatePlayerPhysics(car, input, track, dt, physicsOverride = nul
   const curPt = track.getPointAtS(car.s);
   const gutterRailLat = track.maxCarLateral - 1.1;   // Smooth 1.1m clearance from guardrail
   const gutterCatchLat = track.maxCarLateral - 1.65; // Lateral threshold to drop inside wheels into gutter
+  car.nearGutter = false;
 
   if (car.inGutter) {
     // Stay locked in the gutter until the gutter ends or the car stops
@@ -488,9 +493,14 @@ export function updatePlayerPhysics(car, input, track, dt, physicsOverride = nul
     car.speed > 4.0 &&
     car.lateral * curPt.gutterSide >= gutterCatchLat
   ) {
-    // Inside tires dropped into the corner gutter -> hook engaged!
-    car.inGutter = true;
-    car.gutterSide = curPt.gutterSide;
+    if (wantInteract) {
+      // Interact key pressed while touching inside gutter -> hook engaged!
+      car.inGutter = true;
+      car.gutterSide = curPt.gutterSide;
+    } else {
+      // Touching gutter without interact key -> show prompt only, do NOT auto-hook
+      car.nearGutter = true;
+    }
   }
 
   let fx, fz;
@@ -585,16 +595,21 @@ export function updatePlayerPhysics(car, input, track, dt, physicsOverride = nul
     // Enforce guardrail collision bounds
     const proj = enforceTrackBounds(car, track, dt, 1.55);
 
-    // If steering into the inside corner where a gutter exists (and not on exit cooldown), catch the gutter
+    // If touching an inside-corner gutter (and not on exit cooldown), engage only when interact key is pressed
     if (
       (car.gutterCooldown || 0) <= 0 &&
       proj.gutterSide !== 0 &&
       car.speed > 4.0 &&
       car.lateral * proj.gutterSide >= gutterCatchLat
     ) {
-      car.inGutter = true;
-      car.gutterSide = proj.gutterSide;
-      car.scrapedWall = false;
+      if (wantInteract) {
+        car.inGutter = true;
+        car.gutterSide = proj.gutterSide;
+        car.nearGutter = false;
+        car.scrapedWall = false;
+      } else {
+        car.nearGutter = true;
+      }
     }
   }
 

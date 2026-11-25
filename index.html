@@ -21,7 +21,7 @@
     rel="icon"
     href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230b0b0e'/%3E%3Cpath d='M0 54 L64 46 L64 64 L0 64 Z' fill='%23e6192e'/%3E%3Ctext x='50%25' y='48%25' dominant-baseline='middle' text-anchor='middle' fill='%23ffd000' font-family='sans-serif' font-weight='900' font-style='italic' font-size='40'%3ED%3C/text%3E%3C/svg%3E"
   />
-  <link rel="stylesheet" href="styles.css?v=20261124-5" />
+  <link rel="stylesheet" href="styles.css?v=20261124-6" />
   <script type="importmap">
     {
       "imports": {
@@ -74,6 +74,7 @@
         <div class="controls-preview">
           <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 주행</span>
           <span><kbd>SHIFT</kbd> 드리프트</span>
+          <span><kbd>E</kbd>/<kbd>SPACE</kbd> 도랑타기</span>
           <span><kbd>R</kbd> 트랙 복귀</span>
           <span><kbd>M</kbd> 사운드</span>
         </div>
@@ -229,6 +230,7 @@
       <div class="hud-controls-hint">
         <span><kbd>WASD</kbd>/<kbd>↑↓←→</kbd> 주행</span>
         <span><kbd>SHIFT</kbd> 드리프트</span>
+        <span><kbd>E</kbd>/<kbd>SPACE</kbd> 도랑타기</span>
         <span><kbd>R</kbd> 복귀</span>
       </div>
 
@@ -275,6 +277,10 @@
 
         <div class="touch-pedal-cluster">
           <div class="touch-pedal-left-col">
+            <button id="btn-touch-interact" class="touch-btn touch-interact-btn" type="button" data-input="interact" aria-label="도랑타기 상호작용">
+              <span class="touch-label">GUTTER</span>
+              <span class="touch-sub">도랑타기</span>
+            </button>
             <button id="btn-touch-drift" class="touch-btn touch-drift-btn" type="button" data-input="drift" aria-label="드리프트">
               <span class="touch-label">DRIFT</span>
             </button>
@@ -339,6 +345,6 @@
     </section>
   </div>
 
-  <script type="module" src="src/main.js?v=54"></script>
+  <script type="module" src="src/main.js?v=55"></script>
 </body>
 </html>
