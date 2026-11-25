@@ -353,7 +353,7 @@ class ProjectDGame {
       if (code === 'KeyS' || code === 'ArrowDown') this.input.down = true;
       if (code === 'KeyA' || code === 'ArrowLeft') this.input.left = true;
       if (code === 'KeyD' || code === 'ArrowRight') this.input.right = true;
-      if (code === 'Space') this.input.drift = true;
+      if (code === 'ShiftLeft' || code === 'ShiftRight') this.input.drift = true;
 
       if (!e.repeat && code === 'KeyR' && this.state === 'RACING') {
         this.triggerTrackRecovery();
@@ -369,7 +369,7 @@ class ProjectDGame {
       if (code === 'KeyS' || code === 'ArrowDown') this.input.down = false;
       if (code === 'KeyA' || code === 'ArrowLeft') this.input.left = false;
       if (code === 'KeyD' || code === 'ArrowRight') this.input.right = false;
-      if (code === 'Space') this.input.drift = false;
+      if (code === 'ShiftLeft' || code === 'ShiftRight') this.input.drift = false;
     });
 
     window.addEventListener('blur', () => {
