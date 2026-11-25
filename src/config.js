@@ -133,12 +133,12 @@ export const RIVALS = [
     stats: {
       topSpeedKmh: 108,
       corneringStability: 0.88,
-      accelFactor: 0.94,
+      accelFactor: 0.90,
       aggression: 0.80,
     },
     ai: {
       maxSpeedKmh: 108,
-      accel: 5.4,
+      accel: 2.25,
       cornerSpeedFactor: 0.88,
       turnRateMult: 1.32, // 경량 FF 해치백 특유의 빠르고 민첩한 코너 선회
       ffCorneringStyle: true,
@@ -168,24 +168,24 @@ export const RIVALS = [
     wheelStyle: { rimColor: '#64748b', spokeColor: '#3f4a5a', hubColor: '#94a3b8', spokes: 6, isSteel: true },
     tagline: '코너 진입 시 급감속 후 인코스를 파고들어 풀가속과 터보 부스트로 탈출하는 그립 주행 중급 라이벌입니다.',
     stats: {
-      topSpeedKmh: 130,
+      topSpeedKmh: 124,
       corneringStability: 0.87, // 0..1 (higher = carries more corner speed)
-      accelFactor: 0.92,
+      accelFactor: 0.88,
       aggression: 0.82,
     },
     ai: {
-      maxSpeedKmh: 130,
-      accel: 4.6,
+      maxSpeedKmh: 124,
+      accel: 2.20,
       cornerSpeedFactor: 0.86,
       lateBrakeApexFullThrottle: true,
-      hardBrakeDecel: 24.0,
+      hardBrakeDecel: 22.5,
       apexRatio: 0.78,
       maxLateralRatio: 0.86,
       noDrift: true, // Strictly pure grip driving — never drifts
       twinTurboBoost: {
-        boostKmh: 24,
-        boostAccelMult: 1.95,
-        boostDuration: 1.55,
+        boostKmh: 14,
+        boostAccelMult: 1.55,
+        boostDuration: 1.35,
       },
       lookAheadBase: 16,
       rubberBandCatchup: 0.10,  // Max boost when behind
@@ -211,21 +211,21 @@ export const RIVALS = [
     wheelStyle: { rimColor: '#cbd5e1', spokeColor: '#94a3b8', hubColor: '#e2e8f0', spokes: 10, caliperColor: '#dc2626' },
     tagline: '강력한 탈출 가속과 과감한 드리프트로 압박하는 중급 라이벌입니다.',
     stats: {
-      topSpeedKmh: 125,
+      topSpeedKmh: 122,
       corneringStability: 0.89,
-      accelFactor: 0.94,
+      accelFactor: 0.92,
       aggression: 0.84,
     },
     ai: {
-      maxSpeedKmh: 125,
-      accel: 4.6,
+      maxSpeedKmh: 122,
+      accel: 2.34,
       cornerSpeedFactor: 0.89,
       apexRatio: 0.68,
       maxLateralRatio: 0.84,
       twinTurboBoost: {
-        boostKmh: 22,
-        boostAccelMult: 1.85,
-        boostDuration: 1.55,
+        boostKmh: 14,
+        boostAccelMult: 1.5,
+        boostDuration: 1.35,
       },
       lookAheadBase: 18,
       rubberBandCatchup: 0.11,
@@ -253,17 +253,17 @@ export const RIVALS = [
     stats: {
       topSpeedKmh: 140,
       corneringStability: 0.93,
-      accelFactor: 0.96,
+      accelFactor: 0.98,
       aggression: 0.92,
     },
     ai: {
       maxSpeedKmh: 140,
-      accel: 6.2,
+      accel: 2.88,
       highSpeedDropKmh: 115,     // 115 km/h 이후 가속 급감 (초반 폭발, 후반 극저가속)
       highSpeedAccelScale: 0.14,
       cornerSpeedFactor: 0.93,
       godFootStyle: true,        // 평소 과감한 그립 주행 + 5연속 헤어핀 아웃 급가속 -> 급감속 인 스핀턴
-      hardBrakeDecel: 26.0,
+      hardBrakeDecel: 24.5,
       apexRatio: 0.78,
       maxLateralRatio: 0.86,
       lookAheadBase: 16.5,
@@ -290,14 +290,14 @@ export const RIVALS = [
     wheelStyle: { rimColor: '#f1f5f9', spokeColor: '#cbd5e1', hubColor: '#ffffff', spokes: 10 },
     tagline: '정밀한 에이펙스 공략과 완벽한 코너링 안정성을 갖춘 고수 라이벌입니다.',
     stats: {
-      topSpeedKmh: 110,
+      topSpeedKmh: 112,
       corneringStability: 0.97,
-      accelFactor: 1.0,
+      accelFactor: 0.94,
       aggression: 0.95,
     },
     ai: {
-      maxSpeedKmh: 110,
-      accel: 5.0,
+      maxSpeedKmh: 112,
+      accel: 2.22,
       cornerSpeedFactor: 0.97,
       coastOnlyCorners: true,
       cornerDecelScale: 0.28,
@@ -306,9 +306,9 @@ export const RIVALS = [
       apexRatio: 0.82,
       maxLateralRatio: 0.88,
       twinTurboBoost: {
-        boostKmh: 20,
-        boostAccelMult: 2.1,
-        boostDuration: 1.5,
+        boostKmh: 12,
+        boostAccelMult: 1.55,
+        boostDuration: 1.3,
       },
       lookAheadBase: 16,
       rubberBandCatchup: 0.12,
@@ -339,7 +339,7 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 114,
-      accel: 5.1,
+      accel: 2.75,
       cornerSpeedFactor: 0.98,
       coastOnlyCorners: true,
       cornerDecelScale: 0.24,
@@ -348,9 +348,9 @@ export const RIVALS = [
       apexRatio: 0.86,
       maxLateralRatio: 0.90,
       twinTurboBoost: {
-        boostKmh: 20,
-        boostAccelMult: 2.1,
-        boostDuration: 1.55,
+        boostKmh: 15,
+        boostAccelMult: 1.65,
+        boostDuration: 1.4,
       },
       lookAheadBase: 16,
       rubberBandCatchup: 0.12,
@@ -376,14 +376,14 @@ export const RIVALS = [
     wheelStyle: { rimColor: '#facc15', spokeColor: '#eab308', hubColor: '#fef08a', spokes: 5 },
     tagline: '아키나 최속의 전설. 도랑타기 라인으로 코너를 파고드는 최강 GOD 라이벌입니다.',
     stats: {
-      topSpeedKmh: 110,
+      topSpeedKmh: 112,
       corneringStability: 0.97,
-      accelFactor: 1.0,
+      accelFactor: 0.96,
       aggression: 0.95,
     },
     ai: {
-      maxSpeedKmh: 110,
-      accel: 5.0,
+      maxSpeedKmh: 112,
+      accel: 2.37,
       cornerSpeedFactor: 0.97,
       coastOnlyCorners: true,
       cornerDecelScale: 0.28,
@@ -392,9 +392,9 @@ export const RIVALS = [
       apexRatio: 0.82,
       maxLateralRatio: 0.88,
       twinTurboBoost: {
-        boostKmh: 20,
-        boostAccelMult: 2.1,
-        boostDuration: 1.5,
+        boostKmh: 12,
+        boostAccelMult: 1.55,
+        boostDuration: 1.3,
       },
       lookAheadBase: 16,
       rubberBandCatchup: 0.12,
@@ -416,7 +416,7 @@ export const PLAYER_THEME = {
 };
 
 // ============================================================================
-// SELECTABLE PLAYER VEHICLES (Default AE86 + all NPC .glb vehicles with distinct specs)
+// SELECTABLE PLAYER VEHICLES (Default AE86 + all NPC .glb vehicles synced with NPC specs)
 // ============================================================================
 const PLAYER_CAR_SPECS = {
   ae86: {
@@ -434,9 +434,9 @@ const PLAYER_CAR_SPECS = {
     },
   },
   shingo: {
-    specTag: 'FF · 106km/h · 민첩 코너링 / 높은 그립',
+    specTag: 'FF · 108km/h · 민첩 코너링 / 높은 그립',
     physics: {
-      maxSpeedKmh: 106,
+      maxSpeedKmh: 108,
       accel: 4.55,
       brakeDecel: 19.5,
       steerRate: 2.16,
@@ -448,10 +448,10 @@ const PLAYER_CAR_SPECS = {
     },
   },
   takeshi: {
-    specTag: '그립 · 118km/h · 고속 / 강력 브레이크',
+    specTag: '그립 · 124km/h · 고속 / 강력 브레이크',
     physics: {
-      maxSpeedKmh: 118,
-      accel: 4.35,
+      maxSpeedKmh: 124,
+      accel: 4.45,
       brakeDecel: 22.5,
       steerRate: 1.78,
       driftSteerBoost: 1.25,
@@ -462,10 +462,10 @@ const PLAYER_CAR_SPECS = {
     },
   },
   keisuke: {
-    specTag: 'FR · 116km/h · 파워 드리프트 / 탈출 가속',
+    specTag: 'FR · 122km/h · 파워 드리프트 / 탈출 가속',
     physics: {
-      maxSpeedKmh: 116,
-      accel: 4.6,
+      maxSpeedKmh: 122,
+      accel: 4.7,
       brakeDecel: 19.5,
       steerRate: 1.94,
       driftSteerBoost: 1.46,
@@ -476,13 +476,13 @@ const PLAYER_CAR_SPECS = {
     },
   },
   kozo: {
-    specTag: '4WD · 132km/h · 폭발적 초반 / 110+ 둔화',
+    specTag: '4WD · 140km/h · 폭발적 초반 / 115+ 둔화',
     physics: {
-      maxSpeedKmh: 132,
-      accel: 5.2,
-      highSpeedDropKmh: 110,
-      highSpeedAccelScale: 0.16,
-      brakeDecel: 23.0,
+      maxSpeedKmh: 140,
+      accel: 5.75,
+      highSpeedDropKmh: 115,
+      highSpeedAccelScale: 0.14,
+      brakeDecel: 24.5,
       steerRate: 1.82,
       driftSteerBoost: 1.28,
       driftDrag: 1.28,
@@ -495,7 +495,7 @@ const PLAYER_CAR_SPECS = {
     specTag: 'FR · 112km/h · 정밀 밸런스 / 관성 특화',
     physics: {
       maxSpeedKmh: 112,
-      accel: 4.35,
+      accel: 4.5,
       brakeDecel: 20.5,
       steerRate: 2.04,
       driftSteerBoost: 1.4,
@@ -507,9 +507,9 @@ const PLAYER_CAR_SPECS = {
     },
   },
   bunta: {
-    specTag: '4WD · 114km/h · 최강 트랙션 / 올라운더',
+    specTag: '4WD · 112km/h · 최강 트랙션 / 올라운더',
     physics: {
-      maxSpeedKmh: 114,
+      maxSpeedKmh: 112,
       accel: 4.75,
       brakeDecel: 21.5,
       steerRate: 1.98,
