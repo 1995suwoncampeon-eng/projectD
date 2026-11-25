@@ -23,7 +23,8 @@ export function createVehicleState(track, startS, lateralOffset = 0) {
     isKanseiDrift: false, // true during continuous pendulum swing-transition drift
     driftDir: 0, // -1 right, +1 left
     driftInitTimer: 0,
-    oppositeHoldTimer: 0, // how long opposite steer is held during an active drift (distinguishes swing vs dab)
+    oppositeHoldTimer: 0,
+    kanseiReadyTimer: 0, // how long opposite steer is held during an active drift (distinguishes swing vs dab)
     driftCharge: 0,
     driftBoostTimer: 0,
     kanseiBoostActive: false,
@@ -73,6 +74,7 @@ export function resetVehicleToSpawn(car, track, startS, lateralOffset = 0) {
   car.driftDir = 0;
   car.driftInitTimer = 0;
   car.oppositeHoldTimer = 0;
+  car.kanseiReadyTimer = 0;
   car.driftCharge = 0;
   car.driftBoostTimer = 0;
   car.kanseiBoostActive = false;
@@ -121,6 +123,7 @@ export function recoverVehicleToTrack(car, track) {
   car.driftDir = 0;
   car.driftInitTimer = 0;
   car.oppositeHoldTimer = 0;
+  car.kanseiReadyTimer = 0;
   car.driftCharge = 0;
   car.kanseiBoostActive = false;
   car.lateralLoad = 0;
@@ -344,14 +347,24 @@ export function updatePlayerPhysics(car, input, track, dt, physicsOverride = nul
   }
 
   // 2) Sustain drift, allow smooth counter-steering, and trigger Kansei flip ONLY when
-  // the car actually overshoots past 0 deg into the opposite side by kanseiOvershootRad!
+  // actively sliding (slip >= 0.14 rad within last 0.45s) and swinging past 0 deg by kanseiOvershootRad!
   let holdingOpposite = false;
   if (car.isDrifting) {
     if (car.driftDir === 0 && steerDir !== 0) {
       car.driftDir = steerDir;
     }
 
+    // Charge Kansei transition window only while car has a real drift slide in driftDir
+    const sameSideSlip = (car.slipAngle || 0) * car.driftDir;
+    if (sameSideSlip >= 0.14) {
+      car.kanseiReadyTimer = 0.45;
+    } else if (car.kanseiReadyTimer > 0) {
+      car.kanseiReadyTimer = Math.max(0, car.kanseiReadyTimer - dt);
+    }
+
+    const canKanseiSwing = (car.kanseiReadyTimer || 0) > 0;
     holdingOpposite =
+      canKanseiSwing &&
       !car.inGutter &&
       car.driftDir !== 0 &&
       speedKmh >= (cfg.kanseiSwingMinSpeedKmh ?? 46) &&
@@ -368,6 +381,7 @@ export function updatePlayerPhysics(car, input, track, dt, physicsOverride = nul
       car.isKanseiDrift = true;
       car.driftInitTimer = 0.34;
       car.oppositeHoldTimer = 0;
+      car.kanseiReadyTimer = 0.45;
       car.yawRate = newDir * Math.max(Math.abs(car.yawRate || 0), 1.55) + newDir * 0.85;
       holdingOpposite = false;
     }
@@ -388,6 +402,7 @@ export function updatePlayerPhysics(car, input, track, dt, physicsOverride = nul
       car.driftDir = 0;
       car.driftInitTimer = 0;
       car.oppositeHoldTimer = 0;
+      car.kanseiReadyTimer = 0;
       car.driftCharge = Math.max(0, car.driftCharge - dt * 1.8);
     } else {
       // Drift builds charge for a crisp exit boost
@@ -400,6 +415,7 @@ export function updatePlayerPhysics(car, input, track, dt, physicsOverride = nul
   } else {
     car.isKanseiDrift = false;
     car.oppositeHoldTimer = 0;
+    car.kanseiReadyTimer = 0;
     car.driftCharge = Math.max(0, car.driftCharge - dt * 1.8);
   }
 
@@ -465,6 +481,10 @@ export function updatePlayerPhysics(car, input, track, dt, physicsOverride = nul
       car.inGutter = true;
       car.gutterSide = curPt.gutterSide;
       car.interactBufferTimer = 0;
+      car.isDrifting = false;
+      car.isKanseiDrift = false;
+      car.driftDir = 0;
+      car.kanseiReadyTimer = 0;
     } else {
       // Touching gutter without interact key -> show prompt only, do NOT auto-hook
       car.nearGutter = true;
@@ -576,6 +596,10 @@ export function updatePlayerPhysics(car, input, track, dt, physicsOverride = nul
         car.nearGutter = false;
         car.interactBufferTimer = 0;
         car.scrapedWall = false;
+        car.isDrifting = false;
+        car.isKanseiDrift = false;
+        car.driftDir = 0;
+        car.kanseiReadyTimer = 0;
       } else {
         car.nearGutter = true;
       }
