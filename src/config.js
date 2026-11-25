@@ -57,8 +57,11 @@ export const PLAYER_PHYSICS = {
   yawAccelDrift: 7.5,          // rotational inertia response while sliding
   gripAlignRate: 9.5,          // how fast velocity aligns with nose in grip
   driftAlignRate: 2.35,        // lower lateral grip during drift -> genuine sideways slide
-  driftRecoveryAlignRate: 5.6, // smooth grip bite when exiting a drift
+  driftSettleAlignRate: 4.1,   // smooth alignment when steering is released to exit a tap-drift
+  driftRecoveryAlignRate: 5.6, // smooth grip bite after exiting a drift
   maxSlipAngleRad: 0.50,       // max real physical drift slip (~28.6 deg, dramatic yet controllable)
+  driftExitSlipRad: 0.10,      // auto-return to grip once |heading - travelHeading| < ~5.7 deg
+  driftInitGraceSec: 0.28,     // brief grace period after tap so slip angle builds cleanly
   driftSteerBoost: 1.38,       // yaw authority while drifting
   driftMinSpeedKmh: 30,        // minimum speed to engage drift
   driftDrag: 1.15,             // mild speed bleed during deep drift

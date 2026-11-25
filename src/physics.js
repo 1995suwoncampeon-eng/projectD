@@ -1,4 +1,4 @@
-import { PLAYER_PHYSICS } from './config.js?v=28';
+import { PLAYER_PHYSICS } from './config.js?v=29';
 import { wrapAngle } from './track.js';
 
 const KMH_TO_MS = 1 / 3.6;
@@ -21,6 +21,7 @@ export function createVehicleState(track, startS, lateralOffset = 0) {
     bodyRoll: 0,
     isDrifting: false,
     driftDir: 0, // -1 right, +1 left
+    driftInitTimer: 0,
     driftCharge: 0,
     driftBoostTimer: 0,
     cornerExitCharge: 0,
@@ -60,6 +61,7 @@ export function resetVehicleToSpawn(car, track, startS, lateralOffset = 0) {
   car.bodyRoll = 0;
   car.isDrifting = false;
   car.driftDir = 0;
+  car.driftInitTimer = 0;
   car.driftCharge = 0;
   car.driftBoostTimer = 0;
   car.cornerExitCharge = 0;
@@ -98,6 +100,7 @@ export function recoverVehicleToTrack(car, track) {
   car.slipAngle = 0;
   car.isDrifting = false;
   car.driftDir = 0;
+  car.driftInitTimer = 0;
   car.driftCharge = 0;
   car.inGutter = false;
   car.gutterSide = 0;
@@ -270,29 +273,62 @@ export function updatePlayerPhysics(car, input, track, dt) {
     }
   }
 
-  // Simcade Drift State Machine
+  // Tap-to-Initiate Simcade Drift State Machine
+  // Press & release DRIFT once to kick the rear out; slide persists naturally while
+  // heading differs from travelHeading (inertia), and auto-returns to grip once aligned.
   const speedKmh = car.speed * MS_TO_KMH;
-  const canDrift = wantDrift && speedKmh >= cfg.driftMinSpeedKmh;
+  const exitSlipRad = cfg.driftExitSlipRad ?? 0.10;
+  const minSustainKmh = cfg.driftMinSpeedKmh * 0.72;
 
-  if (canDrift && (Math.abs(rawSteer) > 0.05 || Math.abs(car.steerInput) > 0.12 || car.isDrifting)) {
-    if (!car.isDrifting) {
-      car.isDrifting = true;
-      car.driftDir = rawSteer !== 0 ? Math.sign(rawSteer) : Math.sign(car.steerInput);
-    } else if (car.driftDir === 0 && rawSteer !== 0) {
-      car.driftDir = Math.sign(rawSteer);
+  if (car.driftInitTimer > 0) {
+    car.driftInitTimer = Math.max(0, car.driftInitTimer - dt);
+  }
+
+  const steerDir = rawSteer !== 0
+    ? Math.sign(rawSteer)
+    : Math.abs(car.steerInput) > 0.10
+      ? Math.sign(car.steerInput)
+      : 0;
+
+  // 1) Initiate drift on a single tap (or hold) when steering at speed
+  if (!car.isDrifting && wantDrift && speedKmh >= cfg.driftMinSpeedKmh && steerDir !== 0) {
+    car.isDrifting = true;
+    car.driftDir = steerDir;
+    car.driftInitTimer = cfg.driftInitGraceSec ?? 0.28;
+    // Crisp rear-end breakaway kick so even a quick tap immediately starts sliding
+    car.yawRate = (car.yawRate ?? 0) + steerDir * 1.05;
+    if (car.travelHeading === undefined) car.travelHeading = car.heading;
+    car.travelHeading = wrapAngle(car.heading - steerDir * 0.11);
+    car.slipAngle = wrapAngle(car.heading - car.travelHeading);
+  }
+
+  // 2) Sustain drift while inertia & heading still differ, or auto-return to grip when aligned
+  if (car.isDrifting) {
+    if (car.driftDir === 0 && steerDir !== 0) {
+      car.driftDir = steerDir;
     }
 
-    // Drift builds charge for a crisp exit boost
-    car.driftCharge = Math.min(1.0, car.driftCharge + dt * 0.68);
-    // Speed scrub scales slightly with real slip angle for natural feel
-    const slipScrub = 0.65 + 0.7 * Math.min(1, Math.abs(car.slipAngle || 0) / (cfg.maxSlipAngleRad ?? 0.5));
-    car.speed = Math.max(cfg.driftMinSpeedKmh * 0.82 * KMH_TO_MS, car.speed - cfg.driftDrag * slipScrub * dt);
+    const alignedEnough =
+      car.driftInitTimer <= 0 &&
+      !wantDrift &&
+      Math.abs(car.slipAngle || 0) < exitSlipRad;
+
+    if (speedKmh < minSustainKmh || alignedEnough) {
+      if (car.driftCharge > 0.32 && throttle > 0) {
+        car.driftBoostTimer = 0.85;
+      }
+      car.isDrifting = false;
+      car.driftDir = 0;
+      car.driftInitTimer = 0;
+      car.driftCharge = Math.max(0, car.driftCharge - dt * 1.8);
+    } else {
+      // Drift builds charge for a crisp exit boost
+      car.driftCharge = Math.min(1.0, car.driftCharge + dt * 0.68);
+      // Speed scrub scales slightly with real slip angle for natural feel
+      const slipScrub = 0.65 + 0.7 * Math.min(1, Math.abs(car.slipAngle || 0) / (cfg.maxSlipAngleRad ?? 0.5));
+      car.speed = Math.max(minSustainKmh * KMH_TO_MS, car.speed - cfg.driftDrag * slipScrub * dt);
+    }
   } else {
-    if (car.isDrifting && car.driftCharge > 0.32 && throttle > 0) {
-      car.driftBoostTimer = 0.85;
-    }
-    car.isDrifting = false;
-    car.driftDir = 0;
     car.driftCharge = Math.max(0, car.driftCharge - dt * 1.8);
   }
 
@@ -302,10 +338,17 @@ export function updatePlayerPhysics(car, input, track, dt) {
 
   let targetTurnRate = 0;
   if (car.isDrifting && car.driftDir !== 0) {
-    // Counter-steering widens the arc smoothly; steering into the turn deepens the slide
-    const driftSteer = rawSteer === 0
-      ? car.driftDir * 0.36
-      : steer * 0.85 + car.driftDir * 0.42;
+    // Steering into the turn sustains the slide; releasing steering or counter-steering
+    // lets heading realign with travelHeading to exit drift cleanly
+    let driftSteer = 0;
+    if (rawSteer === 0) {
+      driftSteer = wantDrift ? car.driftDir * 0.32 : 0;
+    } else if (Math.sign(rawSteer) === car.driftDir) {
+      driftSteer = steer * 0.92 + car.driftDir * 0.28;
+    } else {
+      // Counter-steering: actively pulls nose back toward inertia direction
+      driftSteer = steer * 0.95;
+    }
     targetTurnRate = driftSteer * cfg.steerRate * cfg.driftSteerBoost * speedFactor;
   } else {
     // Stronger high-speed stability damping on straights for calm, planted feel
@@ -379,6 +422,7 @@ export function updatePlayerPhysics(car, input, track, dt) {
       car.gutterCooldown = 0.45;
       car.isDrifting = false;
       car.driftDir = 0;
+      car.driftInitTimer = 0;
     }
 
     fx = Math.sin(car.heading);
@@ -392,10 +436,12 @@ export function updatePlayerPhysics(car, input, track, dt) {
 
     if (car.speed > 1.0) {
       // True 2D velocity-heading separation:
-      // During drift, lateral grip softens so momentum slides wide while nose tucks inward
+      // During drift, lateral grip softens so momentum slides wide while nose tucks inward.
+      // Releasing steering (or counter-steering) lets inertia catch back up smoothly.
       const prevSlip = Math.abs(car.slipAngle || 0);
+      const settlingDrift = car.isDrifting && !wantDrift && (rawSteer === 0 || Math.sign(rawSteer) !== car.driftDir);
       const alignRate = car.isDrifting
-        ? (cfg.driftAlignRate ?? 2.35)
+        ? (settlingDrift ? (cfg.driftSettleAlignRate ?? 4.1) : (cfg.driftAlignRate ?? 2.35))
         : prevSlip > 0.06
           ? (cfg.driftRecoveryAlignRate ?? 5.6)
           : (cfg.gripAlignRate ?? 9.5);
