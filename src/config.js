@@ -262,8 +262,8 @@ export const RIVALS = [
       highSpeedDropKmh: 105,     // 105 km/h 이후 가속 급감 (초반 폭발, 후반 극저가속)
       highSpeedAccelScale: 0.14,
       cornerSpeedFactor: 0.93,
-      godFootStyle: true,        // 평소 과감한 그립 주행 + 5연속 헤어핀 아웃 급가속 -> 급감속 인 스핀턴
-      hardBrakeDecel: 24.5,
+      godFootStyle: true,        // 평소 과감한 그립 주행 + 5연속 헤어핀 아웃 급가속 -> 레이트 브레이킹 고속 스핀턴
+      hardBrakeDecel: 15.5,
       apexRatio: 0.78,
       maxLateralRatio: 0.86,
       lookAheadBase: 16.5,

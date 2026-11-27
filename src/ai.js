@@ -1,6 +1,6 @@
-import { PLAYER_PHYSICS } from './config.js?v=47';
+import { PLAYER_PHYSICS } from './config.js?v=48';
 import { wrapAngle } from './track.js';
-import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=50';
+import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=51';
 
 const KMH_TO_MS = 1 / 3.6;
 const MS_TO_KMH = 3.6;
@@ -62,33 +62,34 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     // - Regular corners: aggressive late-brake & hard-throttle grip driving
     // - 5-consecutive hairpins (z in -930..-1150): sprint on the OUTSIDE, then slam brakes & spin-turn INSIDE!
     const in5HairpinZone = rival.z < -930 && rival.z > -1150;
-    const immediateAhead = track.getUpcomingCurvature(rival.s, 6, 46);
-    const hairpinAhead = track.getUpcomingCurvature(rival.s, 14, 72);
+    const immediateAhead = track.getUpcomingCurvature(rival.s, 4, 24);
+    const regularAhead = track.getUpcomingCurvature(rival.s, 6, 38);
+    const hairpinAhead = track.getUpcomingCurvature(rival.s, 12, 68);
     const curAbs = Math.abs(entryPt.curvature);
 
-    if (in5HairpinZone && (curAbs > 0.022 || immediateAhead.peakAbs > 0.032)) {
-      // Phase 2: Hard brake and snap spin-turn into the inside apex (tires spinning for instant exit launch)
+    if (in5HairpinZone && (curAbs > 0.024 || immediateAhead.peakAbs > 0.034)) {
+      // Phase 2: Late-brake right at the hairpin entry and snap high-speed spin-turn (84-88 km/h)
       godFootPhase = 'hairpin_spin_turn';
-      godFootHairpinSign = curAbs > 0.022 ? Math.sign(entryPt.curvature) : Math.sign(immediateAhead.signedPeak);
+      godFootHairpinSign = curAbs > 0.024 ? Math.sign(entryPt.curvature) : Math.sign(immediateAhead.signedPeak);
       hardBrakingEntry = true;
       rival.spinTurnCharged = true;
-      targetSpeedKmh = curAbs > 0.028 ? 68 : 62;
+      targetSpeedKmh = curAbs > 0.028 ? 88 : 84;
     } else if (in5HairpinZone && hairpinAhead.peakAbs > 0.032) {
-      // Phase 1: Sprint hard along the outside line approaching the hairpin
+      // Phase 1: Sprint hard along the outside line all the way to the late-brake point
       godFootPhase = 'hairpin_out_sprint';
       godFootHairpinSign = Math.sign(hairpinAhead.signedPeak);
-      targetSpeedKmh = Math.min(ai.maxSpeedKmh, 122);
+      targetSpeedKmh = ai.maxSpeedKmh;
     } else {
       // Regular corners: aggressive late-brake & full-throttle grip
       const inCornerNow = curAbs >= 0.0085;
       const oppositeAhead =
-        immediateAhead.peakAbs > 0.011 &&
-        Math.sign(immediateAhead.signedPeak) !== Math.sign(entryPt.curvature);
+        regularAhead.peakAbs > 0.011 &&
+        Math.sign(regularAhead.signedPeak) !== Math.sign(entryPt.curvature);
       if (inCornerNow && !oppositeAhead) {
         targetSpeedKmh = ai.maxSpeedKmh;
-      } else if (immediateAhead.peakAbs > 0.009) {
+      } else if (regularAhead.peakAbs > 0.009) {
         hardBrakingEntry = true;
-        targetSpeedKmh = Math.max(64, ai.maxSpeedKmh / (1 + immediateAhead.peakAbs * 24));
+        targetSpeedKmh = Math.max(72, ai.maxSpeedKmh / (1 + regularAhead.peakAbs * 20));
       } else {
         targetSpeedKmh = ai.maxSpeedKmh;
       }
