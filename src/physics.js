@@ -1,4 +1,4 @@
-import { PLAYER_PHYSICS } from './config.js?v=43';
+import { PLAYER_PHYSICS } from './config.js?v=44';
 import { wrapAngle } from './track.js';
 
 const KMH_TO_MS = 1 / 3.6;
@@ -34,6 +34,7 @@ export function createVehicleState(track, startS, lateralOffset = 0) {
     gripWhipTimer: 0,     // how long opposite steer is held after high-speed corner
     cornerExitCharge: 0,
     turboBoostTimer: 0,
+    stackedTurboKmh: 0,
     inGutter: false,
     nearGutter: false,
     interactBufferTimer: 0,
@@ -84,6 +85,7 @@ export function resetVehicleToSpawn(car, track, startS, lateralOffset = 0) {
   car.gripWhipTimer = 0;
   car.cornerExitCharge = 0;
   car.turboBoostTimer = 0;
+  car.stackedTurboKmh = 0;
   car.inGutter = false;
   car.nearGutter = false;
   car.interactBufferTimer = 0;

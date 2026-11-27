@@ -1,6 +1,6 @@
-import { PLAYER_PHYSICS } from './config.js?v=43';
+import { PLAYER_PHYSICS } from './config.js?v=44';
 import { wrapAngle } from './track.js';
-import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=46';
+import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=47';
 
 const KMH_TO_MS = 1 / 3.6;
 const MS_TO_KMH = 3.6;
@@ -124,7 +124,9 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     targetSpeedKmh = Math.max(minCrawl, targetSpeedKmh);
   }
 
-  if (turboActive) {
+  if (turboCfg?.stackPermanent) {
+    targetSpeedKmh += rival.stackedTurboKmh || 0;
+  } else if (turboActive) {
     targetSpeedKmh += turboCfg.boostKmh;
   }
 
@@ -438,6 +440,9 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     } else if ((rival.cornerExitCharge || 0) >= 0.32 && absProjCurv < 0.0055) {
       rival.turboBoostTimer = turboCfg.boostDuration;
       rival.cornerExitCharge = 0;
+      if (turboCfg.stackPermanent) {
+        rival.stackedTurboKmh = (rival.stackedTurboKmh || 0) + turboCfg.boostKmh;
+      }
     } else {
       rival.cornerExitCharge = Math.max(0, (rival.cornerExitCharge || 0) - dt * 0.6);
     }

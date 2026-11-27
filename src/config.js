@@ -414,9 +414,10 @@ export const RIVALS = [
         minCornerSpeedRatio: 0.86,
         coastDecel: 2.8,
         twinTurboBoost: {
-          boostKmh: 16,
+          boostKmh: 10,
           boostAccelMult: 1.75,
           boostDuration: 1.55,
+          stackPermanent: true, // 부스트로 얻은 +10 km/h가 증발하지 않고 코너 탈출마다 계속 중첩
         },
         rubberBandCatchup: 0.16,
       },
