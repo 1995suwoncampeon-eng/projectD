@@ -1,6 +1,6 @@
 import { PLAYER_PHYSICS } from './config.js?v=48';
 import { wrapAngle } from './track.js';
-import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=51';
+import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=52';
 
 const KMH_TO_MS = 1 / 3.6;
 const MS_TO_KMH = 3.6;
@@ -441,37 +441,36 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     }
   }
 
-  // Layer 3: Anti-stuck progress failsafe — if NPC progress stalls for >0.45s (e.g. wedged in hairpin),
-  // smoothly unstick onto the inner safe lane aligned with road tangent
+  // Layer 3: Anti-stuck progress failsafe — ONLY activates well past the start line (s > startS + 35)
+  // and only when actually pinned near a guardrail & stalled for >0.55s (never teleports or spikes speed at launch!)
   const prevS = rival._prevProgressS ?? rival.s;
   const forwardGain = rival.s - prevS;
   rival._prevProgressS = rival.s;
-  if (rival.s > 25 && rival.s < track.finishS - 5 && forwardGain < 3.5 * dt) {
+  const startSafeS = (track.startS ?? 28) + 35;
+  const nearWall = rival.scrapedWall || Math.abs(rival.lateral) > track.maxCarLateral - 0.85;
+  if (rival.s > startSafeS && rival.s < track.finishS - 5 && nearWall && forwardGain < 3.0 * dt) {
     rival._stuckTimer = (rival._stuckTimer || 0) + dt;
-    if (rival._stuckTimer >= 0.45) {
-      const safeS = Math.min(track.totalLength, rival.s + 2.0);
-      const safePt = track.getPointAtS(safeS);
+    if (rival._stuckTimer >= 0.55) {
+      const safePt = track.getPointAtS(rival.s);
       const safeLat = Math.max(
         -(track.maxCarLateral - 1.8),
-        Math.min(track.maxCarLateral - 1.8, rival.lateral * 0.45)
+        Math.min(track.maxCarLateral - 1.8, rival.lateral * 0.55)
       );
-      rival.s = safeS;
       rival.lateral = safeLat;
       rival.x = safePt.x + safePt.rx * safeLat;
       rival.z = safePt.z + safePt.rz * safeLat;
       rival.heading = safePt.heading;
       if (rival.travelHeading !== undefined) rival.travelHeading = safePt.heading;
       rival.trackIndex = safePt.index;
-      rival.speed = Math.max(rival.speed, 16.5);
+      rival.speed = Math.max(rival.speed, 11.0);
       rival.scrapedWall = false;
       rival.inGutter = false;
       rival.gutterSide = 0;
       rival._stuckTimer = 0;
-      rival._prevProgressS = safeS;
       proj = safePt;
     }
   } else {
-    rival._stuckTimer = Math.max(0, (rival._stuckTimer || 0) - dt * 2.5);
+    rival._stuckTimer = Math.max(0, (rival._stuckTimer || 0) - dt * 3.0);
   }
 
   // Expressive AI drift visual on corners (configurable per rival)
