@@ -251,15 +251,15 @@ export const RIVALS = [
     wheelStyle: { rimColor: '#4b5563', spokeColor: '#272e3a', hubColor: '#6b7280', spokes: 6, isSteel: true },
     tagline: '과감한 풀브레이킹·풀악셀 그립 주행과 5연속 헤어핀 아웃-인 스핀턴을 구사하는 상급 라이벌입니다.',
     stats: {
-      topSpeedKmh: 140,
+      topSpeedKmh: 120,
       corneringStability: 0.93,
       accelFactor: 0.98,
       aggression: 0.92,
     },
     ai: {
-      maxSpeedKmh: 140,
+      maxSpeedKmh: 120,
       accel: 6.45,
-      highSpeedDropKmh: 115,     // 115 km/h 이후 가속 급감 (초반 폭발, 후반 극저가속)
+      highSpeedDropKmh: 105,     // 105 km/h 이후 가속 급감 (초반 폭발, 후반 극저가속)
       highSpeedAccelScale: 0.14,
       cornerSpeedFactor: 0.93,
       godFootStyle: true,        // 평소 과감한 그립 주행 + 5연속 헤어핀 아웃 급가속 -> 급감속 인 스핀턴
@@ -376,13 +376,13 @@ export const RIVALS = [
     wheelStyle: { rimColor: '#facc15', spokeColor: '#eab308', hubColor: '#fef08a', spokes: 5 },
     tagline: '아키나 최속의 전설. 중고속 코너는 초고속 인코스 드리프트, 중저속 급코너는 도랑타기로 돌파하는 최강 GOD 라이벌입니다.',
     stats: {
-      topSpeedKmh: 112,
+      topSpeedKmh: 120,
       corneringStability: 0.99,
       accelFactor: 0.99,
       aggression: 0.98,
     },
     ai: {
-      maxSpeedKmh: 112,
+      maxSpeedKmh: 120,
       accel: 5.30,
       cornerSpeedFactor: 0.98,
       jhyGodStyle: true,            // 중고속 코너: 도랑타기보다 빠른 인코스 드리프트 / 중저속 급코너: 도랑타기
@@ -496,11 +496,11 @@ const PLAYER_CAR_SPECS = {
     },
   },
   kozo: {
-    specTag: '4WD · 140km/h · 폭발적 초반 / 115+ 둔화',
+    specTag: '4WD · 120km/h · 폭발적 초반 / 105+ 둔화',
     physics: {
-      maxSpeedKmh: 140,
+      maxSpeedKmh: 120,
       accel: 5.75,
-      highSpeedDropKmh: 115,
+      highSpeedDropKmh: 105,
       highSpeedAccelScale: 0.14,
       brakeDecel: 24.5,
       steerRate: 1.82,
@@ -527,9 +527,9 @@ const PLAYER_CAR_SPECS = {
     },
   },
   jhy: {
-    specTag: '4WD · 112km/h · 최강 트랙션 / 올라운더',
+    specTag: '4WD · 120km/h · 최강 트랙션 / 올라운더',
     physics: {
-      maxSpeedKmh: 112,
+      maxSpeedKmh: 120,
       accel: 4.75,
       brakeDecel: 21.5,
       steerRate: 1.98,
