@@ -1,6 +1,6 @@
-import { PLAYER_PHYSICS } from './config.js?v=44';
+import { PLAYER_PHYSICS } from './config.js?v=45';
 import { wrapAngle } from './track.js';
-import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=47';
+import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=48';
 
 const KMH_TO_MS = 1 / 3.6;
 const MS_TO_KMH = 3.6;
