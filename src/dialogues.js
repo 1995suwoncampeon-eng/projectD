@@ -2,9 +2,14 @@
  * 라이벌별 컷신 대사 & 캐릭터 이미지 설정 파일 (총 8명)
  *
  * 수정 방법:
- * - 각 라이벌(rookie1 / rookie2 / takeshi / keisuke / expert1 / ryosuke / master1 / bunta)의
- *   `intro`(시작 전), `outro`(종료 후)를 편집하세요.
+ * - 각 라이벌(rookie1 / shingo / takeshi / keisuke / kozo / ryosuke / master1 / bunta)의
+ *   `intro`(시작 전), `midrace`(코스 후반부 5연속 헤어핀 진입 시 2페이즈 돌입), `outro`(종료 후)를 편집하세요.
  * - `characterImage`: 해당 컷신 기본 캐릭터 이미지 경로 (예: 'assets/cutscenes/takeshi.png')
+ * - `midrace`: 주행 중 우측 중상단 라이벌 현황 사진(1페이즈 → 2페이즈) 및 5연속 헤어핀 진입 중간 대사
+ *     - phase1Image : 경기 시작~중반 우측 중상단에 표시할 1페이즈 이미지 (null이면 intro.characterImage 사용)
+ *     - phase2Image : 5연속 헤어핀 진입 시 전환할 2페이즈 이미지 (예: 'assets/cutscenes/bunta_phase2.png')
+ *     - text        : 5연속 헤어핀 직전 진입 시 우측 중상단에 출력될 중간 대사
+ *     - durationSec : 중간 대사 말풍선 유지 시간(초, 기본 4.8초)
  * - `lines`: 대사 문단 배열
  *     - `intro.lines` : 시작 전 대사 (1번 → 2번 순서대로 출력 후 레이스 시작)
  *     - `outro.lines` : 종료 후 대사 (1번 = 플레이어 패배/NPC 승리 시 출력, 2번 = 플레이어 승리/NPC 패배 시 출력)
@@ -57,6 +62,15 @@ export const RIVAL_CUTSCENES = {
         },
       ],
     },
+    midrace: {
+      enabled: true,
+      phase1Image: null, // 예: 'assets/cutscenes/rookie1_phase1.png'
+      phase2Image: null, // 예: 'assets/cutscenes/rookie1_phase2.png'
+      speaker: 'ROOKIE 1',
+      color: '#38bdf8',
+      text: '[ROOKIE 1 중간 대사 — 5연속 헤어핀 진입! (src/dialogues.js에서 수정하세요)]',
+      durationSec: 4.8,
+    },
   },
 
   // ==========================================================================
@@ -100,6 +114,15 @@ export const RIVAL_CUTSCENES = {
           text: '[SHINGO 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
         },
       ],
+    },
+    midrace: {
+      enabled: true,
+      phase1Image: null, // 예: 'assets/cutscenes/shingo_phase1.png'
+      phase2Image: null, // 예: 'assets/cutscenes/shingo_phase2.png'
+      speaker: 'SHINGO',
+      color: '#ef4444',
+      text: '[SHINGO 중간 대사 — 5연속 헤어핀 진입! (src/dialogues.js에서 수정하세요)]',
+      durationSec: 4.8,
     },
   },
 
@@ -145,6 +168,15 @@ export const RIVAL_CUTSCENES = {
         },
       ],
     },
+    midrace: {
+      enabled: true,
+      phase1Image: null, // 예: 'assets/cutscenes/takeshi_phase1.png'
+      phase2Image: null, // 예: 'assets/cutscenes/takeshi_phase2.png'
+      speaker: 'TAKESHI',
+      color: '#60a5fa',
+      text: '[TAKESHI 중간 대사 — 5연속 헤어핀 진입! (src/dialogues.js에서 수정하세요)]',
+      durationSec: 4.8,
+    },
   },
 
   // ==========================================================================
@@ -188,6 +220,15 @@ export const RIVAL_CUTSCENES = {
           text: '[KEISUKE 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
         },
       ],
+    },
+    midrace: {
+      enabled: true,
+      phase1Image: null, // 예: 'assets/cutscenes/keisuke_phase1.png'
+      phase2Image: null, // 예: 'assets/cutscenes/keisuke_phase2.png'
+      speaker: 'KEISUKE',
+      color: '#fde047',
+      text: '[KEISUKE 중간 대사 — 5연속 헤어핀 진입! (src/dialogues.js에서 수정하세요)]',
+      durationSec: 4.8,
     },
   },
 
@@ -233,6 +274,15 @@ export const RIVAL_CUTSCENES = {
         },
       ],
     },
+    midrace: {
+      enabled: true,
+      phase1Image: null, // 예: 'assets/cutscenes/kozo_phase1.png'
+      phase2Image: null, // 예: 'assets/cutscenes/kozo_phase2.png'
+      speaker: 'KOZO',
+      color: '#fb923c',
+      text: '[KOZO 중간 대사 — 5연속 헤어핀 진입! (src/dialogues.js에서 수정하세요)]',
+      durationSec: 4.8,
+    },
   },
 
   // ==========================================================================
@@ -276,6 +326,15 @@ export const RIVAL_CUTSCENES = {
           text: '[RYOSUKE 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
         },
       ],
+    },
+    midrace: {
+      enabled: true,
+      phase1Image: null, // 예: 'assets/cutscenes/ryosuke_phase1.png'
+      phase2Image: null, // 예: 'assets/cutscenes/ryosuke_phase2.png'
+      speaker: 'RYOSUKE',
+      color: '#38bdf8',
+      text: '[RYOSUKE 중간 대사 — 5연속 헤어핀 진입! (src/dialogues.js에서 수정하세요)]',
+      durationSec: 4.8,
     },
   },
 
@@ -321,6 +380,15 @@ export const RIVAL_CUTSCENES = {
         },
       ],
     },
+    midrace: {
+      enabled: true,
+      phase1Image: null, // 예: 'assets/cutscenes/master1_phase1.png'
+      phase2Image: null, // 예: 'assets/cutscenes/master1_phase2.png'
+      speaker: 'LEGEND',
+      color: '#f472b6',
+      text: '[LEGEND 중간 대사 — 5연속 헤어핀 진입! (src/dialogues.js에서 수정하세요)]',
+      durationSec: 4.8,
+    },
   },
 
   // ==========================================================================
@@ -364,6 +432,15 @@ export const RIVAL_CUTSCENES = {
           text: '[BUNTA 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
         },
       ],
+    },
+    midrace: {
+      enabled: true,
+      phase1Image: null, // 예: 'assets/cutscenes/bunta_phase1.png'
+      phase2Image: null, // 예: 'assets/cutscenes/bunta_phase2.png'
+      speaker: 'BUNTA',
+      color: '#e879f9',
+      text: '[BUNTA 중간 대사 — 5연속 헤어핀 진입! (src/dialogues.js에서 수정하세요)]',
+      durationSec: 4.8,
     },
   },
 };

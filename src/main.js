@@ -6,7 +6,7 @@ import {
   PLAYER_THEME,
   PLAYER_CARS,
   RIVALS,
-} from './config.js?v=37';
+} from './config.js?v=38';
 import { TougeTrack } from './track.js?v=14';
 import { buildTougeEnvironment } from './trackRenderer.js?v=21';
 import { loadCarModel } from './carModel.js?v=18';
@@ -16,12 +16,12 @@ import {
   recoverVehicleToTrack,
   updatePlayerPhysics,
   resolveCarCollision,
-} from './physics.js?v=40';
-import { updateRivalAI } from './ai.js?v=23';
+} from './physics.js?v=41';
+import { updateRivalAI } from './ai.js?v=24';
 import { EffectsManager } from './effects.js?v=15';
 import { ArcadeAudio } from './audio.js?v=14';
-import { HudController } from './hud.js?v=6';
-import { UIController } from './ui.js?v=37';
+import { HudController } from './hud.js?v=7';
+import { UIController } from './ui.js?v=38';
 
 class ProjectDGame {
   constructor() {
@@ -667,10 +667,12 @@ class ProjectDGame {
     this.lastCountdownStep = -1;
     this.goBannerTimer = 0;
     this.rivalFinishedWait = 0;
+    this.midRaceTriggered = false;
 
     this.ui.showScreen('COUNTDOWN');
     this.hud.setVisible(true);
     this.hud.clearBanner();
+    this.hud.resetMidRace(this.selectedRival);
     this.hud.update(this.player, this.rival, 0, 0);
   }
 
@@ -873,7 +875,13 @@ class ProjectDGame {
       this.effects.emitCarEffects('rival', this.rival, dt, rivalY, rivalSlope);
       this.effects.update(dt);
 
-      // 4. Audio & HUD updates
+      // 4. Mid-race Phase 2 trigger right before the 5-consecutive hairpins (z <= -925)
+      if (!this.midRaceTriggered && this.player.z <= -925) {
+        this.midRaceTriggered = true;
+        this.hud.triggerMidRacePhase2(this.selectedRival);
+      }
+
+      // 5. Audio & HUD updates
       this.audio.updateEngine(
         this.player.rpm,
         this.player.isDrifting,

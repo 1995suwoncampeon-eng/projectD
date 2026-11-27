@@ -66,12 +66,26 @@ export class HudController {
 
     this.muteBtn = document.getElementById('btn-toggle-mute');
 
+    this.rivalStatusEl = document.getElementById('hud-rival-status');
+    this.rivalPortraitCardEl = document.getElementById('hud-rival-portrait-card');
+    this.rivalPortraitImgEl = document.getElementById('hud-rival-portrait-img');
+    this.rivalPortraitFallbackEl = document.getElementById('hud-rival-portrait-fallback');
+    this.rivalPortraitInitialEl = document.getElementById('hud-rival-portrait-initial');
+    this.rivalPortraitHintEl = document.getElementById('hud-rival-portrait-hint');
+    this.rivalPortraitNameEl = document.getElementById('hud-rival-portrait-name');
+    this.rivalPhaseBadgeEl = document.getElementById('hud-rival-phase-badge');
+    this.midraceBubbleEl = document.getElementById('hud-midrace-bubble');
+    this.midraceSpeakerEl = document.getElementById('hud-midrace-speaker');
+    this.midraceTextEl = document.getElementById('hud-midrace-text');
+
     this.rpmNeedleEl = null;
     this.speedNeedleEl = null;
     this._displayRpm = 1200;
     this._displaySpeed = 0;
 
     this.bannerTimer = 0;
+    this.midraceBubbleTimer = 0;
+    this._midraceTypeTimer = null;
     this.rivalColorHex = '#ffd000';
 
     this._initAnalogGauges();
@@ -230,9 +244,105 @@ export class HudController {
   setVisible(visible) {
     if (!this.root) return;
     this.root.classList.toggle('hidden', !visible);
-    if (!visible && this.vignetteEl) {
-      this.vignetteEl.classList.remove('drifting');
+    if (!visible) {
+      if (this.vignetteEl) {
+        this.vignetteEl.classList.remove('drifting');
+      }
+      this._clearMidraceBubble();
     }
+  }
+
+  _applyRivalPortrait(rivalConfig, isPhase2) {
+    if (!rivalConfig) return;
+    const accent = rivalConfig.accentHex || rivalConfig.colorHex || '#ffd000';
+    if (this.rivalStatusEl) {
+      this.rivalStatusEl.style.setProperty('--rival-accent', accent);
+    }
+    if (this.rivalPortraitNameEl) {
+      this.rivalPortraitNameEl.textContent = rivalConfig.name;
+    }
+    if (this.rivalPortraitInitialEl) {
+      this.rivalPortraitInitialEl.textContent = (rivalConfig.name || 'R').slice(0, 1).toUpperCase();
+    }
+    if (this.rivalPhaseBadgeEl) {
+      this.rivalPhaseBadgeEl.textContent = isPhase2 ? 'PHASE 2' : 'PHASE 1';
+    }
+    if (this.rivalPortraitHintEl) {
+      this.rivalPortraitHintEl.textContent = isPhase2 ? 'AWAKENED' : 'PHASE 1';
+    }
+    if (this.rivalPortraitCardEl) {
+      this.rivalPortraitCardEl.classList.toggle('phase-2', isPhase2);
+    }
+
+    const mid = rivalConfig.cutscenes?.midrace || {};
+    const introImg = rivalConfig.cutscenes?.intro?.characterImage || null;
+    const imgSrc = isPhase2
+      ? (mid.phase2Image || mid.phase1Image || introImg)
+      : (mid.phase1Image || introImg);
+
+    if (imgSrc && this.rivalPortraitImgEl) {
+      if (this.rivalPortraitImgEl.getAttribute('src') !== imgSrc) {
+        this.rivalPortraitImgEl.src = imgSrc;
+      }
+      this.rivalPortraitImgEl.classList.remove('hidden');
+      this.rivalPortraitFallbackEl?.classList.add('hidden');
+    } else {
+      this.rivalPortraitImgEl?.classList.add('hidden');
+      this.rivalPortraitFallbackEl?.classList.remove('hidden');
+    }
+  }
+
+  _clearMidraceBubble() {
+    this.midraceBubbleTimer = 0;
+    if (this._midraceTypeTimer !== null) {
+      clearInterval(this._midraceTypeTimer);
+      this._midraceTypeTimer = null;
+    }
+    if (this.midraceBubbleEl) {
+      this.midraceBubbleEl.classList.add('hidden');
+    }
+  }
+
+  resetMidRace(rivalConfig) {
+    this._clearMidraceBubble();
+    this._applyRivalPortrait(rivalConfig, false);
+  }
+
+  triggerMidRacePhase2(rivalConfig) {
+    if (!rivalConfig) return;
+    this._clearMidraceBubble();
+    this._applyRivalPortrait(rivalConfig, true);
+
+    const mid = rivalConfig.cutscenes?.midrace;
+    if (!mid || mid.enabled === false || !mid.text) return;
+
+    if (this.midraceSpeakerEl) {
+      this.midraceSpeakerEl.textContent = mid.speaker || rivalConfig.name;
+      if (mid.color) {
+        this.midraceSpeakerEl.style.color = mid.color;
+      }
+    }
+    if (this.midraceTextEl) {
+      this.midraceTextEl.textContent = '';
+    }
+    if (this.midraceBubbleEl) {
+      this.midraceBubbleEl.classList.remove('hidden');
+    }
+
+    const fullText = mid.text;
+    let idx = 0;
+    this._midraceTypeTimer = setInterval(() => {
+      idx++;
+      if (this.midraceTextEl) {
+        this.midraceTextEl.textContent = fullText.slice(0, idx);
+      }
+      if (idx >= fullText.length) {
+        clearInterval(this._midraceTypeTimer);
+        this._midraceTypeTimer = null;
+      }
+    }, 26);
+
+    this.midraceBubbleTimer = mid.durationSec ?? 4.8;
   }
 
   setRivalAppearance(rivalConfig) {
@@ -248,6 +358,7 @@ export class HudController {
     if (this.rivalShortEl) {
       this.rivalShortEl.textContent = rivalConfig.name;
     }
+    this.resetMidRace(rivalConfig);
   }
 
   setMuteLabel(muted) {
@@ -275,6 +386,12 @@ export class HudController {
       this.bannerTimer -= dt;
       if (this.bannerTimer <= 0) {
         this.clearBanner();
+      }
+    }
+    if (this.midraceBubbleTimer > 0) {
+      this.midraceBubbleTimer -= dt;
+      if (this.midraceBubbleTimer <= 0) {
+        this._clearMidraceBubble();
       }
     }
 

@@ -9,7 +9,7 @@
  *  -Math.PI / 2 -> model front faces +X
  */
 
-import { RIVAL_CUTSCENES } from './dialogues.js?v=16';
+import { RIVAL_CUTSCENES } from './dialogues.js?v=17';
 
 // ============================================================================
 // 3D CAR MODEL SETTINGS (Edit here when dropping in custom .glb models)

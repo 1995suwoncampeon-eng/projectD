@@ -21,7 +21,7 @@
     rel="icon"
     href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230b0b0e'/%3E%3Cpath d='M0 54 L64 46 L64 64 L0 64 Z' fill='%23e6192e'/%3E%3Ctext x='50%25' y='48%25' dominant-baseline='middle' text-anchor='middle' fill='%23ffd000' font-family='sans-serif' font-weight='900' font-style='italic' font-size='40'%3ED%3C/text%3E%3C/svg%3E"
   />
-  <link rel="stylesheet" href="styles.css?v=20261124-6" />
+  <link rel="stylesheet" href="styles.css?v=20261126-1" />
   <script type="importmap">
     {
       "imports": {
@@ -226,6 +226,30 @@
         <button id="btn-quick-reset" class="hud-chip-btn" type="button" title="Reset to Track (R)">RESET [R]</button>
       </div>
 
+      <!-- Upper-Mid Right: Rival Live Portrait (Phase 1 -> Phase 2) & Mid-Race Hairpin Dialogue -->
+      <div id="hud-rival-status" class="hud-rival-status" aria-live="polite">
+        <div id="hud-midrace-bubble" class="midrace-bubble hidden">
+          <div class="midrace-bubble-head">
+            <span id="hud-midrace-speaker" class="midrace-speaker">RIVAL</span>
+            <span class="midrace-phase-tag">PHASE 2 // 5연속 헤어핀</span>
+          </div>
+          <p id="hud-midrace-text" class="midrace-text"></p>
+        </div>
+        <div id="hud-rival-portrait-card" class="rival-portrait-card">
+          <div class="rival-portrait-frame">
+            <img id="hud-rival-portrait-img" class="rival-portrait-img hidden" alt="Rival Status Portrait" />
+            <div id="hud-rival-portrait-fallback" class="rival-portrait-fallback">
+              <span id="hud-rival-portrait-initial" class="rival-portrait-initial">R</span>
+              <span id="hud-rival-portrait-hint" class="rival-portrait-hint">LIVE</span>
+            </div>
+          </div>
+          <div class="rival-portrait-meta">
+            <span id="hud-rival-portrait-name" class="rival-portrait-name">RIVAL</span>
+            <span id="hud-rival-phase-badge" class="rival-phase-badge">PHASE 1</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Bottom Left: Compact Key Strip -->
       <div class="hud-controls-hint">
         <span><kbd>WASD</kbd>/<kbd>↑↓←→</kbd> 주행</span>
@@ -345,6 +369,6 @@
     </section>
   </div>
 
-  <script type="module" src="src/main.js?v=62"></script>
+  <script type="module" src="src/main.js?v=63"></script>
 </body>
 </html>
