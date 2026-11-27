@@ -1,6 +1,6 @@
-import { PLAYER_PHYSICS } from './config.js?v=42';
+import { PLAYER_PHYSICS } from './config.js?v=43';
 import { wrapAngle } from './track.js';
-import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=45';
+import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=46';
 
 const KMH_TO_MS = 1 / 3.6;
 const MS_TO_KMH = 3.6;
@@ -10,7 +10,10 @@ const MS_TO_KMH = 3.6;
  * hugging, and smooth rubber-banding to sustain tense 1v1 touge battles.
  */
 export function updateRivalAI(rival, player, rivalConfig, track, dt) {
-  const ai = rivalConfig.ai;
+  const baseAi = rivalConfig.ai;
+  const p2 = baseAi.phase2;
+  const inPhase2 = Boolean(p2 && (rival.z <= (p2.triggerZ ?? -925) || player.z <= (p2.triggerZ ?? -925)));
+  const ai = inPhase2 ? { ...baseAi, ...p2 } : baseAi;
 
   // 1. Inspect upcoming curvature to calculate smooth cornering speed target
   // Tighter 68m lookahead keeps NPCs on full throttle longer and prevents sluggish corner exits

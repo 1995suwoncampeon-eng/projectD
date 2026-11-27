@@ -405,6 +405,21 @@ export const RIVALS = [
       rubberBandEase: 0.0,          // GOD 라이벌: 앞서나가도 봐주지 않음
       laneBias: 0.9,
       useGutterRun: true,
+      // 2페이즈(5연속 헤어핀 진입 시 각성): 너프 이전 최강 GOD 드라이빙 발동!
+      phase2: {
+        triggerZ: -925,
+        accel: 5.85,
+        cornerSpeedFactor: 0.99,
+        cornerDecelScale: 0.22,
+        minCornerSpeedRatio: 0.86,
+        coastDecel: 2.8,
+        twinTurboBoost: {
+          boostKmh: 16,
+          boostAccelMult: 1.75,
+          boostDuration: 1.55,
+        },
+        rubberBandCatchup: 0.16,
+      },
     },
     cutscenes: RIVAL_CUTSCENES.jhy,
   },
