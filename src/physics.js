@@ -1,4 +1,4 @@
-import { PLAYER_PHYSICS } from './config.js?v=41';
+import { PLAYER_PHYSICS } from './config.js?v=42';
 import { wrapAngle } from './track.js';
 
 const KMH_TO_MS = 1 / 3.6;
@@ -646,7 +646,13 @@ export function resolveCarCollision(carA, carB, track) {
   const dz = carA.z - carB.z;
   const distSq = dx * dx + dz * dz;
 
-  if (distSq >= minDist * minDist || distSq < 1e-6) {
+  const CAR_LEN = 4.35;
+  const CAR_WIDTH = 2.25;
+  const ds = carA.s - carB.s;
+  const dLat = carA.lateral - carB.lateral;
+  const boxOverlap = Math.abs(ds) < CAR_LEN && Math.abs(dLat) < CAR_WIDTH;
+
+  if (!boxOverlap && (distSq >= minDist * minDist || distSq < 1e-6)) {
     return null;
   }
 
@@ -681,18 +687,19 @@ export function resolveCarCollision(carA, carB, track) {
     };
   }
 
-  // Case 2: Only one car is locked in a gutter — push only the free car out of the way
+  // Case 2: Only one car is locked in a gutter — push only the free car laterally out of the way
   if (carA.inGutter !== carB.inGutter) {
     const gutterCar = carA.inGutter ? carA : carB;
     const freeCar = carA.inGutter ? carB : carA;
-    const fdx = freeCar.x - gutterCar.x;
-    const fdz = freeCar.z - gutterCar.z;
-    const fDist = Math.sqrt(fdx * fdx + fdz * fdz);
-    if (fDist > 1e-4) {
-      const push = (minDist - fDist) * 1.04;
-      freeCar.x += (fdx / fDist) * push;
-      freeCar.z += (fdz / fDist) * push;
-      enforceTrackBounds(freeCar, track, 1 / 60, 0.5);
+    const midPt = track.getPointAtS(freeCar.s);
+    const pushDir = freeCar.lateral >= gutterCar.lateral ? 1 : -1;
+    const neededLat = gutterCar.lateral + pushDir * (CAR_WIDTH + 0.08);
+    const latDelta = neededLat - freeCar.lateral;
+    if (latDelta * pushDir > 0) {
+      freeCar.x += midPt.rx * latDelta;
+      freeCar.z += midPt.rz * latDelta;
+      freeCar.lateral = neededLat;
+      enforceTrackBounds(freeCar, track, 1 / 60, 0.45);
     }
 
     return {
@@ -701,9 +708,54 @@ export function resolveCarCollision(carA, carB, track) {
     };
   }
 
-  // Case 3: Standard open-road 2D circle collision
-  const dist = Math.sqrt(distSq);
-  const overlap = (minDist - dist) * 0.52;
+  // Case 3: Open-road car-to-car contact — distinct side-by-side blocking vs rear-end bump
+  if (boxOverlap) {
+    const latOverlap = CAR_WIDTH - Math.abs(dLat);
+    const longOverlap = CAR_LEN - Math.abs(ds);
+
+    if (latOverlap <= longOverlap * 1.15) {
+      // Side-to-side contact (blocking): separate firmly along track lateral axis!
+      // A car already holding the guardrail/inside edge resists being shoved into the wall (20/80 split).
+      const ptA = track.getPointAtS(carA.s);
+      const ptB = track.getPointAtS(carB.s);
+      const sideSign = dLat >= 0 ? 1 : -1;
+      const edgeThreshold = track.maxCarLateral - 1.35;
+      const aPinned = Math.abs(carA.lateral) >= edgeThreshold && Math.sign(carA.lateral) === -sideSign;
+      const bPinned = Math.abs(carB.lateral) >= edgeThreshold && Math.sign(carB.lateral) === sideSign;
+
+      let shareA = 0.5;
+      let shareB = 0.5;
+      if (aPinned && !bPinned) {
+        shareA = 0.18;
+        shareB = 0.82;
+      } else if (bPinned && !aPinned) {
+        shareA = 0.82;
+        shareB = 0.18;
+      }
+
+      const sep = latOverlap + 0.05;
+      carA.x += ptA.rx * sideSign * sep * shareA;
+      carA.z += ptA.rz * sideSign * sep * shareA;
+      carB.x -= ptB.rx * sideSign * sep * shareB;
+      carB.z -= ptB.rz * sideSign * sep * shareB;
+
+      // Dampen lateral rub speed slightly without killing momentum
+      carA.speed *= 0.992;
+      carB.speed *= 0.992;
+
+      enforceTrackBounds(carA, track, 1 / 60, 0.5);
+      enforceTrackBounds(carB, track, 1 / 60, 0.5);
+
+      return {
+        x: (carA.x + carB.x) * 0.5,
+        z: (carA.z + carB.z) * 0.5,
+      };
+    }
+  }
+
+  // Front/rear contact fallback: smooth 2D separation + mild momentum transfer
+  const dist = Math.sqrt(Math.max(1e-6, distSq));
+  const overlap = Math.max(0.05, (minDist - dist) * 0.52);
   const nx = dx / dist;
   const nz = dz / dist;
 
@@ -712,7 +764,6 @@ export function resolveCarCollision(carA, carB, track) {
   carB.x -= nx * overlap;
   carB.z -= nz * overlap;
 
-  // Mild momentum transfer
   const avgSpeed = (carA.speed + carB.speed) * 0.5;
   carA.speed = carA.speed * 0.85 + avgSpeed * 0.15;
   carB.speed = carB.speed * 0.85 + avgSpeed * 0.15;

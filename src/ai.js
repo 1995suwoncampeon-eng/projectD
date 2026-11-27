@@ -1,6 +1,6 @@
-import { PLAYER_PHYSICS } from './config.js?v=41';
+import { PLAYER_PHYSICS } from './config.js?v=42';
 import { wrapAngle } from './track.js';
-import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=44';
+import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=45';
 
 const KMH_TO_MS = 1 / 3.6;
 const MS_TO_KMH = 3.6;
@@ -208,10 +208,23 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     : { peakAbs, signedPeak };
   const curveThreshold = (ai.fullThrottleCorners || ai.jhyGodStyle) ? 0.0035 : 0.0065;
 
+  // Check if player is currently side-by-side and blocking the inside/gutter lane
+  const longDiff = Math.abs(rival.s - player.s);
+  const sideBySide = longDiff < 5.6;
+  const sideClearance = 2.35; // Minimum center-to-center lateral gap when side-by-side
+  const gutterSideNow = curPt.gutterSide || (aheadGutterPt ? aheadGutterPt.gutterSide : 0);
+  const playerBlocksGutter =
+    longDiff < 6.4 &&
+    gutterSideNow !== 0 &&
+    (player.inGutter || player.lateral * gutterSideNow >= rival.lateral * gutterSideNow - 0.55);
+
+  // If player is blocking the inside lane, AI cannot clip through to take the gutter!
+  const effectiveGutterSide = playerBlocksGutter ? 0 : activeGutterSide;
+
   let targetLateral = ai.laneBias;
-  if (activeGutterSide !== 0) {
+  if (effectiveGutterSide !== 0) {
     // Line up directly with the inside drainage gutter for gutter-run cornering
-    targetLateral = activeGutterSide * gutterRailLat;
+    targetLateral = effectiveGutterSide * gutterRailLat;
   } else if (ai.godFootStyle && godFootPhase === 'hairpin_out_sprint' && godFootHairpinSign !== 0) {
     // Swing wide to the OUTSIDE while sprinting into the 5-consecutive hairpin
     const outsideDir = godFootHairpinSign > 0 ? 1 : -1;
@@ -239,18 +252,23 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     targetLateral = insideDir * (track.maxCarLateral * apexRatio);
   }
 
-  // Polite lateral spacing when side-by-side with player (skipped if apex-locked, JHY high-speed drift, or gutter-running)
-  const longDiff = Math.abs(rival.s - player.s);
-  if (
+  // Respect player's physical side-by-side blocking: AI cannot target across the player's body
+  if (sideBySide) {
+    if (rival.lateral >= player.lateral && targetLateral < player.lateral + sideClearance) {
+      targetLateral = player.lateral + sideClearance;
+    } else if (rival.lateral < player.lateral && targetLateral > player.lateral - sideClearance) {
+      targetLateral = player.lateral - sideClearance;
+    }
+  } else if (
     longDiff < 14 &&
-    activeGutterSide === 0 &&
+    effectiveGutterSide === 0 &&
     !((ai.fullThrottleCorners || ai.jhyGodStyle) && Math.abs(nearCurv.signedPeak) > curveThreshold)
   ) {
     const sideOffset = player.lateral > 0 ? -2.4 : 2.4;
     targetLateral = targetLateral * 0.45 + sideOffset * 0.55;
   }
 
-  const latClamp = activeGutterSide !== 0
+  const latClamp = effectiveGutterSide !== 0
     ? Math.max(gutterRailLat, track.maxCarLateral * maxLatRatio)
     : track.maxCarLateral * maxLatRatio;
   targetLateral = Math.max(-latClamp, Math.min(latClamp, targetLateral));
@@ -260,7 +278,7 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     rival.gutterCooldown = Math.max(0, rival.gutterCooldown - dt);
   }
 
-  // Engage / release gutter hook for gutter-run rivals (e.g. JHY on low-mid speed hairpins)
+  // Engage / release gutter hook for gutter-run rivals (blocked if player occupies the inside lane!)
   if (allowGutterNow) {
     if (rival.inGutter) {
       if (curPt.gutterSide !== rival.gutterSide || rival.speed < 2.0) {
@@ -269,6 +287,7 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
         rival.gutterCooldown = 0.45;
       }
     } else if (
+      !playerBlocksGutter &&
       (rival.gutterCooldown || 0) <= 0 &&
       curPt.gutterSide !== 0 &&
       rival.speed > 4.0 &&

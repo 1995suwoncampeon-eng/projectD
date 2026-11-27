@@ -383,25 +383,25 @@ export const RIVALS = [
     },
     ai: {
       maxSpeedKmh: 112,
-      accel: 5.85,
-      cornerSpeedFactor: 0.99,
+      accel: 5.30,
+      cornerSpeedFactor: 0.98,
       jhyGodStyle: true,            // 중고속 코너: 도랑타기보다 빠른 인코스 드리프트 / 중저속 급코너: 도랑타기
       gutterMinCurvature: 0.024,    // 급코너·헤어핀에서만 도랑타기 발동
       highSpeedDriftBonusKmh: 4,    // 중고속 코너 드리프트 통과 시 도랑타기보다 빠른 속도 유지
       driftSlipRad: 0.36,
       coastOnlyCorners: true,
-      cornerDecelScale: 0.22,
-      minCornerSpeedRatio: 0.86,
-      coastDecel: 2.8,
+      cornerDecelScale: 0.25,
+      minCornerSpeedRatio: 0.78,    // 급헤어핀 도랑타기 ~87 km/h -> 플레이어가 인코스 블로킹/도랑타기로 추월 가능!
+      coastDecel: 3.1,
       apexRatio: 0.90,
       maxLateralRatio: 0.92,
       twinTurboBoost: {
-        boostKmh: 16,
-        boostAccelMult: 1.75,
-        boostDuration: 1.55,
+        boostKmh: 8,
+        boostAccelMult: 1.35,
+        boostDuration: 1.05,
       },
       lookAheadBase: 15,
-      rubberBandCatchup: 0.16,
+      rubberBandCatchup: 0.08,
       rubberBandEase: 0.0,          // GOD 라이벌: 앞서나가도 봐주지 않음
       laneBias: 0.9,
       useGutterRun: true,
