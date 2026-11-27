@@ -282,9 +282,22 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     targetLateral = targetLateral * 0.45 + sideOffset * 0.55;
   }
 
+  // Proactive wall cushion: if already hugging the guardrail (and not gutter-running), steer back toward safe interior
+  if (effectiveGutterSide === 0 && !rival.inGutter) {
+    const wallSafeMax = track.maxCarLateral - 0.65;
+    if (Math.abs(rival.lateral) > track.maxCarLateral - 0.95) {
+      const awayFromWall = -Math.sign(rival.lateral) * Math.min(1.6, track.maxCarLateral * 0.35);
+      // Pull targetLateral safely away from the wall so NPC never grinds into the guardrail
+      if (Math.sign(targetLateral) === Math.sign(rival.lateral) && Math.abs(targetLateral) > wallSafeMax - 0.8) {
+        targetLateral = Math.sign(rival.lateral) * (wallSafeMax - 1.1) + awayFromWall * 0.25;
+      }
+    }
+    targetLateral = Math.max(-wallSafeMax, Math.min(wallSafeMax, targetLateral));
+  }
+
   const latClamp = effectiveGutterSide !== 0
     ? Math.max(gutterRailLat, track.maxCarLateral * maxLatRatio)
-    : track.maxCarLateral * maxLatRatio;
+    : Math.min(track.maxCarLateral - 0.55, track.maxCarLateral * maxLatRatio);
   targetLateral = Math.max(-latClamp, Math.min(latClamp, targetLateral));
 
   // Decay AI gutter exit cooldown
@@ -386,27 +399,79 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     rival.scrapedWall = false;
     proj = track.getPointAtS(nextS);
   } else {
-    const baseLookAhead = ai.lookAheadBase + rival.speed * 0.3;
-    const nearPeak = track.getUpcomingCurvature(rival.s, 4, 42).peakAbs;
-    const lookAheadDist = Math.max(7.5, baseLookAhead / (1 + nearPeak * 68));
+    const baseLookAhead = ai.lookAheadBase + rival.speed * 0.28;
+    const nearPeak = track.getUpcomingCurvature(rival.s, 4, 40).peakAbs;
+    // Shorter lookahead on tight hairpins prevents aiming across the inside/outside guardrail
+    const lookAheadDist = Math.max(5.5, baseLookAhead / (1 + nearPeak * 76));
     const targetPt = track.getWorldPosition(rival.s + lookAheadDist, targetLateral);
 
     const desiredHeading = Math.atan2(targetPt.x - rival.x, targetPt.z - rival.z);
     headingDiff = wrapAngle(desiredHeading - rival.heading);
 
     // Smooth steering authority proportional to cornering stability (with hairpin & agile-car turn boost)
-    const hairpinBoost = nearPeak > 0.018 ? 1.45 : 1.0;
+    const hairpinBoost = nearPeak > 0.018 ? 1.55 : 1.0;
     const turnMult = ai.turnRateMult ?? 1.0;
-    const maxTurnRate = (2.8 + ai.cornerSpeedFactor * 1.45) * hairpinBoost * turnMult * dt;
-    const turnDelta = Math.max(-maxTurnRate, Math.min(maxTurnRate, headingDiff * 5.6 * turnMult * dt));
+    const maxTurnRate = (3.0 + ai.cornerSpeedFactor * 1.55) * hairpinBoost * turnMult * dt;
+    const turnDelta = Math.max(-maxTurnRate, Math.min(maxTurnRate, headingDiff * 6.0 * turnMult * dt));
     rival.heading = wrapAngle(rival.heading + turnDelta);
 
     // Advance on 2D X-Z plane
     rival.x += Math.sin(rival.heading) * rival.speed * dt;
     rival.z += Math.cos(rival.heading) * rival.speed * dt;
 
-    // Enforce 2D track boundaries
-    proj = enforceTrackBounds(rival, track, dt, 1.2);
+    // Enforce 2D track boundaries (lower wall friction for NPCs so grazing never kills momentum)
+    proj = enforceTrackBounds(rival, track, dt, 0.65);
+
+    // Layer 2: Active wall peel-off — immediately angle nose back into the road & nudge off guardrail
+    if (rival.scrapedWall) {
+      const wallSign = Math.sign(rival.lateral) || 1;
+      // Peel ~10 deg away from the guardrail relative to track tangent (right wall +1 -> turn left +rad)
+      const escapeHeading = wrapAngle(proj.heading + wallSign * 0.18);
+      const escapeErr = wrapAngle(escapeHeading - rival.heading);
+      rival.heading = wrapAngle(rival.heading + escapeErr * Math.min(1, dt * 16));
+
+      // Gently nudge 0.22m off the wall so next frame clears the boundary cleanly
+      const nudgedLat = rival.lateral - wallSign * Math.min(0.28, 3.2 * dt);
+      rival.lateral = nudgedLat;
+      rival.x = proj.centerX + proj.rx * nudgedLat;
+      rival.z = proj.centerZ + proj.rz * nudgedLat;
+
+      // Guarantee forward escape speed so NPC never stalls against the guardrail
+      rival.speed = Math.max(rival.speed, 12.0);
+    }
+  }
+
+  // Layer 3: Anti-stuck progress failsafe — if NPC progress stalls for >0.45s (e.g. wedged in hairpin),
+  // smoothly unstick onto the inner safe lane aligned with road tangent
+  const prevS = rival._prevProgressS ?? rival.s;
+  const forwardGain = rival.s - prevS;
+  rival._prevProgressS = rival.s;
+  if (rival.s > 25 && rival.s < track.finishS - 5 && forwardGain < 3.5 * dt) {
+    rival._stuckTimer = (rival._stuckTimer || 0) + dt;
+    if (rival._stuckTimer >= 0.45) {
+      const safeS = Math.min(track.totalLength, rival.s + 2.0);
+      const safePt = track.getPointAtS(safeS);
+      const safeLat = Math.max(
+        -(track.maxCarLateral - 1.8),
+        Math.min(track.maxCarLateral - 1.8, rival.lateral * 0.45)
+      );
+      rival.s = safeS;
+      rival.lateral = safeLat;
+      rival.x = safePt.x + safePt.rx * safeLat;
+      rival.z = safePt.z + safePt.rz * safeLat;
+      rival.heading = safePt.heading;
+      if (rival.travelHeading !== undefined) rival.travelHeading = safePt.heading;
+      rival.trackIndex = safePt.index;
+      rival.speed = Math.max(rival.speed, 16.5);
+      rival.scrapedWall = false;
+      rival.inGutter = false;
+      rival.gutterSide = 0;
+      rival._stuckTimer = 0;
+      rival._prevProgressS = safeS;
+      proj = safePt;
+    }
+  } else {
+    rival._stuckTimer = Math.max(0, (rival._stuckTimer || 0) - dt * 2.5);
   }
 
   // Expressive AI drift visual on corners (configurable per rival)
