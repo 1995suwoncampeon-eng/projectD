@@ -1,6 +1,6 @@
-import { PLAYER_PHYSICS } from './config.js?v=39';
+import { PLAYER_PHYSICS } from './config.js?v=40';
 import { wrapAngle } from './track.js';
-import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=41';
+import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=42';
 
 const KMH_TO_MS = 1 / 3.6;
 const MS_TO_KMH = 3.6;
@@ -28,13 +28,13 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   let hardBrakingEntry = false;
   let godFootPhase = 'grip'; // 'grip' | 'hairpin_out_sprint' | 'hairpin_spin_turn'
   let godFootHairpinSign = 0;
-  let buntaMode = 'straight'; // 'straight' | 'high_speed_drift' | 'gutter_hairpin'
+  let jhyMode = 'straight'; // 'straight' | 'high_speed_drift' | 'gutter_hairpin'
 
   if (ai.fullThrottleCorners) {
     // Full throttle through every corner — never lifts off the accelerator
     targetSpeedKmh = ai.maxSpeedKmh;
-  } else if (ai.buntaGodStyle) {
-    // BUNTA (GOD) hybrid touge mastery:
+  } else if (ai.jhyGodStyle) {
+    // JHY (GOD) hybrid touge mastery:
     // - Mid-to-high speed corners (0.006 <= |curv| < gutterMinCurv): faster-than-gutter inside-apex power drift!
     // - Low-to-mid speed tight hairpins (|curv| >= gutterMinCurv): precision drainage gutter run!
     const gutterMinCurv = ai.gutterMinCurvature ?? 0.024;
@@ -43,15 +43,15 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     const effectiveCornerAbs = Math.max(curAbs, shortAhead.peakAbs);
 
     if (effectiveCornerAbs >= gutterMinCurv) {
-      buntaMode = 'gutter_hairpin';
+      jhyMode = 'gutter_hairpin';
       const minCrawl = ai.maxSpeedKmh * (ai.minCornerSpeedRatio ?? 0.86);
       targetSpeedKmh = Math.max(minCrawl, ai.maxSpeedKmh / (1 + effectiveCornerAbs * 4.5));
     } else if (effectiveCornerAbs >= 0.0065) {
-      buntaMode = 'high_speed_drift';
+      jhyMode = 'high_speed_drift';
       // Carries MORE speed through mid-high speed corners than a gutter run via inside-apex drift!
       targetSpeedKmh = ai.maxSpeedKmh + (ai.highSpeedDriftBonusKmh ?? 8);
     } else {
-      buntaMode = 'straight';
+      jhyMode = 'straight';
       targetSpeedKmh = ai.maxSpeedKmh;
     }
   } else if (ai.godFootStyle) {
@@ -191,9 +191,9 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   // Hug inside apex on sharp turns (turning left -> negative right offset)
   const curPt = track.getPointAtS(rival.s);
   const gutterRailLat = track.maxCarLateral - 1.1;
-  // For buntaGodStyle, only engage drainage gutter on low-to-mid speed tight corners (hairpins);
-  // on mid-to-high speed corners, Bunta takes a faster inside-apex power drift instead!
-  const allowGutterNow = ai.useGutterRun && (!ai.buntaGodStyle || buntaMode === 'gutter_hairpin');
+  // For jhyGodStyle, only engage drainage gutter on low-to-mid speed tight corners (hairpins);
+  // on mid-to-high speed corners, JHY takes a faster inside-apex power drift instead!
+  const allowGutterNow = ai.useGutterRun && (!ai.jhyGodStyle || jhyMode === 'gutter_hairpin');
   const aheadGutterPt = allowGutterNow
     ? track.getPointAtS(Math.min(track.totalLength, rival.s + 18))
     : null;
@@ -203,10 +203,10 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
 
   const apexRatio = ai.apexRatio ?? 0.56;
   const maxLatRatio = ai.maxLateralRatio ?? 0.78;
-  const nearCurv = (ai.fullThrottleCorners || ai.buntaGodStyle)
+  const nearCurv = (ai.fullThrottleCorners || ai.jhyGodStyle)
     ? track.getUpcomingCurvature(rival.s, 4, 48)
     : { peakAbs, signedPeak };
-  const curveThreshold = (ai.fullThrottleCorners || ai.buntaGodStyle) ? 0.0035 : 0.0065;
+  const curveThreshold = (ai.fullThrottleCorners || ai.jhyGodStyle) ? 0.0035 : 0.0065;
 
   let targetLateral = ai.laneBias;
   if (activeGutterSide !== 0) {
@@ -239,12 +239,12 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     targetLateral = insideDir * (track.maxCarLateral * apexRatio);
   }
 
-  // Polite lateral spacing when side-by-side with player (skipped if apex-locked, Bunta high-speed drift, or gutter-running)
+  // Polite lateral spacing when side-by-side with player (skipped if apex-locked, JHY high-speed drift, or gutter-running)
   const longDiff = Math.abs(rival.s - player.s);
   if (
     longDiff < 14 &&
     activeGutterSide === 0 &&
-    !((ai.fullThrottleCorners || ai.buntaGodStyle) && Math.abs(nearCurv.signedPeak) > curveThreshold)
+    !((ai.fullThrottleCorners || ai.jhyGodStyle) && Math.abs(nearCurv.signedPeak) > curveThreshold)
   ) {
     const sideOffset = player.lateral > 0 ? -2.4 : 2.4;
     targetLateral = targetLateral * 0.45 + sideOffset * 0.55;
@@ -260,7 +260,7 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     rival.gutterCooldown = Math.max(0, rival.gutterCooldown - dt);
   }
 
-  // Engage / release gutter hook for gutter-run rivals (e.g. BUNTA on low-mid speed hairpins)
+  // Engage / release gutter hook for gutter-run rivals (e.g. JHY on low-mid speed hairpins)
   if (allowGutterNow) {
     if (rival.inGutter) {
       if (curPt.gutterSide !== rival.gutterSide || rival.speed < 2.0) {
@@ -311,10 +311,10 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
       rival.gutterSide = 0;
       rival.gutterCooldown = 0.45;
     }
-  } else if (ai.fullThrottleCorners || (ai.buntaGodStyle && buntaMode === 'high_speed_drift')) {
-    // High-precision spline-locked inside-apex tracking so full-throttle / Bunta high-speed drift
+  } else if (ai.fullThrottleCorners || (ai.jhyGodStyle && jhyMode === 'high_speed_drift')) {
+    // High-precision spline-locked inside-apex tracking so full-throttle / JHY high-speed drift
     // hugs right up to the inside guardrail without scraping or losing momentum.
-    const latFollow = 1 - Math.exp(-dt * (ai.buntaGodStyle ? 6.8 : 5.2));
+    const latFollow = 1 - Math.exp(-dt * (ai.jhyGodStyle ? 6.8 : 5.2));
     const nextLat = Math.max(
       -track.maxCarLateral * maxLatRatio,
       Math.min(track.maxCarLateral * maxLatRatio, rival.lateral + (targetLateral - rival.lateral) * latFollow)
@@ -367,15 +367,15 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
   const speedKmh = rival.speed * MS_TO_KMH;
   const driftThreshold = ai.driftCurvatureThreshold ?? 0.0085;
   const isGodFootSpinTurn = ai.godFootStyle && godFootPhase === 'hairpin_spin_turn';
-  const isBuntaHighSpeedDrift = ai.buntaGodStyle && buntaMode === 'high_speed_drift';
+  const isJhyHighSpeedDrift = ai.jhyGodStyle && jhyMode === 'high_speed_drift';
   const driftSlip = isGodFootSpinTurn ? 0.56 : (ai.driftSlipRad ?? 0.34);
-  const entryCurv = (ai.fullThrottleCorners || ai.buntaGodStyle)
+  const entryCurv = (ai.fullThrottleCorners || ai.jhyGodStyle)
     ? track.getUpcomingCurvature(rival.s, 0, 24).signedPeak
     : proj.curvature;
   const effectiveCurv = Math.abs(proj.curvature) >= Math.abs(entryCurv) ? proj.curvature : entryCurv;
   const aiDrifting = ai.godFootStyle
     ? isGodFootSpinTurn && speedKmh > 32
-    : isBuntaHighSpeedDrift
+    : isJhyHighSpeedDrift
       ? !rival.inGutter && Math.abs(effectiveCurv) > 0.0055 && speedKmh > 55
       : !ai.noDrift && !rival.inGutter && Math.abs(effectiveCurv) > driftThreshold && speedKmh > 52;
   rival.isDrifting = aiDrifting;

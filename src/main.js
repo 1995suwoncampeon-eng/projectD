@@ -6,7 +6,7 @@ import {
   PLAYER_THEME,
   PLAYER_CARS,
   RIVALS,
-} from './config.js?v=39';
+} from './config.js?v=40';
 import { TougeTrack } from './track.js?v=14';
 import { buildTougeEnvironment } from './trackRenderer.js?v=21';
 import { loadCarModel } from './carModel.js?v=18';
@@ -16,12 +16,12 @@ import {
   recoverVehicleToTrack,
   updatePlayerPhysics,
   resolveCarCollision,
-} from './physics.js?v=41';
-import { updateRivalAI } from './ai.js?v=24';
+} from './physics.js?v=42';
+import { updateRivalAI } from './ai.js?v=25';
 import { EffectsManager } from './effects.js?v=15';
 import { ArcadeAudio } from './audio.js?v=14';
 import { HudController } from './hud.js?v=7';
-import { UIController } from './ui.js?v=38';
+import { UIController } from './ui.js?v=39';
 
 class ProjectDGame {
   constructor() {

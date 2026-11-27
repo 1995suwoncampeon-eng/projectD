@@ -9,7 +9,7 @@
  *  -Math.PI / 2 -> model front faces +X
  */
 
-import { RIVAL_CUTSCENES } from './dialogues.js?v=18';
+import { RIVAL_CUTSCENES } from './dialogues.js?v=19';
 
 // ============================================================================
 // 3D CAR MODEL SETTINGS (Edit here when dropping in custom .glb models)
@@ -360,8 +360,8 @@ export const RIVALS = [
     cutscenes: RIVAL_CUTSCENES.master1,
   },
   {
-    id: 'bunta',
-    name: 'BUNTA',
+    id: 'jhy',
+    name: 'JHY',
     team: 'FUJIWARA TOFU',
     difficulty: 'GOD',
     difficultyKr: '신',
@@ -385,7 +385,7 @@ export const RIVALS = [
       maxSpeedKmh: 112,
       accel: 5.85,
       cornerSpeedFactor: 0.99,
-      buntaGodStyle: true,          // 중고속 코너: 도랑타기보다 빠른 인코스 드리프트 / 중저속 급코너: 도랑타기
+      jhyGodStyle: true,            // 중고속 코너: 도랑타기보다 빠른 인코스 드리프트 / 중저속 급코너: 도랑타기
       gutterMinCurvature: 0.024,    // 급코너·헤어핀에서만 도랑타기 발동
       highSpeedDriftBonusKmh: 8,    // 중고속 코너 드리프트 통과 시 도랑타기보다 빠른 속도 유지
       driftSlipRad: 0.36,
@@ -406,7 +406,7 @@ export const RIVALS = [
       laneBias: 0.9,
       useGutterRun: true,
     },
-    cutscenes: RIVAL_CUTSCENES.bunta,
+    cutscenes: RIVAL_CUTSCENES.jhy,
   },
 ];
 
@@ -510,7 +510,7 @@ const PLAYER_CAR_SPECS = {
       driftBoostMaxKmh: 9,
     },
   },
-  bunta: {
+  jhy: {
     specTag: '4WD · 112km/h · 최강 트랙션 / 올라운더',
     physics: {
       maxSpeedKmh: 112,

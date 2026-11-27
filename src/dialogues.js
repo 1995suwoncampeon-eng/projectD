@@ -2,12 +2,12 @@
  * 라이벌별 컷신 대사 & 캐릭터 이미지 설정 파일 (총 8명)
  *
  * 수정 방법:
- * - 각 라이벌(rookie1 / shingo / takeshi / keisuke / kozo / ryosuke / master1 / bunta)의
+ * - 각 라이벌(rookie1 / shingo / takeshi / keisuke / kozo / ryosuke / master1 / jhy)의
  *   `intro`(시작 전), `midrace`(코스 후반부 5연속 헤어핀 진입 시 2페이즈 돌입), `outro`(종료 후)를 편집하세요.
  * - `characterImage`: 해당 컷신 기본 캐릭터 이미지 경로 (예: 'assets/cutscenes/takeshi.png')
  * - `midrace`: 주행 중 우측 중상단 라이벌 현황 사진(1페이즈 → 2페이즈) 및 5연속 헤어핀 진입 중간 대사
  *     - phase1Image : 경기 시작~중반 우측 중상단에 표시할 1페이즈 이미지 (null이면 intro.characterImage 사용)
- *     - phase2Image : 5연속 헤어핀 진입 시 전환할 2페이즈 이미지 (예: 'assets/cutscenes/bunta_phase2.png')
+ *     - phase2Image : 5연속 헤어핀 진입 시 전환할 2페이즈 이미지 (예: 'assets/cutscenes/JHY_AURA.png')
  *     - text        : 5연속 헤어핀 직전 진입 시 우측 중상단에 출력될 중간 대사
  *     - durationSec : 중간 대사 말풍선 유지 시간(초, 기본 4.8초)
  * - `lines`: 대사 문단 배열
@@ -339,7 +339,7 @@ export const RIVAL_CUTSCENES = {
   },
 
   // ==========================================================================
-  // 7. LEGEND (달인 // MASTER — 료스케와 분타 사이)
+  // 7. LEGEND (달인 // MASTER — 료스케와 JHY 사이)
   // ==========================================================================
   master1: {
     intro: {
@@ -392,22 +392,22 @@ export const RIVAL_CUTSCENES = {
   },
 
   // ==========================================================================
-  // 8. BUNTA (신 // GOD)
+  // 8. JHY (신 // GOD)
   // ==========================================================================
-  bunta: {
+  jhy: {
     intro: {
       enabled: true,
-      title: 'VS BUNTA // FUJIWARA TOFU',
-      characterImage: 'assets/cutscenes/JHY.jpg', // 예: 'assets/cutscenes/bunta.png'
+      title: 'VS JHY // FUJIWARA TOFU',
+      characterImage: 'assets/cutscenes/JHY.jpg',
       lines: [
         {
-          speaker: 'BUNTA',
+          speaker: 'JHY',
           color: '#e879f9',
           image: 'assets/cutscenes/JHY.jpg',
           text: '[.....]',
         },
         {
-          speaker: 'BUNTA',
+          speaker: 'JHY',
           color: '#e879f9',
           image: 'assets/cutscenes/JHY.jpg',
           text: '[.....!]',
@@ -416,30 +416,30 @@ export const RIVAL_CUTSCENES = {
     },
     outro: {
       enabled: true,
-      title: 'AFTER BATTLE // BUNTA',
+      title: 'AFTER BATTLE // JHY',
       characterImage: 'assets/cutscenes/JHY.jpg',
       lines: [
         {
-          speaker: 'BUNTA',
+          speaker: 'JHY',
           color: '#e879f9',
           image: null,
           text: '[.....]',
         },
         {
-          speaker: 'BUNTA',
+          speaker: 'JHY',
           color: '#e879f9',
           image: null,
-          text: '[BUNTA 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
+          text: '[JHY 종료 후 대사 2 — 대화창을 클릭하면 결과 화면으로 이동합니다]',
         },
       ],
     },
     midrace: {
       enabled: true,
-      phase1Image: 'assets/cutscenes/JHY_Side.jpg', // 예: 'assets/cutscenes/bunta_phase1.png'
-      phase2Image: 'assets/cutscenes/JHY_AURA.png', // 예: 'assets/cutscenes/bunta_phase2.png'
-      speaker: 'BUNTA',
+      phase1Image: 'assets/cutscenes/JHY_Side.jpg',
+      phase2Image: 'assets/cutscenes/JHY_AURA.png',
+      speaker: 'JHY',
       color: '#e879f9',
-      text: '[BUNTA 중간 대사 — 5연속 헤어핀 진입! (src/dialogues.js에서 수정하세요)]',
+      text: '[JHY 중간 대사 — 5연속 헤어핀 진입! (src/dialogues.js에서 수정하세요)]',
       durationSec: 4.8,
     },
   },
