@@ -288,9 +288,18 @@ export class UIController {
 
     const isIntro = phase === 'intro';
     const slot = rival.cutscenes?.[phase] || {};
-    const rawLines = Array.isArray(slot.lines) && slot.lines.length > 0
+    const allLines = Array.isArray(slot.lines) && slot.lines.length > 0
       ? slot.lines
       : [{ speaker: rival.name, color: rival.colorHex, image: null, text: `[${rival.name} 컷신 대사 영역]` }];
+
+    // Intro: play all lines in order (1 -> 2 -> start race).
+    // Outro: show only line 1 on player defeat (NPC win), or only line 2 on player victory (NPC defeat).
+    let rawLines = allLines;
+    if (!isIntro && won !== null) {
+      const targetIndex = won ? 1 : 0;
+      const picked = allLines[targetIndex] ?? allLines[0];
+      rawLines = [picked];
+    }
 
     if (this.cutscenePhaseBadge) {
       const outcomeTag = !isIntro && won !== null ? (won ? ' // VICTORY' : ' // DEFEAT') : '';

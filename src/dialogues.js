@@ -5,7 +5,9 @@
  * - 각 라이벌(rookie1 / rookie2 / takeshi / keisuke / expert1 / ryosuke / master1 / bunta)의
  *   `intro`(시작 전), `outro`(종료 후)를 편집하세요.
  * - `characterImage`: 해당 컷신 기본 캐릭터 이미지 경로 (예: 'assets/cutscenes/takeshi.png')
- * - `lines`: 대사 문단 배열 (대화창 클릭 시 순서대로 넘어감)
+ * - `lines`: 대사 문단 배열
+ *     - `intro.lines` : 시작 전 대사 (1번 → 2번 순서대로 출력 후 레이스 시작)
+ *     - `outro.lines` : 종료 후 대사 (1번 = 플레이어 패배/NPC 승리 시 출력, 2번 = 플레이어 승리/NPC 패배 시 출력)
  *     - speaker : 화자 이름
  *     - color   : 화자 네임플레이트 강조 색상
  *     - image   : (선택) 특정 문단에서만 다른 표정/캐릭터 이미지로 바꾸고 싶을 때 경로 지정
