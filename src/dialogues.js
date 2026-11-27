@@ -398,18 +398,18 @@ export const RIVAL_CUTSCENES = {
     intro: {
       enabled: true,
       title: 'VS BUNTA // FUJIWARA TOFU',
-      characterImage: 'assets/cutscenes/JHY.png', // 예: 'assets/cutscenes/bunta.png'
+      characterImage: 'assets/cutscenes/JHY.jpg', // 예: 'assets/cutscenes/bunta.png'
       lines: [
         {
           speaker: 'BUNTA',
           color: '#e879f9',
-          image: 'assets/cutscenes/JHY.png,
+          image: 'assets/cutscenes/JHY.jpg',
           text: '[.....]',
         },
         {
           speaker: 'BUNTA',
           color: '#e879f9',
-          image: 'assets/cutscenes/JHY.png',
+          image: 'assets/cutscenes/JHY.jpg',
           text: '[.....!]',
         },
       ],
@@ -417,7 +417,7 @@ export const RIVAL_CUTSCENES = {
     outro: {
       enabled: true,
       title: 'AFTER BATTLE // BUNTA',
-      characterImage: null,
+      characterImage: 'assets/cutscenes/JHY.jpg',
       lines: [
         {
           speaker: 'BUNTA',
@@ -435,7 +435,7 @@ export const RIVAL_CUTSCENES = {
     },
     midrace: {
       enabled: true,
-      phase1Image: 'assets/cutscenes/JHY_Side.jpeg', // 예: 'assets/cutscenes/bunta_phase1.png'
+      phase1Image: 'assets/cutscenes/JHY_Side.jpg', // 예: 'assets/cutscenes/bunta_phase1.png'
       phase2Image: 'assets/cutscenes/JHY_AURA.png', // 예: 'assets/cutscenes/bunta_phase2.png'
       speaker: 'BUNTA',
       color: '#e879f9',

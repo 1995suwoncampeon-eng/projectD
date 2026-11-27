@@ -1,4 +1,4 @@
-import { PLAYER_PHYSICS } from './config.js?v=38';
+import { PLAYER_PHYSICS } from './config.js?v=39';
 import { wrapAngle } from './track.js';
 import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=41';
 
