@@ -7,7 +7,7 @@ import {
   PLAYER_CARS,
   RIVALS,
 } from './config.js?v=48';
-import { TougeTrack } from './track.js?v=14';
+import { TougeTrack } from './track.js?v=15';
 import { buildTougeEnvironment } from './trackRenderer.js?v=21';
 import { loadCarModel } from './carModel.js?v=18';
 import {

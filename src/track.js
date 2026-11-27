@@ -193,6 +193,33 @@ export class TougeTrack {
         rawGutter[i] = c > 0 ? -1 : 1;
       }
     }
+
+    // In the 5-consecutive hairpin zone (z in -938..-1148), place gutters only on every 2nd hairpin
+    // (Hairpins #1, #3, #5 keep gutters; Hairpins #2 and #4 have no gutter for balanced skill play)
+    let hairpinCount = 0;
+    let idx = 0;
+    while (idx < n) {
+      const side = rawGutter[idx];
+      if (side === 0) {
+        idx++;
+        continue;
+      }
+      const segStart = idx;
+      while (idx < n && rawGutter[idx] === side) {
+        idx++;
+      }
+      const segEnd = idx - 1;
+      const midZ = this.samples[(segStart + segEnd) >> 1].z;
+      if (midZ < -938 && midZ > -1148) {
+        hairpinCount++;
+        if (hairpinCount % 2 === 0) {
+          for (let k = segStart; k <= segEnd; k++) {
+            rawGutter[k] = 0;
+          }
+        }
+      }
+    }
+
     // Extend each gutter (6 samples ~12m) so exit releases cleanly on the straightaway
     const pad = 6;
     for (let i = 0; i < n; i++) {
