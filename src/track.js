@@ -188,6 +188,10 @@ export class TougeTrack {
     const n = this.samples.length;
     const rawGutter = new Int8Array(n);
     for (let i = 0; i < n; i++) {
+      const z = this.samples[i].z;
+      // Exclude Kansei Drift Combo #1 (-372..-492) and #2 (-670..-808) from gutters
+      const inKanseiCombo = (z <= -370 && z >= -495) || (z <= -668 && z >= -812);
+      if (inKanseiCombo) continue;
       const c = this.samples[i].curvature;
       if (Math.abs(c) > 0.011) {
         rawGutter[i] = c > 0 ? -1 : 1;
