@@ -398,18 +398,18 @@ export const RIVAL_CUTSCENES = {
     intro: {
       enabled: true,
       title: 'VS BUNTA // FUJIWARA TOFU',
-      characterImage: null, // 예: 'assets/cutscenes/bunta.png'
+      characterImage: 'assets/cutscenes/JHY.png', // 예: 'assets/cutscenes/bunta.png'
       lines: [
         {
           speaker: 'BUNTA',
           color: '#e879f9',
-          image: null,
+          image: 'assets/cutscenes/JHY.png,
           text: '[.....]',
         },
         {
           speaker: 'BUNTA',
           color: '#e879f9',
-          image: null,
+          image: 'assets/cutscenes/JHY.png',
           text: '[.....!]',
         },
       ],
@@ -435,8 +435,8 @@ export const RIVAL_CUTSCENES = {
     },
     midrace: {
       enabled: true,
-      phase1Image: null, // 예: 'assets/cutscenes/bunta_phase1.png'
-      phase2Image: null, // 예: 'assets/cutscenes/bunta_phase2.png'
+      phase1Image: 'assets/cutscenes/JHY_Side.jpeg', // 예: 'assets/cutscenes/bunta_phase1.png'
+      phase2Image: 'assets/cutscenes/JHY_AURA.png', // 예: 'assets/cutscenes/bunta_phase2.png'
       speaker: 'BUNTA',
       color: '#e879f9',
       text: '[BUNTA 중간 대사 — 5연속 헤어핀 진입! (src/dialogues.js에서 수정하세요)]',
