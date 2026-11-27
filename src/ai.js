@@ -1,6 +1,6 @@
-import { PLAYER_PHYSICS } from './config.js?v=40';
+import { PLAYER_PHYSICS } from './config.js?v=41';
 import { wrapAngle } from './track.js';
-import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=43';
+import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=44';
 
 const KMH_TO_MS = 1 / 3.6;
 const MS_TO_KMH = 3.6;
@@ -312,23 +312,36 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
       rival.gutterCooldown = 0.45;
     }
   } else if (ai.fullThrottleCorners || (ai.jhyGodStyle && jhyMode === 'high_speed_drift')) {
-    // High-precision spline-locked inside-apex tracking so full-throttle / JHY high-speed drift
-    // hugs right up to the inside guardrail without scraping or losing momentum.
-    const latFollow = 1 - Math.exp(-dt * (ai.jhyGodStyle ? 6.8 : 5.2));
+    // Spline-guided inside-apex tracking with physically bounded lateral dive speed
+    // and 2D speed conservation (prevents unnatural sideways teleporting in S-bends).
+    const latFollow = 1 - Math.exp(-dt * (ai.jhyGodStyle ? 3.4 : 4.2));
+    const desiredLat = Math.max(
+      -track.maxCarLateral * maxLatRatio,
+      Math.min(track.maxCarLateral * maxLatRatio, targetLateral)
+    );
+    const rawLatDelta = (desiredLat - rival.lateral) * latFollow;
+    const maxLatSpeed = Math.max(4.5, rival.speed * 0.32); // Realistic max ~18 deg lateral cut-in angle
+    const maxLatStep = maxLatSpeed * dt;
+    const clampedLatDelta = Math.max(-maxLatStep, Math.min(maxLatStep, rawLatDelta));
     const nextLat = Math.max(
       -track.maxCarLateral * maxLatRatio,
-      Math.min(track.maxCarLateral * maxLatRatio, rival.lateral + (targetLateral - rival.lateral) * latFollow)
+      Math.min(track.maxCarLateral * maxLatRatio, rival.lateral + clampedLatDelta)
     );
+    const actualLatDelta = nextLat - rival.lateral;
+
+    // Conserve total 2D travel distance: diagonal cut-in trades forward distance for lateral movement
+    const totalStep = rival.speed * dt;
+    const forwardStep = Math.sqrt(Math.max(totalStep * totalStep * 0.36, totalStep * totalStep - actualLatDelta * actualLatDelta));
     // Inside of a turn has a shorter physical arc length: ds_world = ds_center * (1 + k * lat)
     const arcScale = Math.max(0.75, Math.min(1.25, 1 + curPt.curvature * nextLat));
-    const nextS = Math.min(track.totalLength, rival.s + (rival.speed * dt) / arcScale);
+    const nextS = Math.min(track.totalLength, rival.s + forwardStep / arcScale);
     const nextPt = track.getWorldPosition(nextS, nextLat);
     const moveDx = nextPt.x - rival.x;
     const moveDz = nextPt.z - rival.z;
     if (moveDx * moveDx + moveDz * moveDz > 1e-6) {
       const targetHeading = Math.atan2(moveDx, moveDz);
       headingDiff = wrapAngle(targetHeading - rival.heading);
-      rival.heading = wrapAngle(rival.heading + headingDiff * Math.min(1, dt * 16));
+      rival.heading = wrapAngle(rival.heading + headingDiff * Math.min(1, dt * 12));
     } else {
       rival.heading = nextPt.heading;
     }

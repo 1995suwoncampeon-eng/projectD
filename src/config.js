@@ -387,7 +387,7 @@ export const RIVALS = [
       cornerSpeedFactor: 0.99,
       jhyGodStyle: true,            // 중고속 코너: 도랑타기보다 빠른 인코스 드리프트 / 중저속 급코너: 도랑타기
       gutterMinCurvature: 0.024,    // 급코너·헤어핀에서만 도랑타기 발동
-      highSpeedDriftBonusKmh: 8,    // 중고속 코너 드리프트 통과 시 도랑타기보다 빠른 속도 유지
+      highSpeedDriftBonusKmh: 4,    // 중고속 코너 드리프트 통과 시 도랑타기보다 빠른 속도 유지
       driftSlipRad: 0.36,
       coastOnlyCorners: true,
       cornerDecelScale: 0.22,
