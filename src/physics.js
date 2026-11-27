@@ -632,8 +632,13 @@ export function updatePlayerPhysics(car, input, track, dt, physicsOverride = nul
 }
 
 /**
- * Resolves 2D circle-based car-to-car contact so vehicles bounce cleanly off each other
- * without overlapping or tunneling through guardrails.
+ * Resolves 2D car-to-car contact so vehicles never overlap, tunnel, or deadlock.
+ * Special handling for gutter-run (도랑타기):
+ * - Both cars in the same gutter: resolve strictly along track arc-length `s`
+ *   (bumper-to-bumper) while preserving both cars' speeds and skipping
+ *   `enforceTrackBounds`, preventing hairpin projection deadlocks at ~4m gap.
+ * - One car in gutter, one outside: push only the non-guttered car aside so the
+ *   guttered car stays smoothly on its rail without losing speed.
  */
 export function resolveCarCollision(carA, carB, track) {
   const minDist = PLAYER_PHYSICS.carCollisionRadius * 2;
@@ -645,6 +650,58 @@ export function resolveCarCollision(carA, carB, track) {
     return null;
   }
 
+  // Case 1: Both cars are riding the same drainage gutter rail
+  if (carA.inGutter && carB.inGutter && carA.gutterSide === carB.gutterSide) {
+    const leader = carA.s >= carB.s ? carA : carB;
+    const trailer = leader === carA ? carB : carA;
+
+    // Account for shorter physical arc length on the inside of tight hairpins
+    const leaderPt = track.getPointAtS(leader.s);
+    const arcScale = Math.max(0.72, Math.min(1.25, 1 + (leaderPt.curvature || 0) * trailer.lateral));
+    const minArcS = minDist / arcScale;
+
+    // Place trailer cleanly behind leader along the spline without touching speeds or calling enforceTrackBounds
+    const targetTrailerS = Math.max(0, leader.s - minArcS);
+    if (trailer.s > targetTrailerS) {
+      const pt = track.getPointAtS(targetTrailerS);
+      trailer.s = targetTrailerS;
+      trailer.x = pt.x + pt.rx * trailer.lateral;
+      trailer.z = pt.z + pt.rz * trailer.lateral;
+      trailer.heading = pt.heading;
+      if (trailer.travelHeading !== undefined) {
+        trailer.travelHeading = pt.heading;
+      }
+      trailer.trackIndex = pt.index;
+      trailer.scrapedWall = false;
+    }
+
+    return {
+      x: (carA.x + carB.x) * 0.5,
+      z: (carA.z + carB.z) * 0.5,
+    };
+  }
+
+  // Case 2: Only one car is locked in a gutter — push only the free car out of the way
+  if (carA.inGutter !== carB.inGutter) {
+    const gutterCar = carA.inGutter ? carA : carB;
+    const freeCar = carA.inGutter ? carB : carA;
+    const fdx = freeCar.x - gutterCar.x;
+    const fdz = freeCar.z - gutterCar.z;
+    const fDist = Math.sqrt(fdx * fdx + fdz * fdz);
+    if (fDist > 1e-4) {
+      const push = (minDist - fDist) * 1.04;
+      freeCar.x += (fdx / fDist) * push;
+      freeCar.z += (fdz / fDist) * push;
+      enforceTrackBounds(freeCar, track, 1 / 60, 0.5);
+    }
+
+    return {
+      x: (carA.x + carB.x) * 0.5,
+      z: (carA.z + carB.z) * 0.5,
+    };
+  }
+
+  // Case 3: Standard open-road 2D circle collision
   const dist = Math.sqrt(distSq);
   const overlap = (minDist - dist) * 0.52;
   const nx = dx / dist;
