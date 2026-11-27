@@ -267,9 +267,26 @@ export const RIVALS = [
       apexRatio: 0.78,
       maxLateralRatio: 0.86,
       lookAheadBase: 16.5,
-      rubberBandCatchup: 0.10,
-      rubberBandEase: 0.06,
+      twinTurboBoost: {
+        boostKmh: 8,
+        boostAccelMult: 1.85,
+        boostDuration: 1.35,
+      },
+      rubberBandCatchup: 0.13,
+      rubberBandEase: 0.03,
       laneBias: 1.1,
+      // 2페이즈(5연속 헤어핀 스핀턴): 드리프트 휠스핀 상태로 탈출하는 초폭발 4WD 가속!
+      phase2: {
+        triggerZ: -925,
+        accel: 7.20,
+        twinTurboBoost: {
+          boostKmh: 12,
+          boostAccelMult: 3.4,
+          boostDuration: 1.55,
+        },
+        rubberBandCatchup: 0.15,
+        rubberBandEase: 0.0,
+      },
     },
     cutscenes: RIVAL_CUTSCENES.kozo,
   },

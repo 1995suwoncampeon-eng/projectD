@@ -1,6 +1,6 @@
-import { PLAYER_PHYSICS } from './config.js?v=46';
+import { PLAYER_PHYSICS } from './config.js?v=47';
 import { wrapAngle } from './track.js';
-import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=49';
+import { enforceTrackBounds, updateDrivetrain } from './physics.js?v=50';
 
 const KMH_TO_MS = 1 / 3.6;
 const MS_TO_KMH = 3.6;
@@ -67,11 +67,12 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
     const curAbs = Math.abs(entryPt.curvature);
 
     if (in5HairpinZone && (curAbs > 0.022 || immediateAhead.peakAbs > 0.032)) {
-      // Phase 2: Hard brake and snap spin-turn into the inside apex
+      // Phase 2: Hard brake and snap spin-turn into the inside apex (tires spinning for instant exit launch)
       godFootPhase = 'hairpin_spin_turn';
       godFootHairpinSign = curAbs > 0.022 ? Math.sign(entryPt.curvature) : Math.sign(immediateAhead.signedPeak);
       hardBrakingEntry = true;
-      targetSpeedKmh = curAbs > 0.028 ? 58 : 52;
+      rival.spinTurnCharged = true;
+      targetSpeedKmh = curAbs > 0.028 ? 68 : 62;
     } else if (in5HairpinZone && hairpinAhead.peakAbs > 0.032) {
       // Phase 1: Sprint hard along the outside line approaching the hairpin
       godFootPhase = 'hairpin_out_sprint';
@@ -87,10 +88,17 @@ export function updateRivalAI(rival, player, rivalConfig, track, dt) {
         targetSpeedKmh = ai.maxSpeedKmh;
       } else if (immediateAhead.peakAbs > 0.009) {
         hardBrakingEntry = true;
-        targetSpeedKmh = Math.max(54, ai.maxSpeedKmh / (1 + immediateAhead.peakAbs * 30));
+        targetSpeedKmh = Math.max(64, ai.maxSpeedKmh / (1 + immediateAhead.peakAbs * 24));
       } else {
         targetSpeedKmh = ai.maxSpeedKmh;
       }
+    }
+
+    // Leaving a spin-turn with tires already spinning -> fire immediate 4WD exit boost!
+    if (rival.spinTurnCharged && godFootPhase !== 'hairpin_spin_turn' && turboCfg) {
+      rival.spinTurnCharged = false;
+      rival.turboBoostTimer = turboCfg.boostDuration;
+      rival.cornerExitCharge = 0;
     }
   } else if (ai.lateBrakeApexFullThrottle) {
     // Grip-turbo style (e.g. Takeshi): hard brake on corner entry, then full throttle through the apex!
